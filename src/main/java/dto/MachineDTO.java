@@ -10,5 +10,5 @@ public class MachineDTO {
     private String typeMachine;
     private String etatMachine;
     private Integer capacite;
-    private Long huilerieId;
+    private String huilerieNom;
 }

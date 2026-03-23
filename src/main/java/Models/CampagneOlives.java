@@ -2,10 +2,12 @@ package Models;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDate;
+import java.util.List;
 
 @Entity
-@Table(name = "campagne_olives")
+@Table(name = "campagne_olives", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_campagne_annee", columnNames = "annee")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,11 +17,15 @@ public class CampagneOlives {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idCampagne;
 
-    private Integer annee;
-    private LocalDate dateDebut;
-    private LocalDate dateFin;
+    @Column(nullable = false, unique = true)
+    private String annee;
+    private String dateDebut;
+    private String dateFin;
 
     @ManyToOne
     @JoinColumn(name = "huilerie_id")
     private Huilerie huilerie;
+
+    @OneToMany(mappedBy = "campagne")
+    private List<LotOlives> lots;
 }

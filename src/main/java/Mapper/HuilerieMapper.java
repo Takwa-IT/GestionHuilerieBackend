@@ -12,11 +12,22 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface HuilerieMapper {
 
-    @Mapping(target = "entreprise", ignore = true) // géré dans le service
+    @Mapping(target = "idHuilerie", ignore = true)
+    @Mapping(target = "entreprise", ignore = true)
+    @Mapping(target = "machines", ignore = true)
+    @Mapping(target = "campagnesOlives", ignore = true)
+    @Mapping(target = "stocks", ignore = true)
+    @Mapping(target = "productions", ignore = true)
     Huilerie toEntity(HuilerieCreateDTO dto);
 
+    @Mapping(target = "entrepriseId", source = "entreprise.idEntreprise")
     HuilerieDTO toDTO(Huilerie entity);
 
+    @Mapping(target = "idHuilerie", ignore = true)
     @Mapping(target = "entreprise", ignore = true)
+    @Mapping(target = "machines", ignore = true)
+    @Mapping(target = "campagnesOlives", ignore = true)
+    @Mapping(target = "stocks", ignore = true)
+    @Mapping(target = "productions", ignore = true)
     void updateFromDTO(HuilerieUpdateDTO dto, @MappingTarget Huilerie entity);
 }

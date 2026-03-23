@@ -19,6 +19,6 @@ public class MachineCreateDTO {
     @NotNull
     private Integer capacite;
 
-    @NotNull
-    private Long huilerieId;
+    @NotBlank
+    private String huilerieNom;
 }

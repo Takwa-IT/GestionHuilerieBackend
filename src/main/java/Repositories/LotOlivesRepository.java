@@ -1,0 +1,9 @@
+package Repositories;
+
+import Models.LotOlives;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface LotOlivesRepository extends JpaRepository<LotOlives, Long> {
+}

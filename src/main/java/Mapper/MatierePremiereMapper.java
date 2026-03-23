@@ -1,0 +1,25 @@
+package Mapper;
+
+import Models.MatierePremiere;
+import dto.MatierePremiereCreateDTO;
+import dto.MatierePremiereDTO;
+import dto.MatierePremiereUpdateDTO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+
+@Mapper(componentModel = "spring")
+public interface MatierePremiereMapper {
+
+    @Mapping(target = "idMatierePremiere", ignore = true)
+    @Mapping(target = "lots", ignore = true)
+    @Mapping(target = "machinesAffectees", ignore = true)
+    MatierePremiere toEntity(MatierePremiereCreateDTO dto);
+
+    MatierePremiereDTO toDTO(MatierePremiere entity);
+
+    @Mapping(target = "idMatierePremiere", ignore = true)
+    @Mapping(target = "lots", ignore = true)
+    @Mapping(target = "machinesAffectees", ignore = true)
+    void updateFromDTO(MatierePremiereUpdateDTO dto, @MappingTarget MatierePremiere entity);
+}

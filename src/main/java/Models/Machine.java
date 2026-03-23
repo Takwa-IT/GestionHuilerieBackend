@@ -25,6 +25,87 @@ public class Machine {
     @JoinColumn(name = "huilerie_id")
     private Huilerie huilerie;
 
+    @ManyToOne
+    @JoinColumn(name = "matiere_premiere_id")
+    private MatierePremiere matierePremiere;
+
     @OneToMany(mappedBy = "machine", cascade = CascadeType.ALL)
     private List<Maintenance> maintenances;
+
+    @OneToMany(mappedBy = "machine")
+    private List<Production> productions;
+
+
+    public Long getIdMachine() {
+        return idMachine;
+    }
+
+    public void setIdMachine(Long idMachine) {
+        this.idMachine = idMachine;
+    }
+
+    public String getNomMachine() {
+        return nomMachine;
+    }
+
+    public void setNomMachine(String nomMachine) {
+        this.nomMachine = nomMachine;
+    }
+
+    public String getTypeMachine() {
+        return typeMachine;
+    }
+
+    public void setTypeMachine(String typeMachine) {
+        this.typeMachine = typeMachine;
+    }
+
+    public String getEtatMachine() {
+        return etatMachine;
+    }
+
+    public void setEtatMachine(String etatMachine) {
+        this.etatMachine = etatMachine;
+    }
+
+    public Integer getCapacite() {
+        return capacite;
+    }
+
+    public void setCapacite(Integer capacite) {
+        this.capacite = capacite;
+    }
+
+    public Huilerie getHuilerie() {
+        return huilerie;
+    }
+
+    public void setHuilerie(Huilerie huilerie) {
+        this.huilerie = huilerie;
+    }
+
+    public MatierePremiere getMatierePremiere() {
+        return matierePremiere;
+    }
+
+    public void setMatierePremiere(MatierePremiere matierePremiere) {
+        this.matierePremiere = matierePremiere;
+    }
+
+    public List<Maintenance> getMaintenances() {
+        return
+                maintenances;
+    }
+
+    public void setMaintenances(List<Maintenance> maintenances) {
+        this.maintenances = maintenances;
+    }
+
+    public List<Production> getProductions() {
+        return productions;
+    }
+
+    public void setProductions(List<Production> productions) {
+        this.productions = productions;
+    }
 }

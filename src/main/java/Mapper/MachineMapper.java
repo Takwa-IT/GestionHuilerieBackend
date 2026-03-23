@@ -13,14 +13,18 @@ public interface MachineMapper {
 
     @Mapping(target = "idMachine", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
+    @Mapping(target = "matierePremiere", ignore = true)
     @Mapping(target = "maintenances", ignore = true)
+    @Mapping(target = "productions", ignore = true)
     Machine toEntity(MachineCreateDTO dto);
 
-    @Mapping(target = "huilerieId", source = "huilerie.idHuilerie")
+    @Mapping(target = "huilerieNom", source = "huilerie.nom")
     MachineDTO toDTO(Machine entity);
 
     @Mapping(target = "idMachine", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
+    @Mapping(target = "matierePremiere", ignore = true)
     @Mapping(target = "maintenances", ignore = true)
+    @Mapping(target = "productions", ignore = true)
     void updateFromDTO(MachineUpdateDTO dto, @MappingTarget Machine entity);
 }

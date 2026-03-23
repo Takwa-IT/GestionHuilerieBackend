@@ -24,26 +24,26 @@ public class HuilerieController {
         return new ResponseEntity<>(huilerieService.create(dto), HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<HuilerieDTO> update(@PathVariable Long id, @Valid @RequestBody HuilerieUpdateDTO dto) {
-        return ResponseEntity.ok(huilerieService.update(id, dto));
+    @PutMapping("/{idHuilerie}")
+    public ResponseEntity<HuilerieDTO> update(@PathVariable Long idHuilerie, @Valid @RequestBody HuilerieUpdateDTO dto) {
+        return ResponseEntity.ok(huilerieService.update(idHuilerie, dto));
     }
 
-    @PatchMapping("/{id}/activate")
-    public ResponseEntity<Void> activate(@PathVariable Long id) {
-        huilerieService.activate(id);
+    @PatchMapping("/{idHuilerie}/activate")
+    public ResponseEntity<Void> activate(@PathVariable Long idHuilerie) {
+        huilerieService.activate(idHuilerie);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
-        huilerieService.deactivate(id);
+    @PatchMapping("/{idHuilerie}/deactivate")
+    public ResponseEntity<Void> deactivate(@PathVariable Long idHuilerie) {
+        huilerieService.deactivate(idHuilerie);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<HuilerieDTO> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(huilerieService.findById(id));
+    @GetMapping("/{idHuilerie}")
+    public ResponseEntity<HuilerieDTO> findById(@PathVariable Long idHuilerie) {
+        return ResponseEntity.ok(huilerieService.findById(idHuilerie));
     }
 
     @GetMapping

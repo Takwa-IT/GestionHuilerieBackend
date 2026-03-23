@@ -6,7 +6,9 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "huilerie")
+@Table(name = "huilerie", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_huilerie_nom", columnNames = "nom")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,6 +18,7 @@ public class Huilerie {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idHuilerie;
 
+    @Column(nullable = false, unique = true)
     private String nom;
     private String localisation;
     private String type; // "artisanal", "semi-industriel", "industriel"
@@ -33,4 +36,43 @@ public class Huilerie {
 
     @OneToMany(mappedBy = "huilerie", cascade = CascadeType.ALL)
     private List<CampagneOlives> campagnesOlives;
+
+    @OneToMany(mappedBy = "huilerie")
+    private List<Stock> stocks;
+
+    @OneToMany(mappedBy = "huilerie")
+    private List<Production> productions;
+
+    public Long getIdHuilerie() { return idHuilerie; }
+    public void setIdHuilerie(Long idHuilerie) { this.idHuilerie = idHuilerie; }
+
+    public String getNom() { return nom; }
+    public void setNom(String nom) { this.nom = nom; }
+
+    public String getLocalisation() { return localisation; }
+    public void setLocalisation(String localisation) { this.localisation = localisation; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public String getCertification() { return certification; }
+    public void setCertification(String certification) { this.certification = certification; }
+
+    public Integer getCapaciteProduction() { return capaciteProduction; }
+    public void setCapaciteProduction(Integer capaciteProduction) { this.capaciteProduction = capaciteProduction; }
+
+    public Entreprise getEntreprise() { return entreprise; }
+    public void setEntreprise(Entreprise entreprise) { this.entreprise = entreprise; }
+
+    public List<Machine> getMachines() { return machines; }
+    public void setMachines(List<Machine> machines) { this.machines = machines; }
+
+    public List<CampagneOlives> getCampagnesOlives() { return campagnesOlives; }
+    public void setCampagnesOlives(List<CampagneOlives> campagnesOlives) { this.campagnesOlives = campagnesOlives; }
+
+    public List<Stock> getStocks() { return stocks; }
+    public void setStocks(List<Stock> stocks) { this.stocks = stocks; }
+
+    public List<Production> getProductions() { return productions; }
+    public void setProductions(List<Production> productions) { this.productions = productions; }
 }

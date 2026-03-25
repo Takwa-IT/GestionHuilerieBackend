@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class StockMovementCreateDTO {
     @NotNull
-    private Long stockId;
+    private Long referenceId;
 
     @NotNull
     private Long huilerieId;

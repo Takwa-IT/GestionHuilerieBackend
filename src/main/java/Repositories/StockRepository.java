@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface StockRepository extends JpaRepository<Stock, Long> {
     //filtration de stock par huilerie et lot
     Optional<Stock> findByHuilerie_IdHuilerieAndLotOlives_IdLot(Long huilerieId, Long lotId);
+    //recherche stock par id lot
+    List<Stock> findByLotOlives_IdLot(Long lotId);
 }

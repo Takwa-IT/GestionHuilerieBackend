@@ -25,10 +25,9 @@ public class StockMovementService {
     private final StockMovementMapper stockMovementMapper;
 
     public StockMovementDTO create(StockMovementCreateDTO dto) {
-        Stock stock = findStock(dto.getStockId());
-        if (!stock.getHuilerie().getIdHuilerie().equals(dto.getHuilerieId())) {
-            throw new RuntimeException("Le stock ne correspond pas a l'huilerie fournie");
-        }
+        Stock stock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(dto.getHuilerieId(), dto.getReferenceId())
+                .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
+
         updateStockQuantity(stock, dto.getTypeMouvement(), dto.getQuantite());
 
         StockMovement movement = stockMovementMapper.toEntity(dto);
@@ -73,17 +72,19 @@ public class StockMovementService {
     }
 
     public List<StockMovementDTO> findAll() {
-        return stockMovementRepository.findAll().stream().map(stockMovementMapper::toDTO).toList();
+        return stockMovementRepository.findAll().stream()
+                .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+                .map(stockMovementMapper::toDTO)
+                .toList();
     }
 
-    public List<StockMovementDTO> findByStock(Long stockId) {
-        return stockMovementRepository.findByStock_IdStockOrderByDateMouvementAsc(stockId)
+    public List<StockMovementDTO> findByHuilerie(Long huilerieId) {
+        return stockMovementRepository.findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(huilerieId)
                 .stream()
                 .map(stockMovementMapper::toDTO)
                 .toList();
     }
 
-    //lors de reception d'une nouvelle reception elle augmente le stock, cree un mouvement ARRIVAL et le sauvegarde
     public StockMovement createArrivalForStock(Stock stock, Double quantite, String dateMouvement, String commentaire) {
         stock.setQuantiteDisponible(safe(stock.getQuantiteDisponible()) + quantite);
         stockRepository.save(stock);
@@ -97,7 +98,6 @@ public class StockMovementService {
         return stockMovementRepository.save(movement);
     }
 
-    //recalculer la quantité disponible du stock selon le type de mouvement.
     private void updateStockQuantity(Stock stock, TypeMouvement typeMouvement, Double quantite) {
         double current = safe(stock.getQuantiteDisponible());
         double next = current + deltaFor(typeMouvement, quantite);
@@ -109,13 +109,6 @@ public class StockMovementService {
         stock.setQuantiteDisponible(next);
     }
 
-    //recupere un stock par ID + utilisable dans des autres methodes
-    private Stock findStock(Long stockId) {
-        return stockRepository.findById(stockId)
-                .orElseThrow(() -> new RuntimeException("Stock non trouve"));
-    }
-
-    //transformer un type de mouvement en effet mathématique sur le stock
     private double deltaFor(TypeMouvement typeMouvement, Double quantite) {
         return switch (typeMouvement) {
             case ARRIVAL, ADJUSTMENT -> quantite;
@@ -123,8 +116,11 @@ public class StockMovementService {
         };
     }
 
-    //evite les NULL sur les quantites
     private double safe(Double value) {
         return value == null ? 0d : value;
+    }
+
+    private String nullSafe(String value) {
+        return value == null ? "" : value;
     }
 }

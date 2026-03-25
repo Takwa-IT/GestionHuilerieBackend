@@ -5,8 +5,9 @@ import lombok.Data;
 
 @Data
 public class StockMovementDTO {
-    private Long idStockMovement;
-    private Long lotId;
+    private Long id;
+    private Long huilerieId;
+    private Long referenceId;
     private Double quantite;
     private String commentaire;
     private String dateMouvement;

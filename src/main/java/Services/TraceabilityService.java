@@ -46,7 +46,7 @@ public class TraceabilityService {
         lotEvent.setReference("LOT-OL-" + lot.getIdLot());
         events.add(lotEvent);
 
-        for (Pesee pesee : peseeRepository.findByLot_IdLotOrderByDatePeseeAsc(lotId)) {
+        for (Pesee pesee : peseeRepository.findByLot_IdLotOrderByDatePeseeDesc(lotId)) {
             LotTraceabilityDTO.PeseeItem peseeDTO = new LotTraceabilityDTO.PeseeItem();
             peseeDTO.setIdPesee(pesee.getIdPesee());
             peseeDTO.setDate(pesee.getDatePesee());

@@ -58,3 +58,6 @@ public class MachineController {
         return ResponseEntity.ok(machineService.assignMatierePremiere(idMachine, dto));
     }
 }
+
+
+

@@ -36,8 +36,8 @@ public class StockMovementController {
         return ResponseEntity.ok(stockMovementService.findAll());
     }
 
-    @GetMapping("/stock/{stockId}")
-    public ResponseEntity<List<StockMovementDTO>> findByStock(@PathVariable Long stockId) {
-        return ResponseEntity.ok(stockMovementService.findByStock(stockId));
+    @GetMapping("/huilerie/{huilerieId}")
+    public ResponseEntity<List<StockMovementDTO>> findByHuilerie(@PathVariable Long huilerieId) {
+        return ResponseEntity.ok(stockMovementService.findByHuilerie(huilerieId));
     }
 }

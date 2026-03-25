@@ -80,7 +80,7 @@ public class PeseeService {
     }
 
     public List<PeseeDTO> findAll() {
-        return peseeRepository.findAll().stream().map(peseeMapper::toDTO).toList();
+        return peseeRepository.findAllByOrderByDatePeseeDesc().stream().map(peseeMapper::toDTO).toList();
     }
 
     public byte[] generateBonPeseePdf(Long peseeId) {
@@ -288,14 +288,14 @@ public class PeseeService {
     //si lot existant -> contrôle + mise à jour
     //si nouveau lot -> création
     private LotOlives resolveLot(ReceptionPeseeCreateDTO dto, double poidsNet) {
-        if (dto.getLotId() != null) {
+        if(dto.getLotId() != null) {
             LotOlives existing = lotOlivesRepository.findById(dto.getLotId())
                     .orElseThrow(() -> new RuntimeException("Lot non trouve"));
 
-            if (dto.getOrigine() != null && !dto.getOrigine().equals(existing.getOrigine())) {
+            if (hasText(dto.getOrigine()) && !normalize(dto.getOrigine()).equals(normalize(existing.getOrigine()))) {
                 throw new RuntimeException("Origine incoherente avec le lot existant");
             }
-            if (dto.getVarieteOlive() != null && !dto.getVarieteOlive().equals(existing.getVarieteOlive())) {
+            if (hasText(dto.getVarieteOlive()) && !normalize(dto.getVarieteOlive()).equals(normalize(existing.getVarieteOlive()))) {
                 throw new RuntimeException("Variete incoherente avec le lot existant");
             }
 
@@ -355,5 +355,13 @@ public class PeseeService {
     //evite les NULL sur les quantites
     private double safe(Double value) {
         return value == null ? 0d : value;
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

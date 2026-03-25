@@ -7,13 +7,22 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"org.example.gestionhuilerieback", "Controllers", "Services", "Mapper"})
-@EnableJpaRepositories(basePackages = "Repositories")
-@EntityScan(basePackages = "Models")
+@ComponentScan(basePackages = {
+		"org.example.gestionhuilerieback",
+		"Controllers",
+		"Services",
+		"Mapper",
+		"Config"
+})
+@EnableJpaRepositories(basePackages = {
+		"Repositories"
+})
+@EntityScan(basePackages = {
+		"Models"
+})
 public class GestionHuilerieBackApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(GestionHuilerieBackApplication.class, args);
 	}
-
 }

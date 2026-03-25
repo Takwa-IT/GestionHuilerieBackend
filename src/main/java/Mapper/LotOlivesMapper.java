@@ -1,0 +1,14 @@
+package Mapper;
+
+import Models.LotOlives;
+import dto.LotOlivesDTO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "spring")
+public interface LotOlivesMapper {
+
+    @Mapping(target = "matierePremiereId", source = "matierePremiere.idMatierePremiere")
+    @Mapping(target = "campagneId", source = "campagne.idCampagne")
+    LotOlivesDTO toDTO(LotOlives entity);
+}

@@ -1,0 +1,38 @@
+package Controllers;
+
+import Services.StockService;
+import dto.StockDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/stocks")
+@RequiredArgsConstructor
+public class StockController {
+
+    private final StockService stockService;
+
+    @GetMapping
+    public ResponseEntity<List<StockDTO>> findAll() {
+        return ResponseEntity.ok(stockService.findAll());
+    }
+
+    @GetMapping("/lot/{lotId}")
+    public ResponseEntity<List<StockDTO>> findByLot(@PathVariable Long lotId) {
+        return ResponseEntity.ok(stockService.findByLot(lotId));
+    }
+
+    @GetMapping("/resolve")
+    public ResponseEntity<StockDTO> resolveByLotAndHuilerie(
+            @RequestParam Long lotId,
+            @RequestParam Long huilerieId) {
+        return ResponseEntity.ok(stockService.findByLotAndHuilerie(lotId, huilerieId));
+    }
+}

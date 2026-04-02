@@ -271,7 +271,7 @@ public class PeseeService {
         cell.setHorizontalAlignment(alignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cell.setPadding(8f);
-        cell.setBackgroundColor(Color.WHITE);
+        cell.setBackgroundColor(bgColor);
         cell.setBorderColor(Color.LIGHT_GRAY);
         table.addCell(cell);
     }

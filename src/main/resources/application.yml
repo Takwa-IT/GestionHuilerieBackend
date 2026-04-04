@@ -1,0 +1,11 @@
+security:
+  jwt:
+    secret: "VGhpc0lzQVN1ZmZpY2llbnRseUxvbmdTZWN1cmVLZXlGb3JKSFdUU2lnbmluZw=="
+    expiration-ms: 86400000
+    refresh-expiration-ms: 604800000
+  reset-password:
+    expiration-minutes: 30
+
+app:
+  seed:
+    admin-password: "Admin@2024!"

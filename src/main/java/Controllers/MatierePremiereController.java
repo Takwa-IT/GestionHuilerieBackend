@@ -1,5 +1,7 @@
 package Controllers;
 
+import Config.PermissionAction;
+import Config.RequirePermission;
 import Services.MatierePremiereService;
 import dto.MatierePremiereCreateDTO;
 import dto.MatierePremiereDTO;
@@ -26,6 +28,7 @@ public class MatierePremiereController {
     }
 
     @PutMapping("/{idMatierePremiere}")
+    @RequirePermission(module = "MATIERES_PREMIERES", action = PermissionAction.UPDATE)
     public ResponseEntity<MatierePremiereDTO> update(@PathVariable Long idMatierePremiere, @RequestBody MatierePremiereUpdateDTO dto) {
         return ResponseEntity.ok(matierePremiereService.update(idMatierePremiere, dto));
     }

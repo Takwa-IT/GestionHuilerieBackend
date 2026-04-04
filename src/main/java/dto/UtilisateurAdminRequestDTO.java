@@ -1,0 +1,28 @@
+package dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class UtilisateurAdminRequestDTO {
+    @NotBlank
+    private String nom;
+
+    @NotBlank
+    private String prenom;
+
+    @Email
+    @NotBlank
+    private String email;
+
+    @NotBlank
+    private String telephone;
+
+    @NotNull
+    private Long profilId;
+
+    @NotNull
+    private Long huilerieId;
+}

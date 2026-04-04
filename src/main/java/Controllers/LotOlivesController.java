@@ -1,5 +1,7 @@
 package Controllers;
 
+import Config.PermissionAction;
+import Config.RequirePermission;
 import Services.LotOlivesService;
 import dto.LotOlivesDTO;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ public class LotOlivesController {
     private final LotOlivesService lotOlivesService;
 
     @GetMapping
+    @RequirePermission(module = "LOTS_TRAÇABILITE", action = PermissionAction.READ)
     public ResponseEntity<List<LotOlivesDTO>> findAll() {
         return ResponseEntity.ok(lotOlivesService.findAll());
     }

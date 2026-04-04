@@ -1,5 +1,7 @@
 package Controllers;
 
+import Config.PermissionAction;
+import Config.RequirePermission;
 import Services.MachineService;
 import dto.MachineCreateDTO;
 import dto.MachineDTO;
@@ -21,6 +23,7 @@ public class MachineController {
     private final MachineService machineService;
 
     @PostMapping
+    @RequirePermission(module = "MACHINES", action = PermissionAction.CREATE)
     public ResponseEntity<MachineDTO> create(@Valid @RequestBody MachineCreateDTO dto) {
         return new ResponseEntity<>(machineService.create(dto), HttpStatus.CREATED);
     }

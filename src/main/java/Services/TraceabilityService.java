@@ -1,15 +1,15 @@
 package Services;
 
 import Models.AnalyseLaboratoire;
+import Models.ExecutionProduction;
 import Models.LotOlives;
 import Models.Pesee;
-import Models.ProductionLot;
 import Models.ProduitFinal;
 import Models.StockMovement;
 import Repositories.AnalyseLaboratoireRepository;
+import Repositories.ExecutionProductionRepository;
 import Repositories.LotOlivesRepository;
 import Repositories.PeseeRepository;
-import Repositories.ProductionLotRepository;
 import Repositories.StockMovementRepository;
 import dto.LotTraceabilityDTO;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ public class TraceabilityService {
     private final AnalyseLaboratoireRepository analyseLaboratoireRepository;
     private final LotOlivesRepository lotOlivesRepository;
     private final PeseeRepository peseeRepository;
-    private final ProductionLotRepository productionLotRepository;
+    private final ExecutionProductionRepository executionProductionRepository;
     private final StockMovementRepository stockMovementRepository;
 
     public LotTraceabilityDTO getLotHistory(Long lotId) {
@@ -72,15 +72,16 @@ public class TraceabilityService {
             events.add(event);
         }
 
-        for (ProductionLot productionLot : productionLotRepository.findByLot_IdLot(lotId)) {
+        for (ExecutionProduction executionProduction : executionProductionRepository.findByLotOlives_IdLot(lotId)) {
             LotTraceabilityDTO.LifecycleItem event = new LotTraceabilityDTO.LifecycleItem();
-            event.setDate(productionLot.getProduction().getDateDebut());
-            event.setEtape("Production");
-            event.setDescription("Lot utilise en production, quantite = " + productionLot.getQuantiteUtilisee() + " kg");
-            event.setReference("PROD-" + productionLot.getProduction().getIdProduction());
+            event.setDate(executionProduction.getDateDebut());
+            event.setEtape("ExecutionProduction");
+            event.setDescription("Lot utilise en execution de production, statut = " + executionProduction.getStatut());
+            event.setReference("EXE-" + executionProduction.getIdExecutionProduction());
             events.add(event);
 
-            for (ProduitFinal produitFinal : productionLot.getProduction().getProduitsFinaux()) {
+            ProduitFinal produitFinal = executionProduction.getProduitFinal();
+            if (produitFinal != null) {
                 LotTraceabilityDTO.LifecycleItem produitEvent = new LotTraceabilityDTO.LifecycleItem();
                 produitEvent.setDate(produitFinal.getDateProduction());
                 produitEvent.setEtape("ProduitFinal");

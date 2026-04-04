@@ -28,16 +28,11 @@ public class GuideProductionService {
     private final HuilerieRepository huilerieRepository;
 
     public GuideProductionDTO create(GuideProductionCreateDTO dto) {
-        if (guideProductionRepository.existsByCode(dto.getCode())) {
-            throw new RuntimeException("Un guide de production avec ce code existe deja");
-        }
-
         Huilerie huilerie = huilerieRepository.findById(dto.getHuilerieId())
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
 
         GuideProduction guideProduction = new GuideProduction();
         guideProduction.setNom(dto.getNom());
-        guideProduction.setCode(dto.getCode());
         guideProduction.setDescription(dto.getDescription());
         guideProduction.setDateCreation(dto.getDateCreation());
         guideProduction.setHuilerie(huilerie);
@@ -70,7 +65,13 @@ public class GuideProductionService {
             guideProduction.setEtapes(etapes);
         }
 
-        return toDTO(guideProductionRepository.save(guideProduction));
+        GuideProduction saved = guideProductionRepository.save(guideProduction);
+        if (saved.getReference() == null && saved.getIdGuideProduction() != null) {
+            saved.setReference("GP" + saved.getIdGuideProduction());
+            saved = guideProductionRepository.save(saved);
+        }
+
+        return toDTO(saved);
     }
 
     @Transactional(readOnly = true)
@@ -93,8 +94,8 @@ public class GuideProductionService {
     private GuideProductionDTO toDTO(GuideProduction guideProduction) {
         GuideProductionDTO dto = new GuideProductionDTO();
         dto.setIdGuideProduction(guideProduction.getIdGuideProduction());
+        dto.setReference(guideProduction.getReference());
         dto.setNom(guideProduction.getNom());
-        dto.setCode(guideProduction.getCode());
         dto.setDescription(guideProduction.getDescription());
         dto.setDateCreation(guideProduction.getDateCreation());
         if (guideProduction.getHuilerie() != null) {

@@ -13,9 +13,6 @@ public class GuideProductionCreateDTO {
     @NotBlank
     private String nom;
 
-    @NotBlank
-    private String code;
-
     private String description;
 
     @NotBlank

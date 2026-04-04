@@ -15,7 +15,6 @@ public interface MachineMapper {
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "matierePremiere", ignore = true)
     @Mapping(target = "maintenances", ignore = true)
-    @Mapping(target = "productions", ignore = true)
     Machine toEntity(MachineCreateDTO dto);
 
     @Mapping(target = "huilerieNom", source = "huilerie.nom")
@@ -25,6 +24,5 @@ public interface MachineMapper {
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "matierePremiere", ignore = true)
     @Mapping(target = "maintenances", ignore = true)
-    @Mapping(target = "productions", ignore = true)
     void updateFromDTO(MachineUpdateDTO dto, @MappingTarget Machine entity);
 }

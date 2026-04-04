@@ -109,7 +109,7 @@ public class ExecutionProductionService {
 
         if (executionProduction.getGuideProduction() != null) {
             dto.setGuideProductionId(executionProduction.getGuideProduction().getIdGuideProduction());
-            dto.setGuideProductionCode(executionProduction.getGuideProduction().getCode());
+            dto.setGuideProductionReference(executionProduction.getGuideProduction().getReference());
         }
         if (executionProduction.getMachine() != null) {
             dto.setMachineId(executionProduction.getMachine().getIdMachine());

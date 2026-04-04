@@ -6,5 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface GuideProductionRepository extends JpaRepository<GuideProduction, Long> {
-    boolean existsByCode(String code);
 }

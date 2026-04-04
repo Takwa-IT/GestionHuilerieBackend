@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class LotOlivesDTO {
     private Long idLot;
+    private String reference;
     private String varieteOlive;
     private String maturite;
     private String origine;

@@ -14,9 +14,8 @@ public class ProduitFinal {
     private Double quantiteProduite;
     private String dateProduction;
 
-    @ManyToOne
-    @JoinColumn(name = "production_id", nullable = false)
-    private Production production;
+    @OneToOne(mappedBy = "produitFinal")
+    private ExecutionProduction executionProduction;
 
     @OneToMany(mappedBy = "produitFinal")
     private List<Stock> stocks;
@@ -33,8 +32,8 @@ public class ProduitFinal {
     public String getDateProduction() { return dateProduction; }
     public void setDateProduction(String dateProduction) { this.dateProduction = dateProduction; }
 
-    public Production getProduction() { return production; }
-    public void setProduction(Production production) { this.production = production; }
+    public ExecutionProduction getExecutionProduction() { return executionProduction; }
+    public void setExecutionProduction(ExecutionProduction executionProduction) { this.executionProduction = executionProduction; }
 
     public List<Stock> getStocks() { return stocks; }
     public void setStocks(List<Stock> stocks) { this.stocks = stocks; }

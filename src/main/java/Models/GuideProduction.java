@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,9 +17,7 @@ import lombok.Setter;
 import java.util.List;
 
 @Entity
-@Table(name = "guide_production", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_guide_production_code", columnNames = "code")
-})
+@Table(name = "guide_production")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,11 +27,11 @@ public class GuideProduction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idGuideProduction;
 
+    @Column(unique = true)
+    private String reference;
+
     @Column(nullable = false)
     private String nom;
-
-    @Column(nullable = false, unique = true)
-    private String code;
 
     private String description;
 
@@ -49,4 +46,18 @@ public class GuideProduction {
 
     @OneToMany(mappedBy = "guideProduction")
     private List<ExecutionProduction> executions;
+
+    public String getReference() {
+        if (reference == null && idGuideProduction != null) {
+            return "GP" + idGuideProduction;
+        }
+        return reference;
+    }
+
+    @jakarta.persistence.PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && idGuideProduction != null) {
+            reference = "GP" + idGuideProduction;
+        }
+    }
 }

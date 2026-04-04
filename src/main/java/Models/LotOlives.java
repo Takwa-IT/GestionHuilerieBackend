@@ -10,6 +10,9 @@ public class LotOlives {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idLot;
 
+    @Column(unique = true)
+    private String reference;
+
     private String varieteOlive;
     private String maturite;
     private String origine;
@@ -33,14 +36,22 @@ public class LotOlives {
     @OneToMany(mappedBy = "lot")
     private List<AnalyseLaboratoire> analyses;
 
-    @OneToMany(mappedBy = "lot")
-    private List<ProductionLot> productionLots;
+    @OneToMany(mappedBy = "lotOlives")
+    private List<ExecutionProduction> executionsProduction;
 
     @OneToMany(mappedBy = "lotOlives")
     private List<Stock> stocks;
 
     public Long getIdLot() { return idLot; }
     public void setIdLot(Long idLot) { this.idLot = idLot; }
+
+    public String getReference() {
+        if (reference == null && idLot != null) {
+            return "LOT" + idLot;
+        }
+        return reference;
+    }
+    public void setReference(String reference) { this.reference = reference; }
 
     public String getVarieteOlive() { return varieteOlive; }
     public void setVarieteOlive(String varieteOlive) { this.varieteOlive = varieteOlive; }
@@ -78,9 +89,16 @@ public class LotOlives {
     public List<AnalyseLaboratoire> getAnalyses() { return analyses; }
     public void setAnalyses(List<AnalyseLaboratoire> analyses) { this.analyses = analyses; }
 
-    public List<ProductionLot> getProductionLots() { return productionLots; }
-    public void setProductionLots(List<ProductionLot> productionLots) { this.productionLots = productionLots; }
+    public List<ExecutionProduction> getExecutionsProduction() { return executionsProduction; }
+    public void setExecutionsProduction(List<ExecutionProduction> executionsProduction) { this.executionsProduction = executionsProduction; }
 
     public List<Stock> getStocks() { return stocks; }
     public void setStocks(List<Stock> stocks) { this.stocks = stocks; }
+
+    @PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && idLot != null) {
+            reference = "LOT" + idLot;
+        }
+    }
 }

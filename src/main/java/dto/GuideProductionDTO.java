@@ -8,8 +8,8 @@ import java.util.List;
 public class GuideProductionDTO {
 
     private Long idGuideProduction;
+    private String reference;
     private String nom;
-    private String code;
     private String description;
     private String dateCreation;
     private Long huilerieId;

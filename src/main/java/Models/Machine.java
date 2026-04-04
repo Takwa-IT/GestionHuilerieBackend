@@ -32,9 +32,6 @@ public class Machine {
     @OneToMany(mappedBy = "machine", cascade = CascadeType.ALL)
     private List<Maintenance> maintenances;
 
-    @OneToMany(mappedBy = "machine")
-    private List<Production> productions;
-
 
     public Long getIdMachine() {
         return idMachine;
@@ -101,11 +98,4 @@ public class Machine {
         this.maintenances = maintenances;
     }
 
-    public List<Production> getProductions() {
-        return productions;
-    }
-
-    public void setProductions(List<Production> productions) {
-        this.productions = productions;
-    }
 }

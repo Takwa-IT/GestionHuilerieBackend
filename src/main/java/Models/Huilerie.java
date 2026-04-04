@@ -40,9 +40,6 @@ public class Huilerie {
     @OneToMany(mappedBy = "huilerie")
     private List<Stock> stocks;
 
-    @OneToMany(mappedBy = "huilerie")
-    private List<Production> productions;
-
     public Long getIdHuilerie() { return idHuilerie; }
     public void setIdHuilerie(Long idHuilerie) { this.idHuilerie = idHuilerie; }
 
@@ -73,6 +70,4 @@ public class Huilerie {
     public List<Stock> getStocks() { return stocks; }
     public void setStocks(List<Stock> stocks) { this.stocks = stocks; }
 
-    public List<Production> getProductions() { return productions; }
-    public void setProductions(List<Production> productions) { this.productions = productions; }
 }

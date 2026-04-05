@@ -62,4 +62,10 @@ public class GlobalExceptionHandler {
         body.put("action", null);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiResponseDTO<Void>> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDTO.fail(ex.getMessage(), List.of(ex.getMessage())));
+    }
 }

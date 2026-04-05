@@ -1,18 +1,23 @@
 package Services;
 
+import Config.UnauthorizedException;
+import Models.Huilerie;
 import Models.PasswordResetToken;
 import Models.Permission;
 import Models.RefreshToken;
+import Models.Profil;
 import Models.StatutUtilisateur;
 import Models.Utilisateur;
+import Repositories.HuilerieRepository;
 import Repositories.PasswordResetTokenRepository;
 import Repositories.PermissionRepository;
+import Repositories.ProfilRepository;
 import Repositories.RefreshTokenRepository;
 import Repositories.UtilisateurRepository;
 import dto.AuthPermissionDTO;
 import dto.AuthResponseDTO;
 import dto.AuthUtilisateurDTO;
-import dto.TokenResponseDTO;
+import dto.SignupRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -32,6 +37,8 @@ import java.util.UUID;
 public class AuthService {
 
     private final UtilisateurRepository utilisateurRepository;
+    private final ProfilRepository profilRepository;
+    private final HuilerieRepository huilerieRepository;
     private final PermissionRepository permissionRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -46,16 +53,43 @@ public class AuthService {
     @Value("${security.reset-password.expiration-minutes:30}")
     private long resetPasswordExpirationMinutes;
 
+    public AuthResponseDTO signup(SignupRequestDTO request) {
+        utilisateurRepository.findByEmail(request.getEmail())
+                .ifPresent(u -> {
+                    throw new IllegalArgumentException("Email deja utilise");
+                });
+
+        Profil profil = profilRepository.findByNom("RESPONSABLE_PRODUCTION")
+                .orElseThrow(() -> new IllegalArgumentException("Profil par defaut introuvable"));
+        Huilerie huilerie = huilerieRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Aucune huilerie disponible"));
+
+        Utilisateur utilisateur = new Utilisateur();
+        utilisateur.setNom(request.getNom());
+        utilisateur.setPrenom(request.getPrenom());
+        utilisateur.setEmail(request.getEmail());
+        utilisateur.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
+        utilisateur.setTelephone(request.getTelephone());
+        utilisateur.setProfil(profil);
+        utilisateur.setHuilerie(huilerie);
+        utilisateur.setActif(StatutUtilisateur.ACTIF);
+
+        Utilisateur saved = utilisateurRepository.save(utilisateur);
+        String token = jwtService.generateToken(saved);
+        RefreshToken refreshToken = createRefreshToken(saved);
+        return buildAuthResponse(saved, token, refreshToken.getToken());
+    }
+
     public AuthResponseDTO login(String email, String motDePasse) {
         Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email ou mot de passe invalide"));
+                .orElseThrow(() -> new UnauthorizedException("Email ou mot de passe invalide"));
 
         if (utilisateur.getActif() != StatutUtilisateur.ACTIF) {
-            throw new RuntimeException("Utilisateur inactif");
+            throw new UnauthorizedException("Utilisateur inactif");
         }
 
         if (!passwordEncoder.matches(motDePasse, utilisateur.getMotDePasse())) {
-            throw new RuntimeException("Email ou mot de passe invalide");
+            throw new UnauthorizedException("Email ou mot de passe invalide");
         }
 
         String token = jwtService.generateToken(utilisateur);
@@ -64,18 +98,19 @@ public class AuthService {
         return buildAuthResponse(utilisateur, token, refreshToken.getToken());
     }
 
-    public TokenResponseDTO refresh(String refreshTokenValue) {
+    public AuthResponseDTO refresh(String refreshTokenValue) {
         RefreshToken refreshToken = refreshTokenRepository.findByTokenAndRevokedFalse(refreshTokenValue)
-                .orElseThrow(() -> new RuntimeException("Refresh token invalide"));
+                .orElseThrow(() -> new UnauthorizedException("Refresh token invalide"));
 
         if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             refreshToken.setRevoked(true);
             refreshTokenRepository.save(refreshToken);
-            throw new RuntimeException("Refresh token expire");
+            throw new UnauthorizedException("Refresh token expire");
         }
 
-        String token = jwtService.generateToken(refreshToken.getUtilisateur());
-        return new TokenResponseDTO(token);
+        Utilisateur utilisateur = refreshToken.getUtilisateur();
+        String token = jwtService.generateToken(utilisateur);
+        return buildAuthResponse(utilisateur, token, refreshToken.getToken());
     }
 
     public void logout(String refreshTokenValue) {

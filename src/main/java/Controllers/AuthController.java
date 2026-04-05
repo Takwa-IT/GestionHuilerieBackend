@@ -1,5 +1,6 @@
 package Controllers;
 
+import Config.UnauthorizedException;
 import Services.AuthService;
 import dto.AuthResponseDTO;
 import dto.LoginRequestDTO;
@@ -7,10 +8,9 @@ import dto.MessageResponseDTO;
 import dto.RefreshRequestDTO;
 import dto.ResetPasswordConfirmDTO;
 import dto.ResetPasswordRequestDTO;
-import dto.TokenResponseDTO;
+import dto.SignupRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
@@ -32,8 +32,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request.getEmail(), request.getMotDePasse()));
     }
 
+    @PostMapping("/signup")
+    public ResponseEntity<AuthResponseDTO> signup(@Valid @RequestBody SignupRequestDTO request) {
+        return ResponseEntity.ok(authService.signup(request));
+    }
+
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponseDTO> refresh(@Valid @RequestBody RefreshRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> refresh(@Valid @RequestBody RefreshRequestDTO request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
     }
 
@@ -58,7 +63,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthResponseDTO> me(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            throw new UnauthorizedException("Token JWT manquant ou invalide pour /api/auth/me");
         }
         return ResponseEntity.ok(authService.me(user.getUsername()));
     }

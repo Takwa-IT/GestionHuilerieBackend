@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> {
 	Optional<Utilisateur> findByEmail(String email);
+	Optional<Utilisateur> findByVerificationToken(String verificationToken);
 	boolean existsByProfilIdProfil(Long idProfil);
 	List<Utilisateur> findByProfilIdProfil(Long idProfil);
 	List<Utilisateur> findAllByOrderByIdUtilisateurAsc();

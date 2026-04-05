@@ -16,18 +16,43 @@ spring:
   docker:
     compose:
       enabled: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: Huileriaa@gmail.com
+    password: "ujhw bqcp fuia xewt"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+            connectiontimeout: 5000
+            timeout: 5000
+            writetimeout: 5000
 
 server:
   port: 8000
 
 security:
   jwt:
-    secret: "VGhpc0lzQVN1ZmZpY2llbnRseUxvbmdTZWN1cmVLZXlGb3JKSFdUU2lnbmluZw=="
+    secret: "mySuperSecretKeyThatIsVeryLongAndSecureForJWTTokenGeneration2026ForOilProductionSystemSecurity"
     expiration-ms: 86400000
     refresh-expiration-ms: 604800000
-  reset-password:
+    reset-password:
     expiration-minutes: 30
 
 app:
-  seed:
-    admin-password: "Admin@2024!"
+  mail:
+    from: "Huileriaa@gmail.com"
+  frontend:
+    ashboard-url: "http://localhost:64412/pages/dashboard/production"
+
+logging:
+  level:
+    org:
+       hibernate:
+         SQL: DEBUG
+         type.descriptor.sql: TRACE
+    org.example.gestionhuilerieback: DEBUG

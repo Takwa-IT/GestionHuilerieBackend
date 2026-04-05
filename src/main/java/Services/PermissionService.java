@@ -36,6 +36,10 @@ public class PermissionService {
         Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
+        if (utilisateur.getProfil() == null) {
+            return List.of();
+        }
+
         List<Permission> permissions = permissionRepository.findByProfilIdWithModule(utilisateur.getProfil().getIdProfil());
         permissionCache.put(utilisateurId, new CacheEntry(permissions, Instant.now().plus(CACHE_TTL_MINUTES, ChronoUnit.MINUTES)));
         return permissions;

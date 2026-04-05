@@ -5,23 +5,22 @@ import Models.Huilerie;
 import Models.PasswordResetToken;
 import Models.Permission;
 import Models.RefreshToken;
-import Models.Profil;
 import Models.StatutUtilisateur;
 import Models.Utilisateur;
 import Repositories.HuilerieRepository;
 import Repositories.PasswordResetTokenRepository;
 import Repositories.PermissionRepository;
-import Repositories.ProfilRepository;
 import Repositories.RefreshTokenRepository;
 import Repositories.UtilisateurRepository;
 import dto.AuthPermissionDTO;
 import dto.AuthResponseDTO;
 import dto.AuthUtilisateurDTO;
 import dto.SignupRequestDTO;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +34,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
-
     private final UtilisateurRepository utilisateurRepository;
-    private final ProfilRepository profilRepository;
     private final HuilerieRepository huilerieRepository;
     private final PermissionRepository permissionRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -53,14 +50,18 @@ public class AuthService {
     @Value("${security.reset-password.expiration-minutes:30}")
     private long resetPasswordExpirationMinutes;
 
+    @Value("${app.mail.from:no-reply@gestionhuilerie.local}")
+    private String mailFrom;
+
+    @Value("${app.frontend.base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
+
     public AuthResponseDTO signup(SignupRequestDTO request) {
         utilisateurRepository.findByEmail(request.getEmail())
                 .ifPresent(u -> {
                     throw new IllegalArgumentException("Email deja utilise");
                 });
 
-        Profil profil = profilRepository.findByNom("RESPONSABLE_PRODUCTION")
-                .orElseThrow(() -> new IllegalArgumentException("Profil par defaut introuvable"));
         Huilerie huilerie = huilerieRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Aucune huilerie disponible"));
 
@@ -70,19 +71,29 @@ public class AuthService {
         utilisateur.setEmail(request.getEmail());
         utilisateur.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         utilisateur.setTelephone(request.getTelephone());
-        utilisateur.setProfil(profil);
+        utilisateur.setProfil(null);
         utilisateur.setHuilerie(huilerie);
         utilisateur.setActif(StatutUtilisateur.ACTIF);
 
+        // Verification email obligatoire avant login
+        utilisateur.setEmailVerified(false);
+        utilisateur.setVerificationToken(UUID.randomUUID().toString());
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+
         Utilisateur saved = utilisateurRepository.save(utilisateur);
-        String token = jwtService.generateToken(saved);
-        RefreshToken refreshToken = createRefreshToken(saved);
-        return buildAuthResponse(saved, token, refreshToken.getToken());
+        sendVerificationEmail(saved);
+
+        // Pas de JWT au signup tant que l'email n'est pas verifie
+        return buildAuthResponse(saved, null, null);
     }
 
     public AuthResponseDTO login(String email, String motDePasse) {
         Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Email ou mot de passe invalide"));
+
+        if (!Boolean.TRUE.equals(utilisateur.getEmailVerified())) {
+            throw new UnauthorizedException("Veuillez verifier votre email avant de vous connecter");
+        }
 
         if (utilisateur.getActif() != StatutUtilisateur.ACTIF) {
             throw new UnauthorizedException("Utilisateur inactif");
@@ -96,6 +107,36 @@ public class AuthService {
         RefreshToken refreshToken = createRefreshToken(utilisateur);
 
         return buildAuthResponse(utilisateur, token, refreshToken.getToken());
+    }
+
+    public void verifyEmail(String token) {
+        Utilisateur utilisateur = utilisateurRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new RuntimeException("Token de verification invalide"));
+
+        if (utilisateur.getVerificationTokenExpiresAt() == null ||
+                utilisateur.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token de verification expire");
+        }
+
+        utilisateur.setEmailVerified(true);
+        utilisateur.setVerificationToken(null);
+        utilisateur.setVerificationTokenExpiresAt(null);
+        utilisateurRepository.save(utilisateur);
+    }
+
+    public void resendVerificationEmail(String email) {
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
+
+        if (Boolean.TRUE.equals(utilisateur.getEmailVerified())) {
+            return;
+        }
+
+        utilisateur.setVerificationToken(UUID.randomUUID().toString());
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        utilisateurRepository.save(utilisateur);
+
+        sendVerificationEmail(utilisateur);
     }
 
     public AuthResponseDTO refresh(String refreshTokenValue) {
@@ -135,13 +176,7 @@ public class AuthService {
         resetToken.setUsed(false);
         passwordResetTokenRepository.save(resetToken);
 
-        javaMailSender.ifPresent(sender -> {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(utilisateur.getEmail());
-            message.setSubject("Reinitialisation mot de passe");
-            message.setText("Votre token temporaire: " + resetToken.getToken());
-            sender.send(message);
-        });
+        sendResetPasswordEmail(utilisateur, resetToken.getToken());
     }
 
     public void confirmResetPassword(String tokenValue, String nouveauMotDePasse) {
@@ -171,9 +206,7 @@ public class AuthService {
         Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
-        String token = jwtService.generateToken(utilisateur);
-        String refreshToken = createRefreshToken(utilisateur).getToken();
-        return buildAuthResponse(utilisateur, token, refreshToken);
+        return buildAuthResponse(utilisateur, null, null);
     }
 
     private RefreshToken createRefreshToken(Utilisateur utilisateur) {
@@ -191,9 +224,11 @@ public class AuthService {
         authUtilisateurDTO.setNom(utilisateur.getNom());
         authUtilisateurDTO.setPrenom(utilisateur.getPrenom());
         authUtilisateurDTO.setEmail(utilisateur.getEmail());
-        authUtilisateurDTO.setProfil(utilisateur.getProfil().getNom());
+        authUtilisateurDTO.setProfil(utilisateur.getProfil() != null ? utilisateur.getProfil().getNom() : null);
 
-        List<AuthPermissionDTO> permissions = permissionRepository.findByProfilIdWithModule(utilisateur.getProfil().getIdProfil())
+        List<AuthPermissionDTO> permissions = utilisateur.getProfil() == null
+                ? List.of()
+                : permissionRepository.findByProfilIdWithModule(utilisateur.getProfil().getIdProfil())
                 .stream()
                 .map(this::toAuthPermission)
                 .toList();
@@ -204,6 +239,130 @@ public class AuthService {
         responseDTO.setUtilisateur(authUtilisateurDTO);
         responseDTO.setPermissions(permissions);
         return responseDTO;
+    }
+
+    private void sendVerificationEmail(Utilisateur utilisateur) {
+        javaMailSender.ifPresent(sender -> {
+            try {
+                String verificationLink = frontendBaseUrl + "/verify-email?token=" + utilisateur.getVerificationToken();
+                String html = buildVerificationEmailHtml(utilisateur, verificationLink);
+
+                MimeMessage message = sender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(mailFrom);
+                helper.setTo(utilisateur.getEmail());
+                helper.setSubject("Verifiez votre adresse email - Gestion Huilerie");
+                helper.setText(html, true);
+
+                sender.send(message);
+            } catch (Exception ignored) {
+                // Le signup reste reussi meme si l'email ne part pas.
+            }
+        });
+    }
+
+    private void sendResetPasswordEmail(Utilisateur utilisateur, String resetToken) {
+        javaMailSender.ifPresent(sender -> {
+            try {
+                String resetLink = frontendBaseUrl + "/reset-password/confirm?token=" + resetToken;
+                String html = buildResetPasswordEmailHtml(utilisateur, resetLink);
+
+                MimeMessage message = sender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(mailFrom);
+                helper.setTo(utilisateur.getEmail());
+                helper.setSubject("Reinitialisation mot de passe - Huileria");
+                helper.setText(html, true);
+
+                sender.send(message);
+            } catch (Exception ignored) {
+                // La demande reste valide meme si l'email ne part pas.
+            }
+        });
+    }
+
+    private String buildVerificationEmailHtml(Utilisateur utilisateur, String verificationLink) {
+        String prenom = utilisateur.getPrenom() != null ? utilisateur.getPrenom() : "";
+        return """
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Verification d'email - Huileria</title>
+                </head>
+                <body style="margin:0;padding:20px;background:#f9f7f2;font-family:Segoe UI,Arial,sans-serif;color:#2c2c2c;">
+                    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background:linear-gradient(135deg,#4f6324 0%%,#6a8136 100%%);padding:36px 24px;text-align:center;border-bottom:4px solid #687f32;">
+                            <h1 style="margin:0;color:#f4efe4;font-size:24px;font-weight:700;">Huileria</h1>
+                            <p style="margin:8px 0 0;color:#efe3c9;font-size:13px;">Plateforme de gestion de production</p>
+                        </div>
+
+                        <div style="padding:34px 24px;">
+                            <h2 style="margin:0 0 18px;color:#4f6324;font-size:22px;">Bonjour %s</h2>
+                            <p style="margin:0 0 14px;line-height:1.7;">Merci de vous etre inscrit sur Gestion Huilerie.</p>
+                            <p style="margin:0 0 20px;line-height:1.7;">Pour activer votre compte, veuillez cliquer sur le bouton ci-dessous :</p>
+
+                            <div style="text-align:center;margin:28px 0;">
+                                <a href="%s"
+                                   style="display:inline-block;background:linear-gradient(135deg,#6a8136 0%%,#4f6324 100%%);color:#f4efe4;text-decoration:none;padding:13px 28px;border-radius:6px;font-weight:600;">
+                                    Verifier mon email
+                                </a>
+                            </div>
+
+                            <p style="margin:0;color:#7f7f7f;font-size:13px;text-align:center;">Ce lien expire dans 24 heures.</p>
+                            <p style="margin:14px 0 0;color:#9a9a9a;font-size:12px;text-align:center;">Si vous n'avez pas cree de compte, ignorez cet email.</p>
+                        </div>
+
+                        <div style="border-top:1px solid #e8e3d8;background:#faf8f4;padding:18px 24px;text-align:center;">
+                            <p style="margin:0;color:#9a9a9a;font-size:12px;">© 2026 Huileria - Plateforme de gestion de production</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(prenom, verificationLink);
+    }
+
+    private String buildResetPasswordEmailHtml(Utilisateur utilisateur, String resetLink) {
+        String prenom = utilisateur.getPrenom() != null ? utilisateur.getPrenom() : "";
+        return """
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Reinitialisation mot de passe - Huileria</title>
+                </head>
+                <body style="margin:0;padding:20px;background:#f9f7f2;font-family:Segoe UI,Arial,sans-serif;color:#2c2c2c;">
+                    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="background:linear-gradient(135deg,#4f6324 0%%,#6a8136 100%%);padding:36px 24px;text-align:center;border-bottom:4px solid #687f32;">
+                            <h1 style="margin:0;color:#f4efe4;font-size:24px;font-weight:700;">Huileria</h1>
+                            <p style="margin:8px 0 0;color:#efe3c9;font-size:13px;">Systeme de production de huiles</p>
+                        </div>
+
+                        <div style="padding:34px 24px;">
+                            <h2 style="margin:0 0 18px;color:#4f6324;font-size:22px;">Bonjour %s</h2>
+                            <p style="margin:0 0 14px;line-height:1.7;">Nous avons recu une demande de reinitialisation de mot de passe pour votre compte.</p>
+                            <p style="margin:0 0 20px;line-height:1.7;">Pour creer un nouveau mot de passe, cliquez sur le bouton ci-dessous :</p>
+
+                            <div style="text-align:center;margin:28px 0;">
+                                <a href="%s"
+                                   style="display:inline-block;background:linear-gradient(135deg,#6a8136 0%%,#4f6324 100%%);color:#f4efe4;text-decoration:none;padding:13px 28px;border-radius:6px;font-weight:600;">
+                                    Creer un nouveau mot de passe
+                                </a>
+                            </div>
+
+                            <p style="margin:0;color:#7f7f7f;font-size:13px;text-align:center;">Ce lien expire dans 30 minutes.</p>
+                            <p style="margin:14px 0 0;color:#9a9a9a;font-size:12px;text-align:center;">Si vous n'avez pas demande de reinitialisation, ignorez cet email.</p>
+                        </div>
+
+                        <div style="border-top:1px solid #e8e3d8;background:#faf8f4;padding:18px 24px;text-align:center;">
+                            <p style="margin:0;color:#9a9a9a;font-size:12px;">© 2026 Huileria - Plateforme de gestion de production</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(prenom, resetLink);
     }
 
     private AuthPermissionDTO toAuthPermission(Permission permission) {

@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "utilisateur", indexes = {
         @Index(name = "idx_utilisateur_id", columnList = "id_utilisateur")
@@ -29,7 +31,7 @@ public class Utilisateur {
     @Column(nullable = false)
     private String prenom;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false)
@@ -41,13 +43,22 @@ public class Utilisateur {
     @Column(nullable = false)
     private StatutUtilisateur actif = StatutUtilisateur.ACTIF;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "profil_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "profil_id", nullable = true)
     private Profil profil;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "huilerie_id", nullable = false)
     private Huilerie huilerie;
+
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = false;
+
+    @Column(name = "verification_token", unique = true)
+    private String verificationToken;
+
+    @Column(name = "verification_token_expires_at")
+    private LocalDateTime verificationTokenExpiresAt;
 
     public Long getIdUtilisateur() {
         return idUtilisateur;
@@ -119,5 +130,29 @@ public class Utilisateur {
 
     public void setHuilerie(Huilerie huilerie) {
         this.huilerie = huilerie;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
+
+    public void setVerificationToken(String verificationToken) {
+        this.verificationToken = verificationToken;
+    }
+
+    public LocalDateTime getVerificationTokenExpiresAt() {
+        return verificationTokenExpiresAt;
+    }
+
+    public void setVerificationTokenExpiresAt(LocalDateTime verificationTokenExpiresAt) {
+        this.verificationTokenExpiresAt = verificationTokenExpiresAt;
     }
 }

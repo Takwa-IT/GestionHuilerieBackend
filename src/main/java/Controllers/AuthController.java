@@ -11,14 +11,11 @@ import dto.ResetPasswordRequestDTO;
 import dto.SignupRequestDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,6 +34,31 @@ public class AuthController {
         return ResponseEntity.ok(authService.signup(request));
     }
 
+    @GetMapping("/verify-email")
+    public ResponseEntity<MessageResponseDTO> verifyEmail(@RequestParam String token) {
+        try {
+            authService.verifyEmail(token);
+            return ResponseEntity.ok(new MessageResponseDTO("Email verifie avec succes"));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new MessageResponseDTO(ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-email/resend")
+    public ResponseEntity<MessageResponseDTO> resendVerificationEmail(
+            @Valid @RequestBody ResetPasswordRequestDTO request
+    ) {
+        try {
+            authService.resendVerificationEmail(request.getEmail());
+        } catch (Exception ignored) {
+            // Reponse neutre pour ne pas exposer l'existence du compte
+        }
+        return ResponseEntity.ok(
+                new MessageResponseDTO("Si le compte existe et n'est pas verifie, un email a ete renvoye")
+        );
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponseDTO> refresh(@Valid @RequestBody RefreshRequestDTO request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
@@ -51,13 +73,18 @@ public class AuthController {
     @PostMapping("/reset-password/request")
     public ResponseEntity<MessageResponseDTO> requestResetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         authService.requestResetPassword(request.getEmail());
-        return new ResponseEntity<>(new MessageResponseDTO("Si l'email existe, un token a ete envoye"), HttpStatus.OK);
+        return ResponseEntity.ok(new MessageResponseDTO("Si l'email existe, un lien a ete envoye"));
     }
 
     @PostMapping("/reset-password/confirm")
     public ResponseEntity<MessageResponseDTO> confirmResetPassword(@Valid @RequestBody ResetPasswordConfirmDTO request) {
-        authService.confirmResetPassword(request.getToken(), request.getNouveauMotDePasse());
-        return new ResponseEntity<>(new MessageResponseDTO("Mot de passe reinitialise"), HttpStatus.OK);
+        try {
+            authService.confirmResetPassword(request.getToken(), request.getNouveauMotDePasse());
+            return ResponseEntity.ok(new MessageResponseDTO("Mot de passe reinitialise"));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new MessageResponseDTO(ex.getMessage()));
+        }
     }
 
     @GetMapping("/me")

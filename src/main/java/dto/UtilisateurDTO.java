@@ -14,4 +14,5 @@ public class UtilisateurDTO {
     private StatutUtilisateur actif;
     private Long profilId;
     private Long huilerieId;
+    private Boolean emailVerified;
 }

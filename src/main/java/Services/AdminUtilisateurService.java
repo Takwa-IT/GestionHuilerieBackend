@@ -99,8 +99,8 @@ public class AdminUtilisateurService {
         dto.setEmail(utilisateur.getEmail());
         dto.setTelephone(utilisateur.getTelephone());
         dto.setActif(utilisateur.getActif());
-        dto.setProfilId(utilisateur.getProfil().getIdProfil());
-        dto.setProfilNom(utilisateur.getProfil().getNom());
+        dto.setProfilId(utilisateur.getProfil() != null ? utilisateur.getProfil().getIdProfil() : null);
+        dto.setProfilNom(utilisateur.getProfil() != null ? utilisateur.getProfil().getNom() : null);
         dto.setHuilerieId(utilisateur.getHuilerie().getIdHuilerie());
         dto.setHuilerieNom(utilisateur.getHuilerie().getNom());
         return dto;

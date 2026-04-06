@@ -109,7 +109,7 @@ public class AuthService {
         return buildAuthResponse(utilisateur, token, refreshToken.getToken());
     }
 
-    public void verifyEmail(String token) {
+    public AuthResponseDTO verifyEmail(String token) {
         Utilisateur utilisateur = utilisateurRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new RuntimeException("Token de verification invalide"));
 
@@ -121,7 +121,12 @@ public class AuthService {
         utilisateur.setEmailVerified(true);
         utilisateur.setVerificationToken(null);
         utilisateur.setVerificationTokenExpiresAt(null);
-        utilisateurRepository.save(utilisateur);
+        Utilisateur saved = utilisateurRepository.save(utilisateur);
+
+        String jwtToken = jwtService.generateToken(saved);
+        RefreshToken refreshToken = createRefreshToken(saved);
+
+        return buildAuthResponse(saved, jwtToken, refreshToken.getToken());
     }
 
     public void resendVerificationEmail(String email) {
@@ -179,7 +184,7 @@ public class AuthService {
         sendResetPasswordEmail(utilisateur, resetToken.getToken());
     }
 
-    public void confirmResetPassword(String tokenValue, String nouveauMotDePasse) {
+    public AuthResponseDTO confirmResetPassword(String tokenValue, String nouveauMotDePasse) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenAndUsedFalse(tokenValue)
                 .orElseThrow(() -> new RuntimeException("Token de reinitialisation invalide"));
 
@@ -189,16 +194,21 @@ public class AuthService {
 
         Utilisateur utilisateur = resetToken.getUtilisateur();
         utilisateur.setMotDePasse(passwordEncoder.encode(nouveauMotDePasse));
-        utilisateurRepository.save(utilisateur);
+        Utilisateur savedUtilisateur = utilisateurRepository.save(utilisateur);
 
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
 
-        List<RefreshToken> activeTokens = refreshTokenRepository.findByUtilisateurAndRevokedFalse(utilisateur);
+        List<RefreshToken> activeTokens = refreshTokenRepository.findByUtilisateurAndRevokedFalse(savedUtilisateur);
         for (RefreshToken refreshToken : activeTokens) {
             refreshToken.setRevoked(true);
         }
         refreshTokenRepository.saveAll(activeTokens);
+
+        String token = jwtService.generateToken(savedUtilisateur);
+        RefreshToken refreshToken = createRefreshToken(savedUtilisateur);
+
+        return buildAuthResponse(savedUtilisateur, token, refreshToken.getToken());
     }
 
     @Transactional(readOnly = true)

@@ -38,7 +38,7 @@ public class DataInitializer implements ApplicationRunner {
     private final HuilerieRepository huilerieRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.seed.admin-password:Admin@2024!}")
+    @Value("${app.seed.admin-password:Admin@1}")
     private String adminPassword;
 
     @Override
@@ -122,7 +122,7 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedDefaultAdminUser(Profil adminProfil) {
-        if (utilisateurRepository.findByEmail("admin@huilerie.tn").isPresent()) {
+        if (utilisateurRepository.findByEmail("testnovaplatform@gmail.com").isPresent()) {
             return;
         }
 
@@ -135,12 +135,16 @@ public class DataInitializer implements ApplicationRunner {
         Utilisateur utilisateur = new Utilisateur();
         utilisateur.setNom("Admin");
         utilisateur.setPrenom("Système");
-        utilisateur.setEmail("admin@huilerie.tn");
+        utilisateur.setEmail("testnovaplatform@gmail.com");
         utilisateur.setMotDePasse(passwordEncoder.encode(adminPassword));
         utilisateur.setTelephone(null);
         utilisateur.setProfil(adminProfil);
         utilisateur.setHuilerie(huilerie);
         utilisateur.setActif(StatutUtilisateur.ACTIF);
+
+        utilisateur.setEmailVerified(true);
+        utilisateur.setVerificationToken(null);
+        utilisateur.setVerificationTokenExpiresAt(null);
 
         utilisateurRepository.save(utilisateur);
         log.info("[SEED] Utilisateur admin cree: {}", utilisateur.getEmail());

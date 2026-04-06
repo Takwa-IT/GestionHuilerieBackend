@@ -35,10 +35,10 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<MessageResponseDTO> verifyEmail(@RequestParam String token) {
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         try {
-            authService.verifyEmail(token);
-            return ResponseEntity.ok(new MessageResponseDTO("Email verifie avec succes"));
+            AuthResponseDTO authResponse = authService.verifyEmail(token);
+            return ResponseEntity.ok(authResponse);
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new MessageResponseDTO(ex.getMessage()));
@@ -77,10 +77,13 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password/confirm")
-    public ResponseEntity<MessageResponseDTO> confirmResetPassword(@Valid @RequestBody ResetPasswordConfirmDTO request) {
+    public ResponseEntity<?> confirmResetPassword(@Valid @RequestBody ResetPasswordConfirmDTO request) {
         try {
-            authService.confirmResetPassword(request.getToken(), request.getNouveauMotDePasse());
-            return ResponseEntity.ok(new MessageResponseDTO("Mot de passe reinitialise"));
+            AuthResponseDTO authResponse = authService.confirmResetPassword(
+                    request.getToken(),
+                    request.getNouveauMotDePasse()
+            );
+            return ResponseEntity.ok(authResponse);
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new MessageResponseDTO(ex.getMessage()));

@@ -5,6 +5,7 @@ import Services.AuthService;
 import dto.AuthResponseDTO;
 import dto.LoginRequestDTO;
 import dto.MessageResponseDTO;
+import dto.ProfileUpdateRequestDTO;
 import dto.RefreshRequestDTO;
 import dto.ResetPasswordConfirmDTO;
 import dto.ResetPasswordRequestDTO;
@@ -96,5 +97,16 @@ public class AuthController {
             throw new UnauthorizedException("Token JWT manquant ou invalide pour /api/auth/me");
         }
         return ResponseEntity.ok(authService.me(user.getUsername()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<AuthResponseDTO> updateProfile(
+            Authentication authentication,
+            @Valid @RequestBody ProfileUpdateRequestDTO request
+    ) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            throw new UnauthorizedException("Token JWT manquant ou invalide pour /api/auth/me");
+        }
+        return ResponseEntity.ok(authService.updateProfile(user.getUsername(), request));
     }
 }

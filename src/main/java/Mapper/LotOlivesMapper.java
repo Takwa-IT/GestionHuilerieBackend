@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface LotOlivesMapper {
 
-    @Mapping(target = "matierePremiereId", source = "matierePremiere.idMatierePremiere")
+    @Mapping(target = "matierePremiereId", source = "matierePremiere.id")
     @Mapping(target = "campagneId", source = "campagne.idCampagne")
     LotOlivesDTO toDTO(LotOlives entity);
 }

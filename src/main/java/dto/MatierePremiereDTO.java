@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class MatierePremiereDTO {
-    private Long idMatierePremiere;
+    private String reference;
     private String nom;
     private String type;
     private String uniteMesure;

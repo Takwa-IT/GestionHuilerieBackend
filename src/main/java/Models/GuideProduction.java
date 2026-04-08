@@ -1,5 +1,6 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,8 +49,8 @@ public class GuideProduction {
     private List<ExecutionProduction> executions;
 
     public String getReference() {
-        if (reference == null && idGuideProduction != null) {
-            return "GP" + idGuideProduction;
+        if (idGuideProduction != null) {
+            return ReferenceUtils.format("GP", idGuideProduction);
         }
         return reference;
     }
@@ -57,7 +58,7 @@ public class GuideProduction {
     @jakarta.persistence.PostPersist
     public void buildReferenceAfterPersist() {
         if (reference == null && idGuideProduction != null) {
-            reference = "GP" + idGuideProduction;
+            reference = ReferenceUtils.format("GP", idGuideProduction);
         }
     }
 }

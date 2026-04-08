@@ -11,11 +11,13 @@ import dto.UtilisateurAdminRequestDTO;
 import dto.UtilisateurStatusUpdateDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +30,9 @@ public class AdminUtilisateurService {
     private final ProfilRepository profilRepository;
     private final HuilerieRepository huilerieRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${security.verification-email.expiration-hours:24}")
+    private long verificationEmailExpirationHours;
 
     @Transactional(readOnly = true)
     public List<UtilisateurAdminDTO> findAll() {
@@ -51,6 +56,9 @@ public class AdminUtilisateurService {
         utilisateur.setProfil(profil);
         utilisateur.setHuilerie(huilerie);
         utilisateur.setMotDePasse(passwordEncoder.encode(UUID.randomUUID().toString()));
+        utilisateur.setEmailVerified(false);
+        utilisateur.setVerificationToken(UUID.randomUUID().toString());
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
 
         return toDTO(utilisateurRepository.save(utilisateur));
     }

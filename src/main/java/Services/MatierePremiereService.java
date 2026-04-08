@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Mapper.MatierePremiereMapper;
 import Models.MatierePremiere;
 import Repositories.MatierePremiereRepository;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,28 +24,37 @@ public class MatierePremiereService {
 
     public MatierePremiereDTO create(MatierePremiereCreateDTO dto) {
         MatierePremiere entity = matierePremiereMapper.toEntity(dto);
-        return matierePremiereMapper.toDTO(matierePremiereRepository.save(entity));
+        entity.setReference("TMP-MP-" + UUID.randomUUID());
+        MatierePremiere saved = matierePremiereRepository.save(entity);
+        saved.setReference(ReferenceUtils.format("MP", saved.getId()));
+        return matierePremiereMapper.toDTO(matierePremiereRepository.save(saved));
     }
 
-    public MatierePremiereDTO update(Long idMatierePremiere, MatierePremiereUpdateDTO dto) {
-        MatierePremiere entity = findMatiere(idMatierePremiere);
+    public MatierePremiereDTO update(String reference, MatierePremiereUpdateDTO dto) {
+        MatierePremiere entity = findMatiere(reference);
         matierePremiereMapper.updateFromDTO(dto, entity);
         return matierePremiereMapper.toDTO(matierePremiereRepository.save(entity));
     }
 
-    public void delete(Long idMatierePremiere) {
-        matierePremiereRepository.delete(findMatiere(idMatierePremiere));
+    public void delete(String reference) {
+        matierePremiereRepository.delete(findMatiere(reference));
     }
 
-    public MatierePremiereDTO findById(Long idMatierePremiere) {
-        return matierePremiereMapper.toDTO(findMatiere(idMatierePremiere));
+    public MatierePremiereDTO findByReference(String reference) {
+        return matierePremiereMapper.toDTO(findMatiere(reference));
     }
 
     public List<MatierePremiereDTO> findAll() {
         return matierePremiereRepository.findAll().stream().map(matierePremiereMapper::toDTO).toList();
     }
 
-    //recupere une matiere premiere par ID + utilisable dans des autres methodes
+    //recupere une matiere premiere par reference pour le module CRUD
+    public MatierePremiere findMatiere(String reference) {
+        return matierePremiereRepository.findByReference(reference)
+                .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));
+    }
+
+    //recupere une matiere premiere par ID + utilisable dans les autres methodes existantes
     public MatierePremiere findMatiere(Long id) {
         return matierePremiereRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));

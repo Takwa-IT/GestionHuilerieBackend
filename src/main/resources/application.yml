@@ -40,8 +40,10 @@ security:
     secret: "mySuperSecretKeyThatIsVeryLongAndSecureForJWTTokenGeneration2026ForOilProductionSystemSecurity"
     expiration-ms: 86400000
     refresh-expiration-ms: 604800000
-    reset-password:
+  reset-password:
     expiration-minutes: 30
+  verification-email:
+    expiration-hours: 24
 
 app:
   mail:

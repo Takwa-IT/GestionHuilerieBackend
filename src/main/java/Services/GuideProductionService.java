@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Models.EtapeProduction;
 import Models.GuideProduction;
 import Models.Huilerie;
@@ -32,46 +33,28 @@ public class GuideProductionService {
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
 
         GuideProduction guideProduction = new GuideProduction();
-        guideProduction.setNom(dto.getNom());
-        guideProduction.setDescription(dto.getDescription());
-        guideProduction.setDateCreation(dto.getDateCreation());
-        guideProduction.setHuilerie(huilerie);
-
-        if (dto.getEtapes() != null) {
-            List<EtapeProduction> etapes = new ArrayList<>();
-            for (EtapeProductionCreateDTO etapeDTO : dto.getEtapes()) {
-                EtapeProduction etape = new EtapeProduction();
-                etape.setNom(etapeDTO.getNom());
-                etape.setOrdre(etapeDTO.getOrdre());
-                etape.setDescription(etapeDTO.getDescription());
-                etape.setGuideProduction(guideProduction);
-
-                if (etapeDTO.getParametres() != null) {
-                    List<ParametreEtape> parametres = new ArrayList<>();
-                    for (ParametreEtapeCreateDTO parametreDTO : etapeDTO.getParametres()) {
-                        ParametreEtape parametre = new ParametreEtape();
-                        parametre.setNom(parametreDTO.getNom());
-                        parametre.setUniteMesure(parametreDTO.getUniteMesure());
-                        parametre.setDescription(parametreDTO.getDescription());
-                        parametre.setValeur(parametreDTO.getValeur());
-                        parametre.setEtapeProduction(etape);
-                        parametres.add(parametre);
-                    }
-                    etape.setParametres(parametres);
-                }
-
-                etapes.add(etape);
-            }
-            guideProduction.setEtapes(etapes);
-        }
+        applyRequestToGuide(guideProduction, dto, huilerie);
 
         GuideProduction saved = guideProductionRepository.save(guideProduction);
-        if (saved.getReference() == null && saved.getIdGuideProduction() != null) {
-            saved.setReference("GP" + saved.getIdGuideProduction());
+        if (saved.getIdGuideProduction() != null) {
+            saved.setReference(ReferenceUtils.format("GP", saved.getIdGuideProduction()));
             saved = guideProductionRepository.save(saved);
         }
 
         return toDTO(saved);
+    }
+
+    public GuideProductionDTO update(Long idGuideProduction, GuideProductionCreateDTO dto) {
+        GuideProduction guideProduction = findGuide(idGuideProduction);
+        Huilerie huilerie = huilerieRepository.findById(dto.getHuilerieId())
+                .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
+
+        applyRequestToGuide(guideProduction, dto, huilerie);
+        return toDTO(guideProductionRepository.save(guideProduction));
+    }
+
+    public void delete(Long idGuideProduction) {
+        guideProductionRepository.delete(findGuide(idGuideProduction));
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +72,40 @@ public class GuideProductionService {
     public GuideProduction findGuide(Long idGuideProduction) {
         return guideProductionRepository.findById(idGuideProduction)
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));
+    }
+
+    private void applyRequestToGuide(GuideProduction guideProduction, GuideProductionCreateDTO dto, Huilerie huilerie) {
+        guideProduction.setNom(dto.getNom());
+        guideProduction.setDescription(dto.getDescription());
+        guideProduction.setDateCreation(dto.getDateCreation());
+        guideProduction.setHuilerie(huilerie);
+
+        List<EtapeProduction> etapes = new ArrayList<>();
+        if (dto.getEtapes() != null) {
+            for (EtapeProductionCreateDTO etapeDTO : dto.getEtapes()) {
+                EtapeProduction etape = new EtapeProduction();
+                etape.setNom(etapeDTO.getNom());
+                etape.setOrdre(etapeDTO.getOrdre());
+                etape.setDescription(etapeDTO.getDescription());
+                etape.setGuideProduction(guideProduction);
+
+                List<ParametreEtape> parametres = new ArrayList<>();
+                if (etapeDTO.getParametres() != null) {
+                    for (ParametreEtapeCreateDTO parametreDTO : etapeDTO.getParametres()) {
+                        ParametreEtape parametre = new ParametreEtape();
+                        parametre.setNom(parametreDTO.getNom());
+                        parametre.setUniteMesure(parametreDTO.getUniteMesure());
+                        parametre.setDescription(parametreDTO.getDescription());
+                        parametre.setValeur(parametreDTO.getValeur());
+                        parametre.setEtapeProduction(etape);
+                        parametres.add(parametre);
+                    }
+                }
+                etape.setParametres(parametres);
+                etapes.add(etape);
+            }
+        }
+        guideProduction.setEtapes(etapes);
     }
 
     private GuideProductionDTO toDTO(GuideProduction guideProduction) {

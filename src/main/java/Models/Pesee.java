@@ -7,7 +7,11 @@ public class Pesee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idPesee;
+    @Column(name = "id_pesee")
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String reference;
 
     private String datePesee;
     private Double poidsBrut;
@@ -18,8 +22,11 @@ public class Pesee {
     @JoinColumn(name = "lot_id", nullable = false)
     private LotOlives lot;
 
-    public Long getIdPesee() { return idPesee; }
-    public void setIdPesee(Long idPesee) { this.idPesee = idPesee; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
 
     public String getDatePesee() { return datePesee; }
     public void setDatePesee(String datePesee) { this.datePesee = datePesee; }

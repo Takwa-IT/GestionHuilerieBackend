@@ -8,7 +8,11 @@ public class MatierePremiere {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idMatierePremiere;
+    @Column(name = "id_matiere_premiere")
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String reference;
 
     private String nom;
     private String type;
@@ -21,8 +25,11 @@ public class MatierePremiere {
     @OneToMany(mappedBy = "matierePremiere")
     private List<Machine> machinesAffectees;
 
-    public Long getIdMatierePremiere() { return idMatierePremiere; }
-    public void setIdMatierePremiere(Long idMatierePremiere) { this.idMatierePremiere = idMatierePremiere; }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
 
     public String getNom() { return nom; }
     public void setNom(String nom) { this.nom = nom; }

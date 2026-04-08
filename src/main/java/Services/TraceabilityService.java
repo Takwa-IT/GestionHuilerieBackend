@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Models.AnalyseLaboratoire;
 import Models.ExecutionProduction;
 import Models.LotOlives;
@@ -43,12 +44,12 @@ public class TraceabilityService {
         lotEvent.setDate(lot.getDateReception());
         lotEvent.setEtape("LotOlives");
         lotEvent.setDescription("Reception lot OL-" + lot.getIdLot() + " variete " + lot.getVarieteOlive());
-        lotEvent.setReference("LOT-OL-" + lot.getIdLot());
+        lotEvent.setReference(lot.getReference());
         events.add(lotEvent);
 
         for (Pesee pesee : peseeRepository.findByLot_IdLotOrderByDatePeseeDesc(lotId)) {
             LotTraceabilityDTO.PeseeItem peseeDTO = new LotTraceabilityDTO.PeseeItem();
-            peseeDTO.setIdPesee(pesee.getIdPesee());
+            peseeDTO.setReference(pesee.getReference());
             peseeDTO.setDate(pesee.getDatePesee());
             peseeDTO.setPoidsBrut(pesee.getPoidsBrut());
             peseeDTO.setPoidsTare(pesee.getPoidsTare());
@@ -59,7 +60,7 @@ public class TraceabilityService {
             event.setDate(pesee.getDatePesee());
             event.setEtape("Pesee");
             event.setDescription("Pesee enregistree, poids net = " + pesee.getPoidsNet() + " kg");
-            event.setReference("PES-" + pesee.getIdPesee());
+            event.setReference(pesee.getReference());
             events.add(event);
         }
 
@@ -68,7 +69,7 @@ public class TraceabilityService {
             event.setDate(movement.getDateMouvement());
             event.setEtape("Stock");
             event.setDescription("Mouvement " + movement.getTypeMouvement() + ", quantite = " + movement.getQuantite() + " kg");
-            event.setReference("STOCK-" + movement.getIdStockMovement());
+            event.setReference(ReferenceUtils.format("ST", movement.getIdStockMovement()));
             events.add(event);
         }
 
@@ -77,7 +78,7 @@ public class TraceabilityService {
             event.setDate(executionProduction.getDateDebut());
             event.setEtape("ExecutionProduction");
             event.setDescription("Lot utilise en execution de production, statut = " + executionProduction.getStatut());
-            event.setReference("EXE-" + executionProduction.getIdExecutionProduction());
+            event.setReference(ReferenceUtils.format("EX", executionProduction.getIdExecutionProduction()));
             events.add(event);
 
             ProduitFinal produitFinal = executionProduction.getProduitFinal();
@@ -86,7 +87,7 @@ public class TraceabilityService {
                 produitEvent.setDate(produitFinal.getDateProduction());
                 produitEvent.setEtape("ProduitFinal");
                 produitEvent.setDescription(produitFinal.getNomProduit() + " produit, quantite = " + produitFinal.getQuantiteProduite());
-                produitEvent.setReference("PF-" + produitFinal.getIdProduit());
+                produitEvent.setReference(produitFinal.getReference());
                 events.add(produitEvent);
             }
         }

@@ -17,7 +17,7 @@ public class LotTraceabilityDTO {
 
     @Data
     public static class PeseeItem {
-        private Long idPesee;
+        private String reference;
         private String date;
         private Double poidsBrut;
         private Double poidsTare;

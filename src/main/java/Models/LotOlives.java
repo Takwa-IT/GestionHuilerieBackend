@@ -1,5 +1,6 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -46,8 +47,8 @@ public class LotOlives {
     public void setIdLot(Long idLot) { this.idLot = idLot; }
 
     public String getReference() {
-        if (reference == null && idLot != null) {
-            return "LOT" + idLot;
+        if (idLot != null) {
+            return ReferenceUtils.format("LO", idLot);
         }
         return reference;
     }
@@ -98,7 +99,7 @@ public class LotOlives {
     @PostPersist
     public void buildReferenceAfterPersist() {
         if (reference == null && idLot != null) {
-            reference = "LOT" + idLot;
+            reference = ReferenceUtils.format("LO", idLot);
         }
     }
 }

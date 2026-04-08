@@ -21,9 +21,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -38,8 +40,11 @@ public class DataInitializer implements ApplicationRunner {
     private final HuilerieRepository huilerieRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.seed.admin-password:Admin@1}")
+    @Value("${app.seed.admin-password:Admin123!}")
     private String adminPassword;
+
+    @Value("${security.verification-email.expiration-hours:24}")
+    private long verificationEmailExpirationHours;
 
     @Override
     @Transactional
@@ -122,7 +127,7 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedDefaultAdminUser(Profil adminProfil) {
-        if (utilisateurRepository.findByEmail("testnovaplatform@gmail.com").isPresent()) {
+        if (utilisateurRepository.findByEmail("smatitakwapro@gmail.com").isPresent()) {
             return;
         }
 
@@ -135,7 +140,7 @@ public class DataInitializer implements ApplicationRunner {
         Utilisateur utilisateur = new Utilisateur();
         utilisateur.setNom("Admin");
         utilisateur.setPrenom("Système");
-        utilisateur.setEmail("testnovaplatform@gmail.com");
+        utilisateur.setEmail("smatitakwapro@gmail.com");
         utilisateur.setMotDePasse(passwordEncoder.encode(adminPassword));
         utilisateur.setTelephone(null);
         utilisateur.setProfil(adminProfil);
@@ -143,8 +148,8 @@ public class DataInitializer implements ApplicationRunner {
         utilisateur.setActif(StatutUtilisateur.ACTIF);
 
         utilisateur.setEmailVerified(true);
-        utilisateur.setVerificationToken(null);
-        utilisateur.setVerificationTokenExpiresAt(null);
+        utilisateur.setVerificationToken(UUID.randomUUID().toString());
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
 
         utilisateurRepository.save(utilisateur);
         log.info("[SEED] Utilisateur admin cree: {}", utilisateur.getEmail());

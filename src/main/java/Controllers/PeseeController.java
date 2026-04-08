@@ -26,9 +26,9 @@ public class PeseeController {
         return new ResponseEntity<>(peseeService.createReception(dto), HttpStatus.CREATED);
     }
 
-    @GetMapping("/{idPesee}")
-    public ResponseEntity<PeseeDTO> findById(@PathVariable Long idPesee) {
-        return ResponseEntity.ok(peseeService.findById(idPesee));
+    @GetMapping("/{reference}")
+    public ResponseEntity<PeseeDTO> findByReference(@PathVariable String reference) {
+        return ResponseEntity.ok(peseeService.findByReference(reference));
     }
 
     @GetMapping
@@ -36,12 +36,12 @@ public class PeseeController {
         return ResponseEntity.ok(peseeService.findAll());
     }
 
-    @GetMapping("/{idPesee}/pdf")
-    public ResponseEntity<byte[]> generateBonPesee(@PathVariable Long idPesee) {
-        byte[] pdf = peseeService.generateBonPeseePdf(idPesee);
+    @GetMapping("/{reference}/pdf")
+    public ResponseEntity<byte[]> generateBonPesee(@PathVariable String reference) {
+        byte[] pdf = peseeService.generateBonPeseePdf(reference);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDisposition(ContentDisposition.inline().filename("bon-pesee-" + idPesee + ".pdf").build());
+        headers.setContentDisposition(ContentDisposition.attachment().filename("bon-pesee-" + reference + ".pdf").build());
         return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 }

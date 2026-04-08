@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PeseeRepository extends JpaRepository<Pesee, Long> {
@@ -12,4 +13,8 @@ public interface PeseeRepository extends JpaRepository<Pesee, Long> {
     List<Pesee> findByLot_IdLotOrderByDatePeseeDesc(Long lotId);
 
     List<Pesee> findAllByOrderByDatePeseeDesc();
+
+    Optional<Pesee> findByReference(String reference);
+
+    boolean existsByReference(String reference);
 }

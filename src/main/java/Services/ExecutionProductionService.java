@@ -120,11 +120,12 @@ public class ExecutionProductionService {
             dto.setLotOlivesVariete(executionProduction.getLotOlives().getVarieteOlive());
         }
         if (executionProduction.getMatierePremiere() != null) {
-            dto.setMatierePremiereId(executionProduction.getMatierePremiere().getIdMatierePremiere());
+            dto.setMatierePremiereId(executionProduction.getMatierePremiere().getId());
             dto.setMatierePremiereNom(executionProduction.getMatierePremiere().getNom());
         }
         if (executionProduction.getProduitFinal() != null) {
             dto.setProduitFinalId(executionProduction.getProduitFinal().getIdProduit());
+            dto.setProduitFinalReference(executionProduction.getProduitFinal().getReference());
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
         }
         if (executionProduction.getValeursReelles() != null) {

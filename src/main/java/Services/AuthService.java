@@ -15,6 +15,7 @@ import Repositories.UtilisateurRepository;
 import dto.AuthPermissionDTO;
 import dto.AuthResponseDTO;
 import dto.AuthUtilisateurDTO;
+import dto.ProfileUpdateRequestDTO;
 import dto.SignupRequestDTO;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,9 @@ public class AuthService {
     @Value("${security.reset-password.expiration-minutes:30}")
     private long resetPasswordExpirationMinutes;
 
+    @Value("${security.verification-email.expiration-hours:24}")
+    private long verificationEmailExpirationHours;
+
     @Value("${app.mail.from:no-reply@gestionhuilerie.local}")
     private String mailFrom;
 
@@ -78,7 +82,7 @@ public class AuthService {
         // Verification email obligatoire avant login
         utilisateur.setEmailVerified(false);
         utilisateur.setVerificationToken(UUID.randomUUID().toString());
-        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
 
         Utilisateur saved = utilisateurRepository.save(utilisateur);
         sendVerificationEmail(saved);
@@ -115,12 +119,12 @@ public class AuthService {
 
         if (utilisateur.getVerificationTokenExpiresAt() == null ||
                 utilisateur.getVerificationTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token de verification expire");
+            throw new RuntimeException("Token de verification expire. Ce lien est valable 24 heures.");
         }
 
         utilisateur.setEmailVerified(true);
-        utilisateur.setVerificationToken(null);
-        utilisateur.setVerificationTokenExpiresAt(null);
+        utilisateur.setVerificationToken(UUID.randomUUID().toString());
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
         Utilisateur saved = utilisateurRepository.save(utilisateur);
 
         String jwtToken = jwtService.generateToken(saved);
@@ -138,7 +142,7 @@ public class AuthService {
         }
 
         utilisateur.setVerificationToken(UUID.randomUUID().toString());
-        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
         utilisateurRepository.save(utilisateur);
 
         sendVerificationEmail(utilisateur);
@@ -189,7 +193,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Token de reinitialisation invalide"));
 
         if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token de reinitialisation expire");
+            throw new RuntimeException("Token de reinitialisation expire. Ce lien est valable 30 minutes.");
         }
 
         Utilisateur utilisateur = resetToken.getUtilisateur();
@@ -217,6 +221,66 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
         return buildAuthResponse(utilisateur, null, null);
+    }
+
+    public AuthResponseDTO updateProfile(String currentEmail, ProfileUpdateRequestDTO request) {
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
+        boolean passwordChanged = false;
+
+        if (hasText(request.getEmail())) {
+            utilisateurRepository.findByEmail(request.getEmail())
+                    .filter(existing -> !existing.getIdUtilisateur().equals(utilisateur.getIdUtilisateur()))
+                    .ifPresent(u -> {
+                        throw new IllegalArgumentException("Email deja utilise");
+                    });
+            utilisateur.setEmail(request.getEmail().trim());
+        }
+
+        if (hasText(request.getNom())) {
+            utilisateur.setNom(request.getNom().trim());
+        }
+        if (hasText(request.getPrenom())) {
+            utilisateur.setPrenom(request.getPrenom().trim());
+        }
+        if (request.getTelephone() != null) {
+            utilisateur.setTelephone(request.getTelephone().trim());
+        }
+
+        boolean wantsPasswordChange = hasText(request.getCurrentPassword())
+                || hasText(request.getNewPassword())
+                || hasText(request.getConfirmPassword());
+
+        if (wantsPasswordChange) {
+            if (!hasText(request.getCurrentPassword()) || !hasText(request.getNewPassword()) || !hasText(request.getConfirmPassword())) {
+                throw new IllegalArgumentException("Ancien mot de passe, nouveau mot de passe et confirmation sont obligatoires");
+            }
+            if (!passwordEncoder.matches(request.getCurrentPassword(), utilisateur.getMotDePasse())) {
+                throw new IllegalArgumentException("Mot de passe actuel incorrect");
+            }
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                throw new IllegalArgumentException("La confirmation du nouveau mot de passe est invalide");
+            }
+            utilisateur.setMotDePasse(passwordEncoder.encode(request.getNewPassword()));
+            passwordChanged = true;
+        }
+
+        Utilisateur savedUtilisateur = utilisateurRepository.save(utilisateur);
+
+        if (!passwordChanged) {
+            return buildAuthResponse(savedUtilisateur, null, null);
+        }
+
+        List<RefreshToken> activeTokens = refreshTokenRepository.findByUtilisateurAndRevokedFalse(savedUtilisateur);
+        for (RefreshToken refreshToken : activeTokens) {
+            refreshToken.setRevoked(true);
+        }
+        refreshTokenRepository.saveAll(activeTokens);
+        permissionService.evictUserPermissions(savedUtilisateur.getIdUtilisateur());
+
+        String token = jwtService.generateToken(savedUtilisateur);
+        RefreshToken refreshToken = createRefreshToken(savedUtilisateur);
+        return buildAuthResponse(savedUtilisateur, token, refreshToken.getToken());
     }
 
     private RefreshToken createRefreshToken(Utilisateur utilisateur) {
@@ -384,5 +448,9 @@ public class AuthService {
         dto.setCanDelete(permission.getCanDelete());
         dto.setCanExecuted(permission.getCanExecuted());
         return dto;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

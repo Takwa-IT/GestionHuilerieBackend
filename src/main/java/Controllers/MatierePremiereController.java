@@ -27,21 +27,21 @@ public class MatierePremiereController {
         return new ResponseEntity<>(matierePremiereService.create(dto), HttpStatus.CREATED);
     }
 
-    @PutMapping("/{idMatierePremiere}")
+    @PutMapping("/{reference}")
     @RequirePermission(module = "MATIERES_PREMIERES", action = PermissionAction.UPDATE)
-    public ResponseEntity<MatierePremiereDTO> update(@PathVariable Long idMatierePremiere, @RequestBody MatierePremiereUpdateDTO dto) {
-        return ResponseEntity.ok(matierePremiereService.update(idMatierePremiere, dto));
+    public ResponseEntity<MatierePremiereDTO> update(@PathVariable String reference, @RequestBody MatierePremiereUpdateDTO dto) {
+        return ResponseEntity.ok(matierePremiereService.update(reference, dto));
     }
 
-    @DeleteMapping("/{idMatierePremiere}")
-    public ResponseEntity<Void> delete(@PathVariable Long idMatierePremiere) {
-        matierePremiereService.delete(idMatierePremiere);
+    @DeleteMapping("/{reference}")
+    public ResponseEntity<Void> delete(@PathVariable String reference) {
+        matierePremiereService.delete(reference);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{idMatierePremiere}")
-    public ResponseEntity<MatierePremiereDTO> findById(@PathVariable Long idMatierePremiere) {
-        return ResponseEntity.ok(matierePremiereService.findById(idMatierePremiere));
+    @GetMapping("/{reference}")
+    public ResponseEntity<MatierePremiereDTO> findByReference(@PathVariable String reference) {
+        return ResponseEntity.ok(matierePremiereService.findByReference(reference));
     }
 
     @GetMapping

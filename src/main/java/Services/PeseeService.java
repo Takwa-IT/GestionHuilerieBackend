@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Mapper.PeseeMapper;
 import Models.CampagneOlives;
 import Models.LotOlives;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -58,12 +60,15 @@ public class PeseeService {
         LotOlives lot = resolveLot(dto, poidsNet);
 
         Pesee pesee = new Pesee();
+        pesee.setReference("TMP-PS-" + UUID.randomUUID());
         pesee.setDatePesee(dto.getDatePesee());
         pesee.setPoidsBrut(dto.getPoidsBrut());
         pesee.setPoidsTare(poidsTare);
         pesee.setPoidsNet(poidsNet);
         pesee.setLot(lot);
         Pesee savedPesee = peseeRepository.save(pesee);
+        savedPesee.setReference(ReferenceUtils.format("PS", savedPesee.getId()));
+        savedPesee = peseeRepository.save(savedPesee);
 
         Stock stock = resolveStock(dto, lot);
         stockMovementService.createArrivalForStock(
@@ -75,16 +80,16 @@ public class PeseeService {
         return peseeMapper.toDTO(savedPesee);
     }
 
-    public PeseeDTO findById(Long idPesee) {
-        return peseeMapper.toDTO(findPesee(idPesee));
+    public PeseeDTO findByReference(String reference) {
+        return peseeMapper.toDTO(findPesee(reference));
     }
 
     public List<PeseeDTO> findAll() {
         return peseeRepository.findAllByOrderByDatePeseeDesc().stream().map(peseeMapper::toDTO).toList();
     }
 
-    public byte[] generateBonPeseePdf(Long peseeId) {
-        Pesee pesee = findPesee(peseeId);
+    public byte[] generateBonPeseePdf(String reference) {
+        Pesee pesee = findPesee(reference);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 36, 36, 36, 36);
@@ -155,9 +160,9 @@ public class PeseeService {
         title.setSpacingAfter(6f);
         rightCell.addElement(title);
 
-        Paragraph reference = new Paragraph("Reference : PES-" + pesee.getIdPesee(), subtitleFont);
-        reference.setAlignment(Element.ALIGN_RIGHT);
-        rightCell.addElement(reference);
+        Paragraph referenceText = new Paragraph("Reference : " + pesee.getReference(), subtitleFont);
+        referenceText.setAlignment(Element.ALIGN_RIGHT);
+        rightCell.addElement(referenceText);
 
         Paragraph date = new Paragraph("Date : " + pesee.getDatePesee(), subtitleFont);
         date.setAlignment(Element.ALIGN_RIGHT);
@@ -225,8 +230,8 @@ public class PeseeService {
         table.setWidths(new float[]{1.5f, 3f});
         table.setSpacingAfter(10f);
 
-        addInfoCell(table, "ID Pesee", labelFont, labelBg, Element.ALIGN_LEFT);
-        addInfoCell(table, String.valueOf(pesee.getIdPesee()), valueFont, valueBg, Element.ALIGN_LEFT);
+        addInfoCell(table, "Reference", labelFont, labelBg, Element.ALIGN_LEFT);
+        addInfoCell(table, nullSafe(pesee.getReference()), valueFont, valueBg, Element.ALIGN_LEFT);
 
         addInfoCell(table, "Date Pesee", labelFont, labelBg, Element.ALIGN_LEFT);
         addInfoCell(table, nullSafe(pesee.getDatePesee()), valueFont, valueBg, Element.ALIGN_LEFT);
@@ -322,7 +327,9 @@ public class PeseeService {
         lot.setQuantiteRestante(poidsNet);
         lot.setMatierePremiere(matierePremiereService.findMatiere(dto.getMatierePremiereId()));
         lot.setCampagne(campagne);
-        return lotOlivesRepository.save(lot);
+        LotOlives savedLot = lotOlivesRepository.save(lot);
+        savedLot.setReference(ReferenceUtils.format("LO", savedLot.getIdLot()));
+        return lotOlivesRepository.save(savedLot);
     }
 
     //gère le stock :
@@ -347,8 +354,8 @@ public class PeseeService {
     }
 
     //recupere un pesee par ID + utilisable dans des autres methodes
-    private Pesee findPesee(Long id) {
-        return peseeRepository.findById(id)
+    private Pesee findPesee(String reference) {
+        return peseeRepository.findByReference(reference)
                 .orElseThrow(() -> new RuntimeException("Pesee non trouvee"));
     }
 

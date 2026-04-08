@@ -10,6 +10,9 @@ public class ProduitFinal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idProduit;
 
+    @Column(nullable = false, unique = true)
+    private String reference;
+
     private String nomProduit;
     private Double quantiteProduite;
     private String dateProduction;
@@ -22,6 +25,9 @@ public class ProduitFinal {
 
     public Long getIdProduit() { return idProduit; }
     public void setIdProduit(Long idProduit) { this.idProduit = idProduit; }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
 
     public String getNomProduit() { return nomProduit; }
     public void setNomProduit(String nomProduit) { this.nomProduit = nomProduit; }

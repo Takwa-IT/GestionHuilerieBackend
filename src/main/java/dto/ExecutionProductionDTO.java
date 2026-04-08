@@ -24,6 +24,7 @@ public class ExecutionProductionDTO {
     private Long matierePremiereId;
     private String matierePremiereNom;
     private Long produitFinalId;
+    private String produitFinalReference;
     private String produitFinalNomProduit;
     private List<ValeurReelleParametreDTO> valeursReelles;
 }

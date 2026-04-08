@@ -11,14 +11,16 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface MatierePremiereMapper {
 
-    @Mapping(target = "idMatierePremiere", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "reference", ignore = true)
     @Mapping(target = "lots", ignore = true)
     @Mapping(target = "machinesAffectees", ignore = true)
     MatierePremiere toEntity(MatierePremiereCreateDTO dto);
 
     MatierePremiereDTO toDTO(MatierePremiere entity);
 
-    @Mapping(target = "idMatierePremiere", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "reference", ignore = true)
     @Mapping(target = "lots", ignore = true)
     @Mapping(target = "machinesAffectees", ignore = true)
     void updateFromDTO(MatierePremiereUpdateDTO dto, @MappingTarget MatierePremiere entity);

@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
@@ -32,6 +34,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         final String jwt = extractToken(request);
+        log.debug("[JWT] {} {} tokenPresent={}", request.getMethod(), request.getRequestURI(), jwt != null);
         if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
@@ -40,14 +43,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String email;
         try {
             email = jwtService.extractEmail(jwt);
+            log.debug("[JWT] extracted email={} for {} {}", email, request.getMethod(), request.getRequestURI());
         } catch (Exception ex) {
+            log.warn("[JWT] failed to extract email for {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
             filterChain.doFilter(request, response);
             return;
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             Utilisateur utilisateur = utilisateurRepository.findByEmail(email).orElse(null);
+            log.debug("[JWT] userFound={} for email={} on {} {}", utilisateur != null, email, request.getMethod(), request.getRequestURI());
             if (utilisateur != null && jwtService.isTokenValid(jwt, utilisateur)) {
+                log.debug("[JWT] token valid for email={} on {} {}", email, request.getMethod(), request.getRequestURI());
                 List<SimpleGrantedAuthority> authorities = utilisateur.getProfil() == null
                         ? List.of()
                         : List.of(new SimpleGrantedAuthority(
@@ -65,6 +72,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                log.warn("[JWT] token invalid or user missing for email={} on {} {}", email, request.getMethod(), request.getRequestURI());
             }
         }
 

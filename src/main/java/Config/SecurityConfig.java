@@ -13,9 +13,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import lombok.extern.slf4j.Slf4j;
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -32,6 +34,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                     .authenticationEntryPoint((request, response, authException) -> {
+                        log.warn("[SECURITY] authenticationEntryPoint {} {} -> {}", request.getMethod(), request.getRequestURI(), authException.getMessage());
                         String path = request.getRequestURI();
                         String message = "/api/auth/me".equals(path)
                             ? "Token JWT manquant ou invalide pour /api/auth/me"

@@ -13,6 +13,7 @@ public interface AnalyseLaboratoireMapper {
     AnalyseLaboratoireDTO toDTO(AnalyseLaboratoire entity);
 
     @Mapping(target = "idAnalyse", ignore = true)
+    @Mapping(target = "reference", ignore = true)
     @Mapping(target = "lot", ignore = true)
     AnalyseLaboratoire toEntity(AnalyseLaboratoireCreateDTO dto);
 }

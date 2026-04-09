@@ -9,6 +9,7 @@ import Repositories.UtilisateurRepository;
 import dto.UtilisateurAdminDTO;
 import dto.UtilisateurAdminRequestDTO;
 import dto.UtilisateurStatusUpdateDTO;
+import dto.UtilisateurAdminUpdateRequestDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,25 +64,37 @@ public class AdminUtilisateurService {
         return toDTO(utilisateurRepository.save(utilisateur));
     }
 
-    public UtilisateurAdminDTO update(Long id, UtilisateurAdminRequestDTO request) {
+    public UtilisateurAdminDTO update(Long id, UtilisateurAdminUpdateRequestDTO request) {
         Utilisateur utilisateur = utilisateurRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
 
-        utilisateurRepository.findByEmail(request.getEmail())
-                .filter(existing -> !existing.getIdUtilisateur().equals(id))
-                .ifPresent(u -> { throw new DataIntegrityViolationException("Email deja utilise"); });
+        if (hasText(request.getEmail())) {
+            String email = request.getEmail().trim();
+            utilisateurRepository.findByEmail(email)
+                    .filter(existing -> !existing.getIdUtilisateur().equals(id))
+                    .ifPresent(u -> { throw new DataIntegrityViolationException("Email deja utilise"); });
+            utilisateur.setEmail(email);
+        }
 
-        Profil profil = profilRepository.findById(request.getProfilId())
-                .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
-        Huilerie huilerie = huilerieRepository.findById(request.getHuilerieId())
-                .orElseThrow(() -> new EntityNotFoundException("Huilerie introuvable"));
-
-        utilisateur.setNom(request.getNom());
-        utilisateur.setPrenom(request.getPrenom());
-        utilisateur.setEmail(request.getEmail());
-        utilisateur.setTelephone(request.getTelephone());
-        utilisateur.setProfil(profil);
-        utilisateur.setHuilerie(huilerie);
+        if (hasText(request.getNom())) {
+            utilisateur.setNom(request.getNom().trim());
+        }
+        if (hasText(request.getPrenom())) {
+            utilisateur.setPrenom(request.getPrenom().trim());
+        }
+        if (request.getTelephone() != null) {
+            utilisateur.setTelephone(request.getTelephone().trim());
+        }
+        if (request.getProfilId() != null) {
+            Profil profil = profilRepository.findById(request.getProfilId())
+                    .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
+            utilisateur.setProfil(profil);
+        }
+        if (request.getHuilerieId() != null) {
+            Huilerie huilerie = huilerieRepository.findById(request.getHuilerieId())
+                    .orElseThrow(() -> new EntityNotFoundException("Huilerie introuvable"));
+            utilisateur.setHuilerie(huilerie);
+        }
 
         return toDTO(utilisateurRepository.save(utilisateur));
     }
@@ -112,5 +125,9 @@ public class AdminUtilisateurService {
         dto.setHuilerieId(utilisateur.getHuilerie().getIdHuilerie());
         dto.setHuilerieNom(utilisateur.getHuilerie().getNom());
         return dto;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

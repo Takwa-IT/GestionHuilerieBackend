@@ -1,0 +1,2 @@
+ALTER TABLE stock
+ADD COLUMN reference VARCHAR(255) NULL;

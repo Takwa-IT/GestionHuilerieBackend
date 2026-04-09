@@ -9,6 +9,7 @@ public class AnalyseLaboratoire {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idAnalyse;
 
+    private String reference;
     private Double acidite;
     private Double indicePeroxyde;
     private Double k232;
@@ -22,6 +23,9 @@ public class AnalyseLaboratoire {
 
     public Long getIdAnalyse() { return idAnalyse; }
     public void setIdAnalyse(Long idAnalyse) { this.idAnalyse = idAnalyse; }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
 
     public Double getAcidite() { return acidite; }
     public void setAcidite(Double acidite) { this.acidite = acidite; }

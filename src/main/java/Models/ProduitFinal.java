@@ -17,7 +17,11 @@ public class ProduitFinal {
     private Double quantiteProduite;
     private String dateProduction;
 
-    @OneToOne(mappedBy = "produitFinal")
+    @Column(name = "production_id", nullable = false)
+    private Long executionProductionId;
+
+    @OneToOne
+    @JoinColumn(name = "production_id", referencedColumnName = "idExecutionProduction", insertable = false, updatable = false)
     private ExecutionProduction executionProduction;
 
     @OneToMany(mappedBy = "produitFinal")
@@ -37,6 +41,9 @@ public class ProduitFinal {
 
     public String getDateProduction() { return dateProduction; }
     public void setDateProduction(String dateProduction) { this.dateProduction = dateProduction; }
+
+    public Long getExecutionProductionId() { return executionProductionId; }
+    public void setExecutionProductionId(Long executionProductionId) { this.executionProductionId = executionProductionId; }
 
     public ExecutionProduction getExecutionProduction() { return executionProduction; }
     public void setExecutionProduction(ExecutionProduction executionProduction) { this.executionProduction = executionProduction; }

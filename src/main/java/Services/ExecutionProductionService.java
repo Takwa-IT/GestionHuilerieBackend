@@ -79,6 +79,33 @@ public class ExecutionProductionService {
         return toDTO(executionProductionRepository.save(executionProduction));
     }
 
+    private String buildUniqueCodeLot(String requestedCodeLot, Long lotId) {
+        String baseCode = requestedCodeLot != null && !requestedCodeLot.isBlank()
+                ? requestedCodeLot.trim()
+                : "LOT-" + lotId;
+
+        if (!executionProductionRepository.existsByCodeLot(baseCode)) {
+            return baseCode;
+        }
+
+        int suffix = 2;
+        String candidate = baseCode + "-" + suffix;
+        while (executionProductionRepository.existsByCodeLot(candidate)) {
+            suffix++;
+            candidate = baseCode + "-" + suffix;
+        }
+        return candidate;
+    }
+
+    @Transactional(readOnly = true)
+    public String buildCodeLotForLot(Long lotId) {
+        LotOlives lotOlives = lotOlivesRepository.findById(lotId)
+                .orElseThrow(() -> new RuntimeException("Lot d'olives non trouve"));
+
+        String lotReference = lotOlives.getReference();
+        return buildUniqueCodeLot(lotReference, lotOlives.getIdLot());
+    }
+
     @Transactional(readOnly = true)
     public ExecutionProductionDTO findById(Long idExecutionProduction) {
         return toDTO(findExecution(idExecutionProduction));

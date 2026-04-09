@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 public interface StockMovementMapper {
 
     @Mapping(target = "idStockMovement", ignore = true)
+    @Mapping(target = "reference", ignore = true)
     @Mapping(target = "stock", ignore = true)
     StockMovement toEntity(StockMovementCreateDTO dto);
 

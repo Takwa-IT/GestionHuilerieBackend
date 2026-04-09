@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Mapper.AnalyseLaboratoireMapper;
 import Models.AnalyseLaboratoire;
 import Models.LotOlives;
@@ -41,7 +42,9 @@ public class AnalyseLaboratoireService {
             entity.setClasseQualiteFinale(computeClasseQualite(dto));
         }
 
-        return analyseLaboratoireMapper.toDTO(analyseLaboratoireRepository.save(entity));
+        AnalyseLaboratoire saved = analyseLaboratoireRepository.save(entity);
+        saved.setReference(ReferenceUtils.format("AL", saved.getIdAnalyse()));
+        return analyseLaboratoireMapper.toDTO(analyseLaboratoireRepository.save(saved));
     }
 
     private String computeClasseQualite(AnalyseLaboratoireCreateDTO dto) {

@@ -9,6 +9,7 @@ public class StockMovement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idStockMovement;
 
+    private String reference;
     private Double quantite;
     private String commentaire;
     private String dateMouvement;
@@ -27,6 +28,10 @@ public class StockMovement {
     public void setIdStockMovement(Long idStockMovement) {
         this.idStockMovement = idStockMovement;
     }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
+
     public Double getQuantite() { return quantite; }
     public void setQuantite(Double quantite) { this.quantite = quantite; }
 

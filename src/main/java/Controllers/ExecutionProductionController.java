@@ -28,6 +28,11 @@ public class ExecutionProductionController {
         return new ResponseEntity<>(executionProductionService.create(dto), HttpStatus.CREATED);
     }
 
+    @GetMapping("/build-code-lot/{lotId}")
+    public ResponseEntity<String> buildCodeLot(@PathVariable Long lotId) {
+        return ResponseEntity.ok(executionProductionService.buildCodeLotForLot(lotId));
+    }
+
     @GetMapping("/{idExecutionProduction}")
     public ResponseEntity<ExecutionProductionDTO> findById(@PathVariable Long idExecutionProduction) {
         return ResponseEntity.ok(executionProductionService.findById(idExecutionProduction));

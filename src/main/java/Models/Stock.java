@@ -10,6 +10,7 @@ public class Stock {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idStock;
 
+    private String reference;
     private String typeStock;
     private Double quantiteDisponible;
 
@@ -30,6 +31,9 @@ public class Stock {
 
     public Long getIdStock() { return idStock; }
     public void setIdStock(Long idStock) { this.idStock = idStock; }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
 
     public String getTypeStock() { return typeStock; }
     public void setTypeStock(String typeStock) { this.typeStock = typeStock; }

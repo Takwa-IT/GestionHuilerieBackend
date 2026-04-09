@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Mapper.StockMovementMapper;
 import Models.Stock;
 import Models.StockMovement;
@@ -8,7 +9,7 @@ import Repositories.StockMovementRepository;
 import Repositories.StockRepository;
 import dto.StockMovementCreateDTO;
 import dto.StockMovementDTO;
-import dto.StockMovementTypeUpdateDTO;
+import dto.StockMovementUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,39 +35,53 @@ public class StockMovementService {
         movement.setStock(stock);
 
         StockMovement saved = stockMovementRepository.save(movement);
+        saved.setReference(ReferenceUtils.format("MS", saved.getIdStockMovement()));
+        saved = stockMovementRepository.save(saved);
         stockRepository.save(stock);
         return stockMovementMapper.toDTO(saved);
     }
 
-    public StockMovementDTO updateTypeMouvement(Long idStockMovement, StockMovementTypeUpdateDTO dto) {
+    public StockMovementDTO update(Long idStockMovement, StockMovementUpdateDTO dto) {
         StockMovement movement = stockMovementRepository.findById(idStockMovement)
                 .orElseThrow(() -> new RuntimeException("Mouvement de stock non trouve"));
 
-        if (movement.getTypeMouvement() == dto.getTypeMouvement()
-                && safe(movement.getQuantite()) == safe(dto.getQuantite())) {
-            return stockMovementMapper.toDTO(movement);
-        }
+        Stock ancienStock = movement.getStock();
+        Stock nouveauStock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(dto.getHuilerieId(), dto.getReferenceId())
+                .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
 
-        Stock stock = movement.getStock();
-        double current = safe(stock.getQuantiteDisponible());
         double quantiteAncienne = safe(movement.getQuantite());
         double quantiteNouvelle = safe(dto.getQuantite());
-        double stockApresAnnulationAncienMouvement = current - deltaFor(movement.getTypeMouvement(), quantiteAncienne);
+        double ancienStockBase = safe(ancienStock.getQuantiteDisponible()) - deltaFor(movement.getTypeMouvement(), quantiteAncienne);
 
-        if ((dto.getTypeMouvement() == TypeMouvement.DEPARTURE || dto.getTypeMouvement() == TypeMouvement.TRANSFER)
-                && quantiteNouvelle > stockApresAnnulationAncienMouvement) {
-            throw new RuntimeException(
-                    "Quantite insuffisante pour appliquer ce mouvement. Stock disponible apres annulation de l'ancien mouvement = "
-                            + stockApresAnnulationAncienMouvement);
+        if (ancienStockBase < 0) {
+            throw new RuntimeException("Stock incoherent pour annuler l'ancien mouvement");
         }
 
-        double next = stockApresAnnulationAncienMouvement + deltaFor(dto.getTypeMouvement(), quantiteNouvelle);
+        if (ancienStock.getIdStock().equals(nouveauStock.getIdStock())) {
+            double stockFinal = ancienStockBase + deltaFor(dto.getTypeMouvement(), quantiteNouvelle);
+            if (stockFinal < 0) {
+                throw new RuntimeException("Quantite disponible insuffisante pour le stock");
+            }
+            ancienStock.setQuantiteDisponible(stockFinal);
+            stockRepository.save(ancienStock);
+        } else {
+            ancienStock.setQuantiteDisponible(ancienStockBase);
+            stockRepository.save(ancienStock);
 
-        stock.setQuantiteDisponible(next);
+            double nouveauStockFinal = safe(nouveauStock.getQuantiteDisponible()) + deltaFor(dto.getTypeMouvement(), quantiteNouvelle);
+            if (nouveauStockFinal < 0) {
+                throw new RuntimeException("Quantite disponible insuffisante pour le stock cible");
+            }
+            nouveauStock.setQuantiteDisponible(nouveauStockFinal);
+            stockRepository.save(nouveauStock);
+        }
+
+        movement.setStock(nouveauStock);
         movement.setTypeMouvement(dto.getTypeMouvement());
         movement.setQuantite(quantiteNouvelle);
+        movement.setCommentaire(dto.getCommentaire());
+        movement.setDateMouvement(dto.getDateMouvement());
 
-        stockRepository.save(stock);
         StockMovement saved = stockMovementRepository.save(movement);
         return stockMovementMapper.toDTO(saved);
     }
@@ -95,7 +110,9 @@ public class StockMovementService {
         movement.setCommentaire(commentaire);
         movement.setDateMouvement(dateMouvement);
         movement.setTypeMouvement(TypeMouvement.ARRIVAL);
-        return stockMovementRepository.save(movement);
+        StockMovement saved = stockMovementRepository.save(movement);
+        saved.setReference(ReferenceUtils.format("MS", saved.getIdStockMovement()));
+        return stockMovementRepository.save(saved);
     }
 
     private void updateStockQuantity(Stock stock, TypeMouvement typeMouvement, Double quantite) {

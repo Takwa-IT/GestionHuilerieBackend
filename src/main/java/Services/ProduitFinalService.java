@@ -35,6 +35,7 @@ public class ProduitFinalService {
 
         ProduitFinal entity = produitFinalMapper.toEntity(dto);
         entity.setReference("TMP-PF-" + UUID.randomUUID());
+        entity.setExecutionProductionId(executionProduction.getIdExecutionProduction());
         entity.setExecutionProduction(executionProduction);
 
         ProduitFinal savedProduitFinal = produitFinalRepository.save(entity);

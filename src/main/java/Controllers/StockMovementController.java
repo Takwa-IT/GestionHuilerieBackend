@@ -3,7 +3,7 @@ package Controllers;
 import Services.StockMovementService;
 import dto.StockMovementCreateDTO;
 import dto.StockMovementDTO;
-import dto.StockMovementTypeUpdateDTO;
+import dto.StockMovementUpdateDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,11 +24,11 @@ public class StockMovementController {
         return new ResponseEntity<>(stockMovementService.create(dto), HttpStatus.CREATED);
     }
 
-    @PatchMapping("/{idStockMovement}/type")
-    public ResponseEntity<StockMovementDTO> updateTypeMouvement(
+    @PutMapping("/{idStockMovement}")
+    public ResponseEntity<StockMovementDTO> update(
             @PathVariable Long idStockMovement,
-            @Valid @RequestBody StockMovementTypeUpdateDTO dto) {
-        return ResponseEntity.ok(stockMovementService.updateTypeMouvement(idStockMovement, dto));
+            @Valid @RequestBody StockMovementUpdateDTO dto) {
+        return ResponseEntity.ok(stockMovementService.update(idStockMovement, dto));
     }
 
     @GetMapping

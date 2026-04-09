@@ -4,6 +4,7 @@ import Services.AdminUtilisateurService;
 import dto.ApiResponseDTO;
 import dto.UtilisateurAdminDTO;
 import dto.UtilisateurAdminRequestDTO;
+import dto.UtilisateurAdminUpdateRequestDTO;
 import dto.UtilisateurStatusUpdateDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class UtilisateurController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<UtilisateurAdminDTO>> update(@PathVariable Long id, @Valid @RequestBody UtilisateurAdminRequestDTO request) {
+    public ResponseEntity<ApiResponseDTO<UtilisateurAdminDTO>> update(@PathVariable Long id, @Valid @RequestBody UtilisateurAdminUpdateRequestDTO request) {
         return ResponseEntity.ok(ApiResponseDTO.ok(adminUtilisateurService.update(id, request), "Utilisateur modifie"));
     }
 

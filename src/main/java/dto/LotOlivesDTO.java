@@ -15,5 +15,6 @@ public class LotOlivesDTO {
     private Double quantiteInitiale;
     private Double quantiteRestante;
     private Long matierePremiereId;
+    private String matierePremiereReference;
     private Long campagneId;
 }

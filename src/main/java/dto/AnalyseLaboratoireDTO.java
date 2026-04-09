@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class AnalyseLaboratoireDTO {
     private Long idAnalyse;
+    private String reference;
     private Double acidite;
     private Double indicePeroxyde;
     private Double k232;

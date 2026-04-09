@@ -28,10 +28,15 @@ import com.lowagie.text.pdf.PdfWriter;
 import dto.PeseeDTO;
 import dto.ReceptionPeseeCreateDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,6 +53,9 @@ public class PeseeService {
     private final StockRepository stockRepository;
     private final StockMovementService stockMovementService;
     private final PeseeMapper peseeMapper;
+
+    @Value("${app.storage.bon-pesee-dir:generated/bons-pesee}")
+    private String bonPeseeDir;
 
     public PeseeDTO createReception(ReceptionPeseeCreateDTO dto) {
         double poidsTare = dto.getPoidsTare() == null ? 0d : dto.getPoidsTare();
@@ -68,7 +76,9 @@ public class PeseeService {
         pesee.setLot(lot);
         Pesee savedPesee = peseeRepository.save(pesee);
         savedPesee.setReference(ReferenceUtils.format("PS", savedPesee.getId()));
+        savedPesee.setBonPeseePdfPath(buildPdfRelativePath(savedPesee.getReference()));
         savedPesee = peseeRepository.save(savedPesee);
+        writeBonPeseePdf(savedPesee);
 
         Stock stock = resolveStock(dto, lot);
         stockMovementService.createArrivalForStock(
@@ -78,6 +88,59 @@ public class PeseeService {
                 "Reception lot " + lot.getIdLot()
         );
         return peseeMapper.toDTO(savedPesee);
+    }
+
+    public PeseeDTO updateReception(Long id, ReceptionPeseeCreateDTO dto) {
+        Pesee pesee = peseeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pesee non trouvee"));
+
+        double poidsTare = dto.getPoidsTare() == null ? 0d : dto.getPoidsTare();
+        double poidsNet = dto.getPoidsBrut() - poidsTare;
+
+        if (poidsNet <= 0) {
+            throw new RuntimeException("Le poids net doit etre strictement positif");
+        }
+
+        Long huilerieId = dto.getHuilerieId();
+        if (huilerieId == null) {
+            throw new RuntimeException("huilerieId est obligatoire pour la reception");
+        }
+
+        LotOlives ancienLot = pesee.getLot();
+        double ancienPoidsNet = safe(pesee.getPoidsNet());
+
+        adjustLotQuantities(ancienLot, -ancienPoidsNet);
+        adjustStockQuantity(huilerieId, ancienLot, -ancienPoidsNet);
+
+        try {
+            LotOlives lot = resolveLot(dto, poidsNet);
+            pesee.setDatePesee(dto.getDatePesee());
+            pesee.setPoidsBrut(dto.getPoidsBrut());
+            pesee.setPoidsTare(poidsTare);
+            pesee.setPoidsNet(poidsNet);
+            pesee.setLot(lot);
+            Pesee savedPesee = peseeRepository.save(pesee);
+            writeBonPeseePdf(savedPesee);
+            return peseeMapper.toDTO(savedPesee);
+        } catch (RuntimeException ex) {
+            adjustLotQuantities(ancienLot, ancienPoidsNet);
+            adjustStockQuantity(huilerieId, ancienLot, ancienPoidsNet);
+            throw ex;
+        }
+    }
+
+    public void deleteReception(Long id) {
+        Pesee pesee = peseeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pesee non trouvee"));
+
+        LotOlives lot = pesee.getLot();
+        double poidsNet = safe(pesee.getPoidsNet());
+        Long huilerieId = resolveHuilerieId(lot);
+
+        adjustLotQuantities(lot, -poidsNet);
+        adjustStockQuantity(huilerieId, lot, -poidsNet);
+        deletePdfIfExists(pesee);
+        peseeRepository.delete(pesee);
     }
 
     public PeseeDTO findByReference(String reference) {
@@ -90,7 +153,37 @@ public class PeseeService {
 
     public byte[] generateBonPeseePdf(String reference) {
         Pesee pesee = findPesee(reference);
+        Path pdfPath = resolvePdfPath(pesee);
 
+        if (Files.exists(pdfPath)) {
+            try {
+                return Files.readAllBytes(pdfPath);
+            } catch (IOException e) {
+                throw new RuntimeException("Lecture du PDF impossible", e);
+            }
+        }
+
+        return writeBonPeseePdf(pesee);
+    }
+
+    private byte[] writeBonPeseePdf(Pesee pesee) {
+        Path pdfPath = resolvePdfPath(pesee);
+        byte[] pdf = buildBonPeseePdf(pesee);
+
+        try {
+            Files.createDirectories(pdfPath.getParent());
+            Files.write(pdfPath, pdf);
+            if (!pdfPath.toString().equals(pesee.getBonPeseePdfPath())) {
+                pesee.setBonPeseePdfPath(pdfPath.toString().replace('\\', '/'));
+                peseeRepository.save(pesee);
+            }
+            return pdf;
+        } catch (IOException e) {
+            throw new RuntimeException("Enregistrement du PDF impossible", e);
+        }
+    }
+
+    private byte[] buildBonPeseePdf(Pesee pesee) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 36, 36, 36, 36);
 
@@ -135,6 +228,23 @@ public class PeseeService {
         } catch (Exception e) {
             throw new RuntimeException("Generation du PDF impossible", e);
         }
+    }
+
+    private Path resolvePdfPath(Pesee pesee) {
+        String relativePath = hasText(pesee.getBonPeseePdfPath())
+                ? pesee.getBonPeseePdfPath()
+                : buildPdfRelativePath(pesee.getReference());
+        return Paths.get(relativePath);
+    }
+
+    private String buildPdfRelativePath(String reference) {
+        return Paths.get(bonPeseeDir, "bon-pesee-" + sanitizeReference(reference) + ".pdf")
+                .toString()
+                .replace('\\', '/');
+    }
+
+    private String sanitizeReference(String reference) {
+        return reference == null ? UUID.randomUUID().toString() : reference.replaceAll("[^a-zA-Z0-9-_]", "_");
     }
 
     private void addHeader(Document document, Pesee pesee, Font titleFont, Font subtitleFont) throws DocumentException {
@@ -344,13 +454,55 @@ public class PeseeService {
         return stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(huilerieId, lot.getIdLot())
                 .orElseGet(() -> {
                     Stock stock = new Stock();
+                    stock.setReference(null);
                     stock.setTypeStock("LOT_OLIVES");
                     stock.setQuantiteDisponible(0d);
                     stock.setLotOlives(lot);
                     stock.setHuilerie(huilerieRepository.findById(huilerieId)
                             .orElseThrow(() -> new RuntimeException("Huilerie non trouvee")));
-                    return stockRepository.save(stock);
+                    Stock savedStock = stockRepository.save(stock);
+                    savedStock.setReference(ReferenceUtils.format("ST", savedStock.getIdStock()));
+                    return stockRepository.save(savedStock);
                 });
+    }
+
+    private void adjustLotQuantities(LotOlives lot, double delta) {
+        lot.setQuantiteInitiale(Math.max(0d, safe(lot.getQuantiteInitiale()) + delta));
+        lot.setQuantiteRestante(Math.max(0d, safe(lot.getQuantiteRestante()) + delta));
+        lotOlivesRepository.save(lot);
+    }
+
+    private void adjustStockQuantity(Long huilerieId, LotOlives lot, double delta) {
+        if (huilerieId == null || lot == null || lot.getIdLot() == null) {
+            return;
+        }
+
+        stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(huilerieId, lot.getIdLot())
+                .ifPresent(stock -> {
+                    stock.setQuantiteDisponible(Math.max(0d, safe(stock.getQuantiteDisponible()) + delta));
+                    stockRepository.save(stock);
+                });
+    }
+
+    private Long resolveHuilerieId(LotOlives lot) {
+        if (lot == null || lot.getIdLot() == null) {
+            return null;
+        }
+
+        return stockRepository.findByLotOlives_IdLot(lot.getIdLot()).stream()
+                .map(Stock::getHuilerie)
+                .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
+                .map(huilerie -> huilerie.getIdHuilerie())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void deletePdfIfExists(Pesee pesee) {
+        try {
+            Files.deleteIfExists(resolvePdfPath(pesee));
+        } catch (IOException ignored) {
+            // La suppression de la pesee reste prioritaire meme si le fichier PDF n'est pas supprimable.
+        }
     }
 
     //recupere un pesee par ID + utilisable dans des autres methodes

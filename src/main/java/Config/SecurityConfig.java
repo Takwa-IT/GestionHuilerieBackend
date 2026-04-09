@@ -2,6 +2,7 @@ package Config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -49,6 +50,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/api/execution-productions/**").permitAll()
+                    .requestMatchers("/api/guide-productions/**").permitAll()
                     .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/refresh").permitAll()
                     .requestMatchers("/api/auth/me").authenticated()
                     .requestMatchers("/api/auth/**").permitAll()

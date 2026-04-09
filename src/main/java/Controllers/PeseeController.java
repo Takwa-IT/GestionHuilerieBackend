@@ -26,6 +26,17 @@ public class PeseeController {
         return new ResponseEntity<>(peseeService.createReception(dto), HttpStatus.CREATED);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<PeseeDTO> updateReception(@PathVariable Long id, @Valid @RequestBody ReceptionPeseeCreateDTO dto) {
+        return ResponseEntity.ok(peseeService.updateReception(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReception(@PathVariable Long id) {
+        peseeService.deleteReception(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{reference}")
     public ResponseEntity<PeseeDTO> findByReference(@PathVariable String reference) {
         return ResponseEntity.ok(peseeService.findByReference(reference));

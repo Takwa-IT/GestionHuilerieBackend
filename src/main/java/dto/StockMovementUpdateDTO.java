@@ -1,16 +1,25 @@
 package dto;
 
 import Models.TypeMouvement;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 @Data
-public class StockMovementDTO {
-    private Long id;
-    private String reference;
-    private Long huilerieId;
+public class StockMovementUpdateDTO {
+    @NotNull
     private Long referenceId;
+
+    @NotNull
+    private Long huilerieId;
+
+    @NotNull
+    @Positive
     private Double quantite;
+
     private String commentaire;
     private String dateMouvement;
+
+    @NotNull
     private TypeMouvement typeMouvement;
 }

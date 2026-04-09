@@ -63,8 +63,7 @@ public class ExecutionProduction {
     @JoinColumn(name = "matiere_premiere_id", nullable = false)
     private MatierePremiere matierePremiere;
 
-    @OneToOne
-    @JoinColumn(name = "produit_final_id")
+    @OneToOne(mappedBy = "executionProduction")
     private ProduitFinal produitFinal;
 
     @OneToMany(mappedBy = "executionProduction", cascade = CascadeType.ALL, orphanRemoval = true)

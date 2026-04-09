@@ -17,6 +17,7 @@ public class Pesee {
     private Double poidsBrut;
     private Double poidsTare;
     private Double poidsNet;
+    private String bonPeseePdfPath;
 
     @ManyToOne
     @JoinColumn(name = "lot_id", nullable = false)
@@ -39,6 +40,9 @@ public class Pesee {
 
     public Double getPoidsNet() { return poidsNet; }
     public void setPoidsNet(Double poidsNet) { this.poidsNet = poidsNet; }
+
+    public String getBonPeseePdfPath() { return bonPeseePdfPath; }
+    public void setBonPeseePdfPath(String bonPeseePdfPath) { this.bonPeseePdfPath = bonPeseePdfPath; }
 
     public LotOlives getLot() { return lot; }
     public void setLot(LotOlives lot) { this.lot = lot; }

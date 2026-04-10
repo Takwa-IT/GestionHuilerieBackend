@@ -1,5 +1,7 @@
 package Controllers;
 
+import Config.PermissionAction;
+import Config.RequirePermission;
 import Services.StockMovementService;
 import dto.StockMovementCreateDTO;
 import dto.StockMovementDTO;
@@ -20,11 +22,13 @@ public class StockMovementController {
     private final StockMovementService stockMovementService;
 
     @PostMapping
+    @RequirePermission(module = "STOCK_MOUVEMENT", action = PermissionAction.CREATE)
     public ResponseEntity<StockMovementDTO> create(@Valid @RequestBody StockMovementCreateDTO dto) {
         return new ResponseEntity<>(stockMovementService.create(dto), HttpStatus.CREATED);
     }
 
     @PutMapping("/{idStockMovement}")
+    @RequirePermission(module = "STOCK_MOUVEMENT", action = PermissionAction.UPDATE)
     public ResponseEntity<StockMovementDTO> update(
             @PathVariable Long idStockMovement,
             @Valid @RequestBody StockMovementUpdateDTO dto) {
@@ -32,11 +36,13 @@ public class StockMovementController {
     }
 
     @GetMapping
+    @RequirePermission(module = "STOCK_MOUVEMENT", action = PermissionAction.READ)
     public ResponseEntity<List<StockMovementDTO>> findAll() {
         return ResponseEntity.ok(stockMovementService.findAll());
     }
 
     @GetMapping("/huilerie/{huilerieId}")
+    @RequirePermission(module = "STOCK_MOUVEMENT", action = PermissionAction.READ)
     public ResponseEntity<List<StockMovementDTO>> findByHuilerie(@PathVariable Long huilerieId) {
         return ResponseEntity.ok(stockMovementService.findByHuilerie(huilerieId));
     }

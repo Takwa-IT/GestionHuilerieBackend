@@ -33,7 +33,7 @@ public class GuideProductionService {
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
 
         GuideProduction guideProduction = new GuideProduction();
-        applyRequestToGuide(guideProduction, dto, huilerie);
+        applyRequestToGuide(guideProduction, dto, huilerie, true);
 
         GuideProduction saved = guideProductionRepository.save(guideProduction);
         if (saved.getIdGuideProduction() != null) {
@@ -49,7 +49,7 @@ public class GuideProductionService {
         Huilerie huilerie = huilerieRepository.findById(dto.getHuilerieId())
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
 
-        applyRequestToGuide(guideProduction, dto, huilerie);
+        applyRequestToGuide(guideProduction, dto, huilerie, false);
         return toDTO(guideProductionRepository.save(guideProduction));
     }
 
@@ -74,7 +74,7 @@ public class GuideProductionService {
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));
     }
 
-    private void applyRequestToGuide(GuideProduction guideProduction, GuideProductionCreateDTO dto, Huilerie huilerie) {
+    private void applyRequestToGuide(GuideProduction guideProduction, GuideProductionCreateDTO dto, Huilerie huilerie, boolean replaceEtapesCollection) {
         guideProduction.setNom(dto.getNom());
         guideProduction.setDescription(dto.getDescription());
         guideProduction.setDateCreation(dto.getDateCreation());
@@ -105,7 +105,14 @@ public class GuideProductionService {
                 etapes.add(etape);
             }
         }
-        guideProduction.setEtapes(etapes);
+
+        if (replaceEtapesCollection || guideProduction.getEtapes() == null) {
+            guideProduction.setEtapes(etapes);
+            return;
+        }
+
+        guideProduction.getEtapes().clear();
+        guideProduction.getEtapes().addAll(etapes);
     }
 
     private GuideProductionDTO toDTO(GuideProduction guideProduction) {

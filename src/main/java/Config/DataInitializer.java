@@ -60,6 +60,7 @@ public class DataInitializer implements ApplicationRunner {
                 "MACHINES",
                 "MATIERES_PREMIERES",
                 "STOCK",
+                "STOCK_MOUVEMENT",
                 "LOTS_TRAÇABILITE",
                 "DASHBOARD_ADMIN",
                 "HUILERIES",
@@ -77,6 +78,7 @@ public class DataInitializer implements ApplicationRunner {
         findOrCreatePermission(responsableProduction, modules.get("MACHINES"), false, true, false, false, false);
         findOrCreatePermission(responsableProduction, modules.get("MATIERES_PREMIERES"), true, true, true, false, false);
         findOrCreatePermission(responsableProduction, modules.get("STOCK"), true, true, true, false, false);
+        findOrCreatePermission(responsableProduction, modules.get("STOCK_MOUVEMENT"), true, true, true, false, false);
         findOrCreatePermission(responsableProduction, modules.get("LOTS_TRAÇABILITE"), true, true, true, false, false);
         findOrCreatePermission(responsableProduction, modules.get("DASHBOARD_ADMIN"), false, false, false, false, false);
         findOrCreatePermission(responsableProduction, modules.get("HUILERIES"), false, false, false, false, false);

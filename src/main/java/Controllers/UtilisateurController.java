@@ -38,8 +38,7 @@ public class UtilisateurController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<UtilisateurAdminDTO>> update(@PathVariable Long id, @Valid @RequestBody UtilisateurAdminUpdateRequestDTO request) {
-        return ResponseEntity.ok(ApiResponseDTO.ok(adminUtilisateurService.update(id, request), "Utilisateur modifie"));
+    public ResponseEntity<ApiResponseDTO<UtilisateurAdminDTO>> update(@PathVariable Long id, @Valid @RequestBody UtilisateurAdminRequestDTO request) {        return ResponseEntity.ok(ApiResponseDTO.ok(adminUtilisateurService.update(id, request), "Utilisateur modifie"));
     }
 
     @PutMapping("/{id}/activer")

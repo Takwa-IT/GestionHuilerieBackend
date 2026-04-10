@@ -25,6 +25,7 @@ public class AdminModuleService {
             "MACHINES",
             "MATIERES_PREMIERES",
             "STOCK",
+            "STOCK_MOUVEMENT",
             "LOTS_TRAÇABILITE",
             "DASHBOARD_ADMIN",
             "HUILERIES",

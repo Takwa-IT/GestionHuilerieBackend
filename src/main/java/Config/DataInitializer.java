@@ -63,7 +63,6 @@ public class DataInitializer implements ApplicationRunner {
                 "LOTS_TRAÇABILITE",
                 "DASHBOARD_ADMIN",
                 "HUILERIES",
-                "STOCK_MOUVEMENT",
                 "COMPTES_PROFILS")) {
             modules.put(moduleName, findOrCreateModule(moduleName));
         }
@@ -82,7 +81,6 @@ public class DataInitializer implements ApplicationRunner {
         findOrCreatePermission(responsableProduction, modules.get("DASHBOARD_ADMIN"), false, false, false, false, false);
         findOrCreatePermission(responsableProduction, modules.get("HUILERIES"), false, false, false, false, false);
         findOrCreatePermission(responsableProduction, modules.get("COMPTES_PROFILS"), false, false, false, false, false);
-        findOrCreatePermission(responsableProduction, modules.get("STOCK_MOUVEMENT"), false, false, false, false, false);
 
         seedDefaultAdminUser(admin);
     }

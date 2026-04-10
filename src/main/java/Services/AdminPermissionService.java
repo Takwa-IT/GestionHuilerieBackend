@@ -38,27 +38,18 @@ public class AdminPermissionService {
             "MACHINES",
             "MATIERES_PREMIERES",
             "STOCK",
-            "STOCK_MOUVEMENT",
             "LOTS_TRAÇABILITE",
             "DASHBOARD_ADMIN",
             "HUILERIES",
             "COMPTES_PROFILS"
     ));
 
-    private static final Set<String> STOCK_MOVEMENT_ALIASES = Set.of(
-            "STOCK_MOUVEMENT",
-            "MOUVEMENT_STOCK",
-            "STOCK_MOVEMENT",
-            "STOCK_MOUVEMENTS",
-            "STOCK_MOVEMENTS"
-    );
-
     @Transactional(readOnly = true)
     public List<PermissionModuleDTO> findByProfil(Long profilId) {
         Profil profil = profilRepository.findById(profilId)
                 .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
 
-        List<Module> modules = ensureAndGetModules();
+        List<Module> modules = moduleRepository.findAll();
         Map<Long, Permission> byModuleId = new HashMap<>();
         permissionRepository.findByProfilIdWithModule(profilId)
                 .forEach(p -> byModuleId.put(p.getModule().getIdModule(), p));
@@ -98,15 +89,13 @@ public class AdminPermissionService {
                     .findByProfilIdProfilAndModuleIdModule(profil.getIdProfil(), module.getIdModule())
                     .orElseGet(Permission::new);
 
-            PermissionItemUpsertDTO normalizedItem = normalizePermissions(item, module);
-
             permission.setProfil(profil);
             permission.setModule(module);
-            permission.setCanCreate(normalizedItem.getCanCreate());
-            permission.setCanRead(normalizedItem.getCanRead());
-            permission.setCanUpdate(normalizedItem.getCanUpdate());
-            permission.setCanDelete(normalizedItem.getCanDelete());
-            permission.setCanExecuted(normalizedItem.getCanExecuted());
+            permission.setCanCreate(item.getCanCreate());
+            permission.setCanRead(item.getCanRead());
+            permission.setCanUpdate(item.getCanUpdate());
+            permission.setCanDelete(item.getCanDelete());
+            permission.setCanExecuted(item.getCanExecuted());
             permissionRepository.save(permission);
         }
 
@@ -123,84 +112,4 @@ public class AdminPermissionService {
         permissionService.evictPermissionsByProfil(profilId);
     }
 
-    private List<Module> ensureAndGetModules() {
-        List<Module> existingModules = moduleRepository.findAll();
-        Set<String> existingNames = new LinkedHashSet<>();
-        for (Module module : existingModules) {
-            existingNames.add(module.getNom());
-        }
-
-        boolean createdAny = false;
-        for (String requiredModule : REQUIRED_MODULES) {
-            if (existingNames.contains(requiredModule)) {
-                continue;
-            }
-
-            Module module = new Module();
-            module.setNom(requiredModule);
-            moduleRepository.save(module);
-            createdAny = true;
-        }
-
-        if (!createdAny) {
-            return existingModules;
-        }
-
-        return moduleRepository.findAll();
-    }
-
-    private PermissionItemUpsertDTO normalizePermissions(PermissionItemUpsertDTO item, Module module) {
-        boolean canCreate = Boolean.TRUE.equals(item.getCanCreate());
-        boolean canRead = Boolean.TRUE.equals(item.getCanRead());
-        boolean canUpdate = Boolean.TRUE.equals(item.getCanUpdate());
-        boolean canDelete = Boolean.TRUE.equals(item.getCanDelete());
-        boolean canExecuted = Boolean.TRUE.equals(item.getCanExecuted());
-
-        boolean isStockMovement = isStockMovementModule(module.getNom());
-
-        if (!canRead) {
-            canCreate = false;
-            canUpdate = false;
-            canDelete = false;
-            canExecuted = false;
-        } else if (canCreate) {
-            canRead = true;
-            canUpdate = true;
-            canDelete = true;
-            if (isStockMovement) {
-                canExecuted = true;
-            }
-        } else {
-            canUpdate = false;
-            canDelete = false;
-            canExecuted = false;
-        }
-
-        PermissionItemUpsertDTO normalized = new PermissionItemUpsertDTO();
-        normalized.setModuleId(item.getModuleId());
-        normalized.setCanCreate(canCreate);
-        normalized.setCanRead(canRead);
-        normalized.setCanUpdate(canUpdate);
-        normalized.setCanDelete(canDelete);
-        normalized.setCanExecuted(canExecuted);
-        return normalized;
-    }
-
-    private boolean isStockMovementModule(String moduleName) {
-        return STOCK_MOVEMENT_ALIASES.contains(normalizeModuleKey(moduleName));
-    }
-
-    private String normalizeModuleKey(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toUpperCase()
-                .replaceAll("[\\s-]+", "_")
-                .trim();
-
-        return normalized;
-    }
-}
+   }

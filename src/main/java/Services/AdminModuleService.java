@@ -25,7 +25,6 @@ public class AdminModuleService {
             "MACHINES",
             "MATIERES_PREMIERES",
             "STOCK",
-            "STOCK_MOUVEMENT",
             "LOTS_TRAÇABILITE",
             "DASHBOARD_ADMIN",
             "HUILERIES",
@@ -33,19 +32,9 @@ public class AdminModuleService {
     ));
 
     public List<ModuleDTO> findAll() {
-        ensureRequiredModules();
         return moduleRepository.findAll().stream().map(this::toDTO).toList();
     }
 
-    private void ensureRequiredModules() {
-        for (String moduleName : REQUIRED_MODULES) {
-            moduleRepository.findByNom(moduleName).orElseGet(() -> {
-                Module module = new Module();
-                module.setNom(moduleName);
-                return moduleRepository.save(module);
-            });
-        }
-    }
 
     private ModuleDTO toDTO(Module module) {
         ModuleDTO dto = new ModuleDTO();

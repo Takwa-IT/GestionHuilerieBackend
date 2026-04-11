@@ -29,9 +29,6 @@ public class Machine {
     @JoinColumn(name = "matiere_premiere_id")
     private MatierePremiere matierePremiere;
 
-    @OneToMany(mappedBy = "machine", cascade = CascadeType.ALL)
-    private List<Maintenance> maintenances;
-
 
     public Long getIdMachine() {
         return idMachine;
@@ -89,13 +86,5 @@ public class Machine {
         this.matierePremiere = matierePremiere;
     }
 
-    public List<Maintenance> getMaintenances() {
-        return
-                maintenances;
-    }
-
-    public void setMaintenances(List<Maintenance> maintenances) {
-        this.maintenances = maintenances;
-    }
 
 }

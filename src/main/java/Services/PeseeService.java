@@ -238,9 +238,16 @@ public class PeseeService {
     }
 
     private String buildPdfRelativePath(String reference) {
-        return Paths.get(bonPeseeDir, "bon-pesee-" + sanitizeReference(reference) + ".pdf")
+        return Paths.get(resolveBonPeseeDir(), "bon-pesee-" + sanitizeReference(reference) + ".pdf")
                 .toString()
                 .replace('\\', '/');
+    }
+
+    private String resolveBonPeseeDir() {
+        if (bonPeseeDir == null || bonPeseeDir.isBlank()) {
+            return "generated/bons-pesee";
+        }
+        return bonPeseeDir;
     }
 
     private String sanitizeReference(String reference) {

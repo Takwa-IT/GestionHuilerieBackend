@@ -30,6 +30,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final UtilisateurRepository utilisateurRepository;
 
     @Override
+    protected boolean shouldNotFilterErrorDispatch() {
+        return false;
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -50,7 +55,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (email != null) {
             Utilisateur utilisateur = utilisateurRepository.findByEmail(email).orElse(null);
             log.debug("[JWT] userFound={} for email={} on {} {}", utilisateur != null, email, request.getMethod(), request.getRequestURI());
             if (utilisateur != null && jwtService.isTokenValid(jwt, utilisateur)) {

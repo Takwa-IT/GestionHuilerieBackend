@@ -4,6 +4,7 @@ import Config.ReferenceUtils;
 import Mapper.MatierePremiereMapper;
 import Models.MatierePremiere;
 import Models.Utilisateur;
+import Repositories.HuilerieRepository;
 import Repositories.MatierePremiereRepository;
 import dto.MatierePremiereCreateDTO;
 import dto.MatierePremiereDTO;
@@ -21,11 +22,14 @@ import java.util.UUID;
 public class MatierePremiereService {
 
     private final MatierePremiereRepository matierePremiereRepository;
+    private final HuilerieRepository huilerieRepository;
     private final MatierePremiereMapper matierePremiereMapper;
     private final CurrentUserService currentUserService;
 
     public MatierePremiereDTO create(MatierePremiereCreateDTO dto) {
         MatierePremiere entity = matierePremiereMapper.toEntity(dto);
+        entity.setHuilerie(huilerieRepository.findById(dto.getHuilerieId())
+            .orElseThrow(() -> new RuntimeException("Huilerie non trouvee")));
         entity.setReference("TMP-MP-" + UUID.randomUUID());
         MatierePremiere saved = matierePremiereRepository.save(entity);
         saved.setReference(ReferenceUtils.format("MP", saved.getId()));

@@ -5,6 +5,8 @@ import Models.LotOlives;
 import Models.Machine;
 import Models.MatierePremiere;
 import Models.ParametreEtape;
+import Models.Stock;
+import Models.Utilisateur;
 import Models.ValeurReelleParametre;
 import Repositories.ExecutionProductionRepository;
 import Repositories.GuideProductionRepository;
@@ -16,14 +18,17 @@ import dto.ExecutionProductionCreateDTO;
 import dto.ExecutionProductionDTO;
 import dto.ValeurReelleParametreCreateDTO;
 import dto.ValeurReelleParametreDTO;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class ExecutionProductionService {
@@ -34,6 +39,7 @@ public class ExecutionProductionService {
     private final LotOlivesRepository lotOlivesRepository;
     private final MatierePremiereRepository matierePremiereRepository;
     private final ParametreEtapeRepository parametreEtapeRepository;
+    private final CurrentUserService currentUserService;
 
     public ExecutionProductionDTO create(ExecutionProductionCreateDTO dto) {
         var guideProduction = guideProductionRepository.findById(dto.getGuideProductionId())
@@ -113,8 +119,14 @@ public class ExecutionProductionService {
 
     @Transactional(readOnly = true)
     public List<ExecutionProductionDTO> findAll() {
-        return executionProductionRepository.findAll().stream()
-                .map(this::toDTO)
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        List<ExecutionProduction> executions = currentUserService.isAdmin(utilisateur)
+            ? executionProductionRepository.findAll()
+            : executionProductionRepository.findAllByHuilerieId(currentUserService.getCurrentHuilerieIdOrThrow());
+
+        return executions.stream()
+            .map(this::safeToDTO)
+            .flatMap(Optional::stream)
                 .toList();
     }
 
@@ -133,6 +145,7 @@ public class ExecutionProductionService {
         dto.setStatut(executionProduction.getStatut());
         dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
+        dto.setHuilerieId(resolveHuilerieId(executionProduction));
 
         if (executionProduction.getGuideProduction() != null) {
             dto.setGuideProductionId(executionProduction.getGuideProduction().getIdGuideProduction());
@@ -159,6 +172,45 @@ public class ExecutionProductionService {
             dto.setValeursReelles(executionProduction.getValeursReelles().stream().map(this::toDTO).toList());
         }
         return dto;
+    }
+
+    private Optional<ExecutionProductionDTO> safeToDTO(ExecutionProduction executionProduction) {
+        try {
+            return Optional.of(toDTO(executionProduction));
+        } catch (Exception ex) {
+            Long executionId = executionProduction != null ? executionProduction.getIdExecutionProduction() : null;
+            log.warn("Execution ignoree lors du mapping (id={}): {}", executionId, ex.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private Long resolveHuilerieId(ExecutionProduction executionProduction) {
+        if (executionProduction == null) {
+            return null;
+        }
+
+        if (executionProduction.getGuideProduction() != null
+                && executionProduction.getGuideProduction().getHuilerie() != null
+                && executionProduction.getGuideProduction().getHuilerie().getIdHuilerie() != null) {
+            return executionProduction.getGuideProduction().getHuilerie().getIdHuilerie();
+        }
+
+        if (executionProduction.getMachine() != null
+                && executionProduction.getMachine().getHuilerie() != null
+                && executionProduction.getMachine().getHuilerie().getIdHuilerie() != null) {
+            return executionProduction.getMachine().getHuilerie().getIdHuilerie();
+        }
+
+        if (executionProduction.getLotOlives() == null || executionProduction.getLotOlives().getStocks() == null) {
+            return null;
+        }
+
+        return executionProduction.getLotOlives().getStocks().stream()
+                .map(Stock::getHuilerie)
+                .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
+                .map(huilerie -> huilerie.getIdHuilerie())
+                .findFirst()
+                .orElse(null);
     }
 
     private ValeurReelleParametreDTO toDTO(ValeurReelleParametre valeurReelleParametre) {

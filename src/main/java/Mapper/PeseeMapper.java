@@ -6,6 +6,9 @@ import dto.PeseeDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 @Mapper(componentModel = "spring")
 public interface PeseeMapper {
 
@@ -19,11 +22,16 @@ public interface PeseeMapper {
             return null;
         }
 
-        return entity.getLot().getStocks().stream()
+        Set<Long> huilerieIds = entity.getLot().getStocks().stream()
                 .map(Stock::getHuilerie)
                 .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
                 .map(huilerie -> huilerie.getIdHuilerie())
-                .findFirst()
-                .orElse(null);
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        if (huilerieIds.size() == 1) {
+            return huilerieIds.iterator().next();
+        }
+
+        return null;
     }
 }

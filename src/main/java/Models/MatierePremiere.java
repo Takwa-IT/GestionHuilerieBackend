@@ -19,6 +19,10 @@ public class MatierePremiere {
     private String uniteMesure;
     private String description;
 
+    @ManyToOne
+    @JoinColumn(name = "huilerie_id", nullable = false)
+    private Huilerie huilerie;
+
     @OneToMany(mappedBy = "matierePremiere")
     private List<LotOlives> lots;
 
@@ -42,6 +46,9 @@ public class MatierePremiere {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public Huilerie getHuilerie() { return huilerie; }
+    public void setHuilerie(Huilerie huilerie) { this.huilerie = huilerie; }
 
     public List<LotOlives> getLots() { return lots; }
     public void setLots(List<LotOlives> lots) { this.lots = lots; }

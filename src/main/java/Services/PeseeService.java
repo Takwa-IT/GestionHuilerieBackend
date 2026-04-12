@@ -39,7 +39,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -69,7 +71,7 @@ public class PeseeService {
             throw new RuntimeException("Le poids net doit etre strictement positif");
         }
 
-        LotOlives lot = resolveLot(dto, poidsNet);
+        LotOlives lot = resolveLot(dto, poidsNet, effectiveHuilerieId);
 
         Pesee pesee = new Pesee();
         pesee.setReference("TMP-PS-" + UUID.randomUUID());
@@ -115,7 +117,7 @@ public class PeseeService {
         adjustStockQuantity(effectiveHuilerieId, ancienLot, -ancienPoidsNet);
 
         try {
-            LotOlives lot = resolveLot(dto, poidsNet);
+            LotOlives lot = resolveLot(dto, poidsNet, effectiveHuilerieId);
             pesee.setDatePesee(dto.getDatePesee());
             pesee.setPoidsBrut(dto.getPoidsBrut());
             pesee.setPoidsTare(poidsTare);
@@ -420,10 +422,12 @@ public class PeseeService {
     //gère le lot
     //si lot existant -> contrôle + mise à jour
     //si nouveau lot -> création
-    private LotOlives resolveLot(ReceptionPeseeCreateDTO dto, double poidsNet) {
+    private LotOlives resolveLot(ReceptionPeseeCreateDTO dto, double poidsNet, Long effectiveHuilerieId) {
         if(dto.getLotId() != null) {
             LotOlives existing = lotOlivesRepository.findById(dto.getLotId())
                     .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+
+            ensureLotHuilerieConsistency(existing, effectiveHuilerieId);
 
             if (hasText(dto.getOrigine()) && !normalize(dto.getOrigine()).equals(normalize(existing.getOrigine()))) {
                 throw new RuntimeException("Origine incoherente avec le lot existant");
@@ -468,6 +472,8 @@ public class PeseeService {
             throw new RuntimeException("huilerieId est obligatoire pour la reception");
         }
 
+        ensureLotHuilerieConsistency(lot, huilerieId);
+
         return stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(huilerieId, lot.getIdLot())
                 .orElseGet(() -> {
                     Stock stock = new Stock();
@@ -506,12 +512,21 @@ public class PeseeService {
             return null;
         }
 
-        return stockRepository.findByLotOlives_IdLot(lot.getIdLot()).stream()
+        Set<Long> huilerieIds = stockRepository.findByLotOlives_IdLot(lot.getIdLot()).stream()
                 .map(Stock::getHuilerie)
                 .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
                 .map(huilerie -> huilerie.getIdHuilerie())
-                .findFirst()
-                .orElse(null);
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        if (huilerieIds.isEmpty()) {
+            return null;
+        }
+
+        if (huilerieIds.size() > 1) {
+            throw new RuntimeException("Lot incoherent: rattache a plusieurs huileries");
+        }
+
+        return huilerieIds.iterator().next();
     }
 
     private void deletePdfIfExists(Pesee pesee) {
@@ -543,10 +558,33 @@ public class PeseeService {
 
     private PeseeDTO toDTOWithHuilerieId(Pesee pesee) {
         PeseeDTO dto = peseeMapper.toDTO(pesee);
-        if (dto.getHuilerieId() == null) {
-            dto.setHuilerieId(resolveHuilerieId(pesee.getLot()));
-        }
+        dto.setHuilerieId(resolveHuilerieId(pesee.getLot()));
         return dto;
+    }
+
+    private void ensureLotHuilerieConsistency(LotOlives lot, Long expectedHuilerieId) {
+        if (lot == null || lot.getIdLot() == null || expectedHuilerieId == null) {
+            return;
+        }
+
+        Set<Long> huilerieIds = stockRepository.findByLotOlives_IdLot(lot.getIdLot()).stream()
+                .map(Stock::getHuilerie)
+                .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
+                .map(huilerie -> huilerie.getIdHuilerie())
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (huilerieIds.isEmpty()) {
+            return;
+        }
+
+        if (huilerieIds.size() > 1) {
+            throw new RuntimeException("Lot incoherent: plusieurs huileries detectees");
+        }
+
+        Long existingHuilerieId = huilerieIds.iterator().next();
+        if (!expectedHuilerieId.equals(existingHuilerieId)) {
+            throw new RuntimeException("Lot rattache a une autre huilerie");
+        }
     }
 
     private Long resolveEffectiveHuilerieId(Long requestedHuilerieId) {

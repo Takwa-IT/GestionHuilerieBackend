@@ -9,5 +9,6 @@ public class MatierePremiereDTO {
     private String nom;
     private String type;
     private String uniteMesure;
+    private Long huilerieId;
     private String description;
 }

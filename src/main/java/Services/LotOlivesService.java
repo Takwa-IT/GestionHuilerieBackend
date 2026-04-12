@@ -2,6 +2,7 @@ package Services;
 
 import Mapper.LotOlivesMapper;
 import Models.LotOlives;
+import Models.Utilisateur;
 import Repositories.LotOlivesRepository;
 import dto.LotOlivesDTO;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,16 @@ public class LotOlivesService {
 
     private final LotOlivesRepository lotOlivesRepository;
     private final LotOlivesMapper lotOlivesMapper;
+    private final CurrentUserService currentUserService;
 
     public List<LotOlivesDTO> findAll() {
-        return lotOlivesRepository.findAll().stream().map(lotOlivesMapper::toDTO).toList();
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur)) {
+            return lotOlivesRepository.findAll().stream().map(lotOlivesMapper::toDTO).toList();
+        }
+
+        Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+        return lotOlivesRepository.findAllByHuilerieId(huilerieId).stream().map(lotOlivesMapper::toDTO).toList();
     }
 
     public LotOlivesDTO findById(Long idLot) {

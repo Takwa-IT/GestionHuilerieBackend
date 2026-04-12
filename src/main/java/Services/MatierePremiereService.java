@@ -3,6 +3,7 @@ package Services;
 import Config.ReferenceUtils;
 import Mapper.MatierePremiereMapper;
 import Models.MatierePremiere;
+import Models.Utilisateur;
 import Repositories.MatierePremiereRepository;
 import dto.MatierePremiereCreateDTO;
 import dto.MatierePremiereDTO;
@@ -21,6 +22,7 @@ public class MatierePremiereService {
 
     private final MatierePremiereRepository matierePremiereRepository;
     private final MatierePremiereMapper matierePremiereMapper;
+    private final CurrentUserService currentUserService;
 
     public MatierePremiereDTO create(MatierePremiereCreateDTO dto) {
         MatierePremiere entity = matierePremiereMapper.toEntity(dto);
@@ -45,7 +47,16 @@ public class MatierePremiereService {
     }
 
     public List<MatierePremiereDTO> findAll() {
-        return matierePremiereRepository.findAll().stream().map(matierePremiereMapper::toDTO).toList();
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur)) {
+            return matierePremiereRepository.findAll().stream().map(matierePremiereMapper::toDTO).toList();
+        }
+
+        Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+        return matierePremiereRepository.findByHuilerie_IdHuilerie(huilerieId)
+                .stream()
+                .map(matierePremiereMapper::toDTO)
+                .toList();
     }
 
     //recupere une matiere premiere par reference pour le module CRUD

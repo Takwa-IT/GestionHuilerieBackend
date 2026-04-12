@@ -6,14 +6,19 @@ import Models.ExecutionProduction;
 import Models.LotOlives;
 import Models.Pesee;
 import Models.ProduitFinal;
+import Models.Stock;
 import Models.StockMovement;
+import Models.Utilisateur;
 import Repositories.AnalyseLaboratoireRepository;
 import Repositories.ExecutionProductionRepository;
 import Repositories.LotOlivesRepository;
 import Repositories.PeseeRepository;
+import Repositories.StockRepository;
 import Repositories.StockMovementRepository;
 import dto.LotTraceabilityDTO;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +36,43 @@ public class TraceabilityService {
     private final PeseeRepository peseeRepository;
     private final ExecutionProductionRepository executionProductionRepository;
     private final StockMovementRepository stockMovementRepository;
+    private final StockRepository stockRepository;
+    private final CurrentUserService currentUserService;
 
     public LotTraceabilityDTO getLotHistory(Long lotId) {
         LotOlives lot = lotOlivesRepository.findById(lotId)
-                .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+                .orElseThrow(() -> new EntityNotFoundException("Lot non trouve"));
+
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (!currentUserService.isAdmin(utilisateur)) {
+            Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+            List<Stock> lotStocks = stockRepository.findByLotOlives_IdLot(lotId);
+
+            boolean hasLinkedHuilerie = lotStocks.stream()
+                    .map(Stock::getHuilerie)
+                    .anyMatch(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null);
+            if (!hasLinkedHuilerie) {
+                throw new AccessDeniedException("Acces refuse: lot sans rattachement huilerie exploitable");
+            }
+
+            boolean inScope = lotStocks.stream()
+                    .map(Stock::getHuilerie)
+                    .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
+                    .map(huilerie -> huilerie.getIdHuilerie())
+                    .anyMatch(huilerieId::equals);
+
+            if (!inScope) {
+                throw new AccessDeniedException("Acces refuse a un lot d'une autre huilerie");
+            }
+        }
+
+        List<Stock> stocks = stockRepository.findByLotOlives_IdLot(lotId);
+        boolean hasLinkedHuilerie = stocks.stream()
+                .map(Stock::getHuilerie)
+                .anyMatch(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null);
+        if (!hasLinkedHuilerie) {
+            throw new AccessDeniedException("Acces refuse: lot sans rattachement huilerie exploitable");
+        }
 
         List<LotTraceabilityDTO.LifecycleItem> events = new ArrayList<>();
         List<LotTraceabilityDTO.PeseeItem> pesees = new ArrayList<>();

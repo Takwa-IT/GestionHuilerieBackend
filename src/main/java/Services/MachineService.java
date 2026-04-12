@@ -3,13 +3,19 @@ package Services;
 import Mapper.MachineMapper;
 import Models.Huilerie;
 import Models.Machine;
+import Models.Utilisateur;
 import Repositories.HuilerieRepository;
 import Repositories.MachineRepository;
+import Repositories.UtilisateurRepository;
 import dto.MachineRawMaterialAssignmentDTO;
 import dto.MachineCreateDTO;
 import dto.MachineDTO;
 import dto.MachineUpdateDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +28,7 @@ public class MachineService {
 
     private final MachineRepository machineRepository;
     private final HuilerieRepository huilerieRepository;
+    private final UtilisateurRepository utilisateurRepository;
     private final MatierePremiereService matierePremiereService;
     private final MachineMapper machineMapper;
 
@@ -62,7 +69,13 @@ public class MachineService {
     }
 
     public List<MachineDTO> findAll() {
-        return machineRepository.findAll().stream()
+        Utilisateur utilisateur = getAuthenticatedUtilisateur();
+        Long idHuilerie = utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getIdHuilerie() : null;
+        if (idHuilerie == null) {
+            return List.of();
+        }
+
+        return machineRepository.findByHuilerie_IdHuilerie(idHuilerie).stream()
                 .map(machineMapper::toDTO)
                 .toList();
     }
@@ -84,5 +97,18 @@ public class MachineService {
     private Huilerie findHuilerieByNom(String huilerieNom) {
         return huilerieRepository.findByNom(huilerieNom)
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
+    }
+
+    private Utilisateur getAuthenticatedUtilisateur() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AccessDeniedException("Non authentifie");
+        }
+
+        Object principal = authentication.getPrincipal();
+        String email = principal instanceof User user ? user.getUsername() : authentication.getName();
+
+        return utilisateurRepository.findByEmail(email)
+                .orElseThrow(() -> new AccessDeniedException("Utilisateur non authentifie"));
     }
 }

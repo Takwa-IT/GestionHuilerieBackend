@@ -6,6 +6,7 @@ import Models.CampagneOlives;
 import Models.LotOlives;
 import Models.Pesee;
 import Models.Stock;
+import Models.Utilisateur;
 import Repositories.CampagneOlivesRepository;
 import Repositories.HuilerieRepository;
 import Repositories.LotOlivesRepository;
@@ -28,6 +29,7 @@ import com.lowagie.text.pdf.PdfWriter;
 import dto.PeseeDTO;
 import dto.ReceptionPeseeCreateDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,11 +55,13 @@ public class PeseeService {
     private final StockRepository stockRepository;
     private final StockMovementService stockMovementService;
     private final PeseeMapper peseeMapper;
+    private final CurrentUserService currentUserService;
 
     @Value("${app.storage.bon-pesee-dir:generated/bons-pesee}")
     private String bonPeseeDir;
 
     public PeseeDTO createReception(ReceptionPeseeCreateDTO dto) {
+        Long effectiveHuilerieId = resolveEffectiveHuilerieId(dto.getHuilerieId());
         double poidsTare = dto.getPoidsTare() == null ? 0d : dto.getPoidsTare();
         double poidsNet = dto.getPoidsBrut() - poidsTare;
 
@@ -80,7 +84,7 @@ public class PeseeService {
         savedPesee = peseeRepository.save(savedPesee);
         writeBonPeseePdf(savedPesee);
 
-        Stock stock = resolveStock(dto, lot);
+        Stock stock = resolveStock(effectiveHuilerieId, lot);
         stockMovementService.createArrivalForStock(
                 stock,
                 poidsNet,
@@ -94,6 +98,9 @@ public class PeseeService {
         Pesee pesee = peseeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pesee non trouvee"));
 
+        Long effectiveHuilerieId = resolveEffectiveHuilerieId(dto.getHuilerieId());
+        ensurePeseeInCurrentHuilerie(pesee, effectiveHuilerieId);
+
         double poidsTare = dto.getPoidsTare() == null ? 0d : dto.getPoidsTare();
         double poidsNet = dto.getPoidsBrut() - poidsTare;
 
@@ -101,16 +108,11 @@ public class PeseeService {
             throw new RuntimeException("Le poids net doit etre strictement positif");
         }
 
-        Long huilerieId = dto.getHuilerieId();
-        if (huilerieId == null) {
-            throw new RuntimeException("huilerieId est obligatoire pour la reception");
-        }
-
         LotOlives ancienLot = pesee.getLot();
         double ancienPoidsNet = safe(pesee.getPoidsNet());
 
         adjustLotQuantities(ancienLot, -ancienPoidsNet);
-        adjustStockQuantity(huilerieId, ancienLot, -ancienPoidsNet);
+        adjustStockQuantity(effectiveHuilerieId, ancienLot, -ancienPoidsNet);
 
         try {
             LotOlives lot = resolveLot(dto, poidsNet);
@@ -124,7 +126,7 @@ public class PeseeService {
             return peseeMapper.toDTO(savedPesee);
         } catch (RuntimeException ex) {
             adjustLotQuantities(ancienLot, ancienPoidsNet);
-            adjustStockQuantity(huilerieId, ancienLot, ancienPoidsNet);
+            adjustStockQuantity(effectiveHuilerieId, ancienLot, ancienPoidsNet);
             throw ex;
         }
     }
@@ -148,7 +150,16 @@ public class PeseeService {
     }
 
     public List<PeseeDTO> findAll() {
-        return peseeRepository.findAllByOrderByDatePeseeDesc().stream().map(peseeMapper::toDTO).toList();
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur)) {
+            return peseeRepository.findAllByOrderByDatePeseeDesc().stream().map(this::toDTOWithHuilerieId).toList();
+        }
+
+        Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+        return peseeRepository.findAllByHuilerie_IdHuilerieOrderByDatePeseeDesc(huilerieId)
+                .stream()
+                .map(this::toDTOWithHuilerieId)
+                .toList();
     }
 
     public byte[] generateBonPeseePdf(String reference) {
@@ -452,8 +463,7 @@ public class PeseeService {
     //gère le stock :
     //si stock existant -> récupération
     //si stock absent -> création
-    private Stock resolveStock(ReceptionPeseeCreateDTO dto, LotOlives lot) {
-        Long huilerieId = dto.getHuilerieId();
+    private Stock resolveStock(Long huilerieId, LotOlives lot) {
         if (huilerieId == null) {
             throw new RuntimeException("huilerieId est obligatoire pour la reception");
         }
@@ -529,5 +539,45 @@ public class PeseeService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private PeseeDTO toDTOWithHuilerieId(Pesee pesee) {
+        PeseeDTO dto = peseeMapper.toDTO(pesee);
+        if (dto.getHuilerieId() == null) {
+            dto.setHuilerieId(resolveHuilerieId(pesee.getLot()));
+        }
+        return dto;
+    }
+
+    private Long resolveEffectiveHuilerieId(Long requestedHuilerieId) {
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur)) {
+            if (requestedHuilerieId == null) {
+                throw new RuntimeException("huilerieId est obligatoire pour la reception");
+            }
+            return requestedHuilerieId;
+        }
+
+        Long currentHuilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+        if (requestedHuilerieId != null && !currentHuilerieId.equals(requestedHuilerieId)) {
+            throw new AccessDeniedException("Acces refuse a une autre huilerie");
+        }
+        return currentHuilerieId;
+    }
+
+    private void ensurePeseeInCurrentHuilerie(Pesee pesee, Long effectiveHuilerieId) {
+        if (pesee == null || pesee.getLot() == null || pesee.getLot().getIdLot() == null) {
+            return;
+        }
+
+        boolean inScope = stockRepository
+                .findByLotOlives_IdLotAndHuilerie_IdHuilerie(pesee.getLot().getIdLot(), effectiveHuilerieId)
+                .stream()
+                .findAny()
+                .isPresent();
+
+        if (!inScope) {
+            throw new AccessDeniedException("Acces refuse a une pesee d'une autre huilerie");
+        }
     }
 }

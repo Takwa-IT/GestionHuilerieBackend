@@ -13,4 +13,6 @@ public interface MachineRepository extends JpaRepository<Machine, Long> {
 
     @Query("select m from Machine m where m.huilerie.nom = :huilerieNom")
     List<Machine> findByHuilerieNom(@Param("huilerieNom") String huilerieNom);
+
+    List<Machine> findByHuilerie_IdHuilerie(Long idHuilerie);
 }

@@ -295,6 +295,7 @@ public class AuthService {
     private AuthResponseDTO buildAuthResponse(Utilisateur utilisateur, String token, String refreshToken) {
         AuthUtilisateurDTO authUtilisateurDTO = new AuthUtilisateurDTO();
         authUtilisateurDTO.setId(utilisateur.getIdUtilisateur());
+        authUtilisateurDTO.setHuilerieId(utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getIdHuilerie() : null);
         authUtilisateurDTO.setNom(utilisateur.getNom());
         authUtilisateurDTO.setPrenom(utilisateur.getPrenom());
         authUtilisateurDTO.setEmail(utilisateur.getEmail());

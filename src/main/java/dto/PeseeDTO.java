@@ -7,6 +7,7 @@ public class PeseeDTO {
     private Long idPesee;
     private String reference;
     private Long lotId;
+    private Long huilerieId;
     private String datePesee;
     private Double poidsBrut;
     private Double poidsTare;

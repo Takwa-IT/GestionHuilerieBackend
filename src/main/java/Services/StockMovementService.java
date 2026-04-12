@@ -5,12 +5,14 @@ import Mapper.StockMovementMapper;
 import Models.Stock;
 import Models.StockMovement;
 import Models.TypeMouvement;
+import Models.Utilisateur;
 import Repositories.StockMovementRepository;
 import Repositories.StockRepository;
 import dto.StockMovementCreateDTO;
 import dto.StockMovementDTO;
 import dto.StockMovementUpdateDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +26,15 @@ public class StockMovementService {
     private final StockMovementRepository stockMovementRepository;
     private final StockRepository stockRepository;
     private final StockMovementMapper stockMovementMapper;
+    private final CurrentUserService currentUserService;
 
     public StockMovementDTO create(StockMovementCreateDTO dto) {
-        Stock stock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(dto.getHuilerieId(), dto.getReferenceId())
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        Long effectiveHuilerieId = currentUserService.isAdmin(utilisateur)
+                ? dto.getHuilerieId()
+                : currentUserService.getCurrentHuilerieIdOrThrow();
+
+        Stock stock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, dto.getReferenceId())
                 .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
 
         updateStockQuantity(stock, dto.getTypeMouvement(), dto.getQuantite());
@@ -45,8 +53,23 @@ public class StockMovementService {
         StockMovement movement = stockMovementRepository.findById(idStockMovement)
                 .orElseThrow(() -> new RuntimeException("Mouvement de stock non trouve"));
 
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        boolean isAdmin = currentUserService.isAdmin(utilisateur);
+        Long currentHuilerieId = isAdmin ? null : currentUserService.getCurrentHuilerieIdOrThrow();
+
+        Long movementHuilerieId = movement.getStock() != null
+            && movement.getStock().getHuilerie() != null
+            ? movement.getStock().getHuilerie().getIdHuilerie()
+            : null;
+
+        if (!isAdmin && (movementHuilerieId == null || !movementHuilerieId.equals(currentHuilerieId))) {
+            throw new AccessDeniedException("Acces refuse a un mouvement d'une autre huilerie");
+        }
+
+        Long effectiveHuilerieId = isAdmin ? dto.getHuilerieId() : currentHuilerieId;
+
         Stock ancienStock = movement.getStock();
-        Stock nouveauStock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(dto.getHuilerieId(), dto.getReferenceId())
+        Stock nouveauStock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, dto.getReferenceId())
                 .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
 
         double quantiteAncienne = safe(movement.getQuantite());
@@ -87,14 +110,34 @@ public class StockMovementService {
     }
 
     public List<StockMovementDTO> findAll() {
-        return stockMovementRepository.findAll().stream()
-                .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur)) {
+            return stockMovementRepository.findAll().stream()
+                    .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+                    .map(stockMovementMapper::toDTO)
+                    .toList();
+        }
+
+        Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+        return stockMovementRepository.findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(huilerieId)
+            .stream()
                 .map(stockMovementMapper::toDTO)
                 .toList();
     }
 
     public List<StockMovementDTO> findByHuilerie(Long huilerieId) {
-        return stockMovementRepository.findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(huilerieId)
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        Long effectiveHuilerieId = huilerieId;
+
+        if (!currentUserService.isAdmin(utilisateur)) {
+            Long currentHuilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+            if (!currentHuilerieId.equals(huilerieId)) {
+                throw new AccessDeniedException("Acces refuse a une autre huilerie");
+            }
+            effectiveHuilerieId = currentHuilerieId;
+        }
+
+        return stockMovementRepository.findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(effectiveHuilerieId)
                 .stream()
                 .map(stockMovementMapper::toDTO)
                 .toList();

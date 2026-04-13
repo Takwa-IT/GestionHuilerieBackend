@@ -10,13 +10,15 @@ import Repositories.PermissionRepository;
 import Repositories.ProfilRepository;
 import Repositories.UtilisateurRepository;
 import Services.JwtService;
+import org.example.gestionhuilerieback.GestionHuilerieBackApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,13 +27,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(classes = GestionHuilerieBackApplication.class)
 @Transactional
 class AdminPermissionIntegrationTest {
 
-    @Autowired
     private MockMvc mockMvc;
+
+  @Autowired
+  private WebApplicationContext webApplicationContext;
 
     @Autowired
     private JwtService jwtService;
@@ -57,6 +60,8 @@ class AdminPermissionIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+
         String suffix = String.valueOf(System.nanoTime());
 
         adminProfil = profilRepository.findByNom("ADMIN").orElseGet(() -> {

@@ -76,13 +76,16 @@ public class DataInitializer implements ApplicationRunner {
         findOrCreatePermission(responsableProduction, modules.get("RECEPTION"), true, true, false, false, true);
         findOrCreatePermission(responsableProduction, modules.get("GUIDE_PRODUCTION"), true, true, true, false, true);
         findOrCreatePermission(responsableProduction, modules.get("MACHINES"), false, true, false, false, false);
-        findOrCreatePermission(responsableProduction, modules.get("MATIERES_PREMIERES"), true, true, true, false, false);
+        findOrCreatePermission(responsableProduction, modules.get("MATIERES_PREMIERES"), true, true, true, false,
+                false);
         findOrCreatePermission(responsableProduction, modules.get("STOCK"), true, true, true, false, false);
         findOrCreatePermission(responsableProduction, modules.get("STOCK_MOUVEMENT"), true, true, true, false, false);
         findOrCreatePermission(responsableProduction, modules.get("LOTS_TRAÇABILITE"), true, true, true, false, false);
-        findOrCreatePermission(responsableProduction, modules.get("DASHBOARD_ADMIN"), false, false, false, false, false);
+        findOrCreatePermission(responsableProduction, modules.get("DASHBOARD_ADMIN"), false, false, false, false,
+                false);
         findOrCreatePermission(responsableProduction, modules.get("HUILERIES"), false, false, false, false, false);
-        findOrCreatePermission(responsableProduction, modules.get("COMPTES_PROFILS"), false, false, false, false, false);
+        findOrCreatePermission(responsableProduction, modules.get("COMPTES_PROFILS"), false, false, false, false,
+                false);
 
         seedDefaultAdminUser(admin);
     }
@@ -130,10 +133,11 @@ public class DataInitializer implements ApplicationRunner {
 
     private void seedDefaultAdminUser(Profil adminProfil) {
         if (utilisateurRepository.findByEmail("smatitakwapro@gmail.com").isPresent()) {
-            return;
-        }
+                return;
+            }
 
         Huilerie huilerie = huilerieRepository.findAll().stream().findFirst().orElse(null);
+
         if (huilerie == null) {
             log.warn("[SEED] Aucun utilisateur admin cree: aucune huilerie disponible");
             return;
@@ -146,6 +150,7 @@ public class DataInitializer implements ApplicationRunner {
         utilisateur.setMotDePasse(passwordEncoder.encode(adminPassword));
         utilisateur.setTelephone(null);
         utilisateur.setProfil(adminProfil);
+        utilisateur.setEntreprise(huilerie.getEntreprise());
         utilisateur.setHuilerie(huilerie);
         utilisateur.setActif(StatutUtilisateur.ACTIF);
 

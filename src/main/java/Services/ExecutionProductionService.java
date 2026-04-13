@@ -118,10 +118,12 @@ public class ExecutionProductionService {
     }
 
     @Transactional(readOnly = true)
-    public List<ExecutionProductionDTO> findAll() {
+    public List<ExecutionProductionDTO> findAll(String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         List<ExecutionProduction> executions = currentUserService.isAdmin(utilisateur)
-            ? executionProductionRepository.findAll()
+            ? (hasText(huilerieNom)
+                ? executionProductionRepository.findAllByHuilerieNom(huilerieNom)
+                : executionProductionRepository.findAll())
             : executionProductionRepository.findAllByHuilerieId(currentUserService.getCurrentHuilerieIdOrThrow());
 
         return executions.stream()
@@ -146,6 +148,7 @@ public class ExecutionProductionService {
         dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
         dto.setHuilerieId(resolveHuilerieId(executionProduction));
+        dto.setHuilerieNom(resolveHuilerieNom(executionProduction));
 
         if (executionProduction.getGuideProduction() != null) {
             dto.setGuideProductionId(executionProduction.getGuideProduction().getIdGuideProduction());
@@ -185,6 +188,16 @@ public class ExecutionProductionService {
     }
 
     private Long resolveHuilerieId(ExecutionProduction executionProduction) {
+        Models.Huilerie huilerie = resolveHuilerie(executionProduction);
+        return huilerie != null ? huilerie.getIdHuilerie() : null;
+    }
+
+    private String resolveHuilerieNom(ExecutionProduction executionProduction) {
+        Models.Huilerie huilerie = resolveHuilerie(executionProduction);
+        return huilerie != null ? huilerie.getNom() : null;
+    }
+
+    private Models.Huilerie resolveHuilerie(ExecutionProduction executionProduction) {
         if (executionProduction == null) {
             return null;
         }
@@ -192,13 +205,13 @@ public class ExecutionProductionService {
         if (executionProduction.getGuideProduction() != null
                 && executionProduction.getGuideProduction().getHuilerie() != null
                 && executionProduction.getGuideProduction().getHuilerie().getIdHuilerie() != null) {
-            return executionProduction.getGuideProduction().getHuilerie().getIdHuilerie();
+            return executionProduction.getGuideProduction().getHuilerie();
         }
 
         if (executionProduction.getMachine() != null
                 && executionProduction.getMachine().getHuilerie() != null
                 && executionProduction.getMachine().getHuilerie().getIdHuilerie() != null) {
-            return executionProduction.getMachine().getHuilerie().getIdHuilerie();
+            return executionProduction.getMachine().getHuilerie();
         }
 
         if (executionProduction.getLotOlives() == null || executionProduction.getLotOlives().getStocks() == null) {
@@ -208,7 +221,6 @@ public class ExecutionProductionService {
         return executionProduction.getLotOlives().getStocks().stream()
                 .map(Stock::getHuilerie)
                 .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
-                .map(huilerie -> huilerie.getIdHuilerie())
                 .findFirst()
                 .orElse(null);
     }
@@ -222,5 +234,9 @@ public class ExecutionProductionService {
             dto.setParametreEtapeNom(valeurReelleParametre.getParametreEtape().getNom());
         }
         return dto;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

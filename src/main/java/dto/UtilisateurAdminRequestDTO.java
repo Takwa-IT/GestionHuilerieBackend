@@ -23,6 +23,7 @@ public class UtilisateurAdminRequestDTO {
     @NotNull
     private Long profilId;
 
-    @NotNull
+    private Long entrepriseId;
+
     private Long huilerieId;
 }

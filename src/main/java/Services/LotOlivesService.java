@@ -20,10 +20,21 @@ public class LotOlivesService {
     private final LotOlivesMapper lotOlivesMapper;
     private final CurrentUserService currentUserService;
 
-    public List<LotOlivesDTO> findAll() {
+    public List<LotOlivesDTO> findAll(String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            return lotOlivesRepository.findAll().stream().map(lotOlivesMapper::toDTO).toList();
+            List<LotOlives> lots = hasText(huilerieNom)
+                    ? lotOlivesRepository.findAllByHuilerieNom(huilerieNom)
+                    : lotOlivesRepository.findAll();
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+            return lots.stream()
+                    .filter(lot -> lot.getStocks() != null && lot.getStocks().stream()
+                            .map(Models.Stock::getHuilerie)
+                            .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
+                            .map(Models.Huilerie::getIdHuilerie)
+                            .anyMatch(accessibleHuilerieIds::contains))
+                    .map(lotOlivesMapper::toDTO)
+                    .toList();
         }
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
@@ -37,5 +48,9 @@ public class LotOlivesService {
     public LotOlives findLot(Long idLot) {
         return lotOlivesRepository.findById(idLot)
                 .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

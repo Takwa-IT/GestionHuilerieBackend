@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class GuideProductionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<GuideProductionDTO>> findAll() {
-        return ResponseEntity.ok(guideProductionService.findAll());
+    public ResponseEntity<List<GuideProductionDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(guideProductionService.findAll(huilerieNom));
     }
 }

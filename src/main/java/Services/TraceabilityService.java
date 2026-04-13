@@ -42,12 +42,22 @@ public class TraceabilityService {
     public LotTraceabilityDTO getLotHistory(Long lotId) {
         LotOlives lot = lotOlivesRepository.findById(lotId)
                 .orElseThrow(() -> new EntityNotFoundException("Lot non trouve"));
+        List<Stock> lotStocks = stockRepository.findByLotOlives_IdLot(lotId);
 
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
-        if (!currentUserService.isAdmin(utilisateur)) {
-            Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
-            List<Stock> lotStocks = stockRepository.findByLotOlives_IdLot(lotId);
+        if (currentUserService.isAdmin(utilisateur)) {
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+            boolean inAdminScope = lotStocks.stream()
+                    .map(Stock::getHuilerie)
+                    .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
+                    .map(huilerie -> huilerie.getIdHuilerie())
+                    .anyMatch(accessibleHuilerieIds::contains);
 
+            if (!inAdminScope) {
+                throw new AccessDeniedException("Acces refuse a un lot d'une autre entreprise");
+            }
+        } else {
+            Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
             boolean hasLinkedHuilerie = lotStocks.stream()
                     .map(Stock::getHuilerie)
                     .anyMatch(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null);
@@ -66,8 +76,7 @@ public class TraceabilityService {
             }
         }
 
-        List<Stock> stocks = stockRepository.findByLotOlives_IdLot(lotId);
-        boolean hasLinkedHuilerie = stocks.stream()
+        boolean hasLinkedHuilerie = lotStocks.stream()
                 .map(Stock::getHuilerie)
                 .anyMatch(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null);
         if (!hasLinkedHuilerie) {

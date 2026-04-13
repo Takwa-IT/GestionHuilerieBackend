@@ -48,7 +48,11 @@ public class Utilisateur {
     private Profil profil;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "huilerie_id", nullable = false)
+    @JoinColumn(name = "entreprise_id", nullable = false)
+    private Entreprise entreprise;
+
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "huilerie_id", nullable = true)
     private Huilerie huilerie;
 
     @Column(name = "email_verified", nullable = false)
@@ -130,6 +134,14 @@ public class Utilisateur {
 
     public void setHuilerie(Huilerie huilerie) {
         this.huilerie = huilerie;
+    }
+
+    public Entreprise getEntreprise() {
+        return entreprise;
+    }
+
+    public void setEntreprise(Entreprise entreprise) {
+        this.entreprise = entreprise;
     }
 
     public Boolean getEmailVerified() {

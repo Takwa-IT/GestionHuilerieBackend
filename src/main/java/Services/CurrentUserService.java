@@ -1,6 +1,7 @@
 package Services;
 
 import Models.Utilisateur;
+import Repositories.HuilerieRepository;
 import Repositories.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -10,12 +11,15 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CurrentUserService {
 
     private final UtilisateurRepository utilisateurRepository;
+    private final HuilerieRepository huilerieRepository;
 
     public Utilisateur getAuthenticatedUtilisateur() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -31,9 +35,14 @@ public class CurrentUserService {
     }
 
     public boolean isAdmin(Utilisateur utilisateur) {
-        return utilisateur.getProfil() != null
-                && utilisateur.getProfil().getNom() != null
-                && "ADMIN".equalsIgnoreCase(utilisateur.getProfil().getNom());
+        if (utilisateur == null || utilisateur.getProfil() == null || utilisateur.getProfil().getNom() == null) {
+            return false;
+        }
+
+        String profilNom = utilisateur.getProfil().getNom().trim().toUpperCase();
+        return "ADMIN".equals(profilNom)
+                || "ADMINISTRATEUR".equals(profilNom)
+                || profilNom.contains("ADMIN");
     }
 
     public Long getCurrentHuilerieIdOrThrow() {
@@ -42,5 +51,44 @@ public class CurrentUserService {
             throw new AccessDeniedException("Utilisateur sans huilerie associee");
         }
         return utilisateur.getHuilerie().getIdHuilerie();
+    }
+
+    public Long getCurrentEntrepriseIdOrThrow() {
+        Utilisateur utilisateur = getAuthenticatedUtilisateur();
+        if (utilisateur.getEntreprise() == null || utilisateur.getEntreprise().getIdEntreprise() == null) {
+            throw new AccessDeniedException("Utilisateur sans entreprise associee");
+        }
+        return utilisateur.getEntreprise().getIdEntreprise();
+    }
+
+    public List<Long> getAccessibleHuilerieIds() {
+        Utilisateur utilisateur = getAuthenticatedUtilisateur();
+        if (!isAdmin(utilisateur)) {
+            return List.of(getCurrentHuilerieIdOrThrow());
+        }
+
+        Long entrepriseId = getCurrentEntrepriseIdOrThrow();
+        return huilerieRepository.findByEntreprise_IdEntreprise(entrepriseId).stream()
+                .map(Models.Huilerie::getIdHuilerie)
+                .toList();
+    }
+
+    public void ensureCanAccessHuilerie(Long huilerieId) {
+        if (huilerieId == null) {
+            throw new AccessDeniedException("Huilerie obligatoire");
+        }
+
+        Utilisateur utilisateur = getAuthenticatedUtilisateur();
+        if (!isAdmin(utilisateur)) {
+            if (!huilerieId.equals(getCurrentHuilerieIdOrThrow())) {
+                throw new AccessDeniedException("Acces refuse a une autre huilerie");
+            }
+            return;
+        }
+
+        Long entrepriseId = getCurrentEntrepriseIdOrThrow();
+        if (!huilerieRepository.existsByIdHuilerieAndEntreprise_IdEntreprise(huilerieId, entrepriseId)) {
+            throw new AccessDeniedException("Acces refuse a une huilerie d'une autre entreprise");
+        }
     }
 }

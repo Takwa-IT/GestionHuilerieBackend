@@ -20,4 +20,12 @@ public interface ExecutionProductionRepository extends JpaRepository<ExecutionPr
 			where gp.huilerie.idHuilerie = :huilerieId
 			""")
 	List<ExecutionProduction> findAllByHuilerieId(@Param("huilerieId") Long huilerieId);
+
+	@Query("""
+			select e
+			from ExecutionProduction e
+			join e.guideProduction gp
+			where lower(gp.huilerie.nom) = lower(:huilerieNom)
+			""")
+	List<ExecutionProduction> findAllByHuilerieNom(@Param("huilerieNom") String huilerieNom);
 }

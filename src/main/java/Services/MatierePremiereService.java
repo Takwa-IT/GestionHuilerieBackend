@@ -28,8 +28,9 @@ public class MatierePremiereService {
 
     public MatierePremiereDTO create(MatierePremiereCreateDTO dto) {
         MatierePremiere entity = matierePremiereMapper.toEntity(dto);
+        currentUserService.ensureCanAccessHuilerie(dto.getHuilerieId());
         entity.setHuilerie(huilerieRepository.findById(dto.getHuilerieId())
-            .orElseThrow(() -> new RuntimeException("Huilerie non trouvee")));
+                .orElseThrow(() -> new RuntimeException("Huilerie non trouvee")));
         entity.setReference("TMP-MP-" + UUID.randomUUID());
         MatierePremiere saved = matierePremiereRepository.save(entity);
         saved.setReference(ReferenceUtils.format("MP", saved.getId()));
@@ -50,15 +51,29 @@ public class MatierePremiereService {
         return matierePremiereMapper.toDTO(findMatiere(reference));
     }
 
-    public List<MatierePremiereDTO> findAll() {
+    public List<MatierePremiereDTO> findAll(String huilerieNom) {
+        String normalizedHuilerieNom = normalizeName(huilerieNom);
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            return matierePremiereRepository.findAll().stream().map(matierePremiereMapper::toDTO).toList();
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+            List<MatierePremiere> source = normalizedHuilerieNom == null
+                    ? matierePremiereRepository.findAll()
+                    : matierePremiereRepository.findByHuilerie_NomIgnoreCase(normalizedHuilerieNom);
+
+            return source.stream()
+                    .filter(matiere -> matiere.getHuilerie() != null
+                            && accessibleHuilerieIds.contains(matiere.getHuilerie().getIdHuilerie()))
+                    .map(matierePremiereMapper::toDTO)
+                    .toList();
         }
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
         return matierePremiereRepository.findByHuilerie_IdHuilerie(huilerieId)
                 .stream()
+                .filter(matiere -> normalizedHuilerieNom == null
+                        || (matiere.getHuilerie() != null
+                        && matiere.getHuilerie().getNom() != null
+                        && matiere.getHuilerie().getNom().equalsIgnoreCase(normalizedHuilerieNom)))
                 .map(matierePremiereMapper::toDTO)
                 .toList();
     }
@@ -73,6 +88,11 @@ public class MatierePremiereService {
     public MatierePremiere findMatiere(Long id) {
         return matierePremiereRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));
+    }
+
+    private String normalizeName(String value) {
+        String normalized = value == null ? null : value.trim();
+        return (normalized == null || normalized.isEmpty()) ? null : normalized;
     }
 
 }

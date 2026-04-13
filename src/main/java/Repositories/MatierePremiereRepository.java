@@ -14,4 +14,6 @@ public interface MatierePremiereRepository extends JpaRepository<MatierePremiere
     boolean existsByReference(String reference);
 
     List<MatierePremiere> findByHuilerie_IdHuilerie(Long huilerieId);
+
+    List<MatierePremiere> findByHuilerie_NomIgnoreCase(String huilerieNom);
 }

@@ -18,4 +18,12 @@ public interface LotOlivesRepository extends JpaRepository<LotOlives, Long> {
 			where s.huilerie.idHuilerie = :huilerieId
 			""")
 	List<LotOlives> findAllByHuilerieId(@Param("huilerieId") Long huilerieId);
+
+	@Query("""
+			select distinct l
+			from LotOlives l
+			join l.stocks s
+			where lower(s.huilerie.nom) = lower(:huilerieNom)
+			""")
+	List<LotOlives> findAllByHuilerieNom(@Param("huilerieNom") String huilerieNom);
 }

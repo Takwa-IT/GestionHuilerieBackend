@@ -99,6 +99,7 @@ public class PeseeService {
     public PeseeDTO updateReception(Long id, ReceptionPeseeCreateDTO dto) {
         Pesee pesee = peseeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pesee non trouvee"));
+        ensureCanAccessPesee(pesee);
 
         Long effectiveHuilerieId = resolveEffectiveHuilerieId(dto.getHuilerieId());
         ensurePeseeInCurrentHuilerie(pesee, effectiveHuilerieId);
@@ -136,6 +137,7 @@ public class PeseeService {
     public void deleteReception(Long id) {
         Pesee pesee = peseeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pesee non trouvee"));
+        ensureCanAccessPesee(pesee);
 
         LotOlives lot = pesee.getLot();
         double poidsNet = safe(pesee.getPoidsNet());
@@ -148,13 +150,25 @@ public class PeseeService {
     }
 
     public PeseeDTO findByReference(String reference) {
-        return peseeMapper.toDTO(findPesee(reference));
+        Pesee pesee = findPesee(reference);
+        ensureCanAccessPesee(pesee);
+        return peseeMapper.toDTO(pesee);
     }
 
-    public List<PeseeDTO> findAll() {
+    public List<PeseeDTO> findAll(String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            return peseeRepository.findAllByOrderByDatePeseeDesc().stream().map(this::toDTOWithHuilerieId).toList();
+            List<Pesee> pesees = hasText(huilerieNom)
+                    ? peseeRepository.findAllByHuilerieNomOrderByDatePeseeDesc(huilerieNom)
+                    : peseeRepository.findAllByOrderByDatePeseeDesc();
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+            return pesees.stream()
+                    .filter(pesee -> {
+                        Long huilerieId = resolveHuilerieId(pesee.getLot());
+                        return huilerieId != null && accessibleHuilerieIds.contains(huilerieId);
+                    })
+                    .map(this::toDTOWithHuilerieId)
+                    .toList();
         }
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
@@ -166,6 +180,7 @@ public class PeseeService {
 
     public byte[] generateBonPeseePdf(String reference) {
         Pesee pesee = findPesee(reference);
+        ensureCanAccessPesee(pesee);
         Path pdfPath = resolvePdfPath(pesee);
 
         if (Files.exists(pdfPath)) {
@@ -428,6 +443,7 @@ public class PeseeService {
                     .orElseThrow(() -> new RuntimeException("Lot non trouve"));
 
             ensureLotHuilerieConsistency(existing, effectiveHuilerieId);
+            ensureNonAdminLotBusinessConsistency(existing, effectiveHuilerieId);
 
             if (hasText(dto.getOrigine()) && !normalize(dto.getOrigine()).equals(normalize(existing.getOrigine()))) {
                 throw new RuntimeException("Origine incoherente avec le lot existant");
@@ -447,6 +463,8 @@ public class PeseeService {
 
         CampagneOlives campagne = campagneOlivesRepository.findByAnnee(dto.getCampagneAnnee())
                 .orElseThrow(() -> new RuntimeException("Campagne non trouvee"));
+        Models.MatierePremiere matierePremiere = matierePremiereService.findMatiere(dto.getMatierePremiereId());
+        ensureNonAdminLotCreationConsistency(matierePremiere, campagne, effectiveHuilerieId);
 
         LotOlives lot = new LotOlives();
         lot.setVarieteOlive(dto.getVarieteOlive());
@@ -457,11 +475,55 @@ public class PeseeService {
         lot.setDureeStockageAvantBroyage(dto.getDureeStockageAvantBroyage());
         lot.setQuantiteInitiale(poidsNet);
         lot.setQuantiteRestante(poidsNet);
-        lot.setMatierePremiere(matierePremiereService.findMatiere(dto.getMatierePremiereId()));
+        lot.setMatierePremiere(matierePremiere);
         lot.setCampagne(campagne);
         LotOlives savedLot = lotOlivesRepository.save(lot);
         savedLot.setReference(ReferenceUtils.format("LO", savedLot.getIdLot()));
         return lotOlivesRepository.save(savedLot);
+    }
+
+    private void ensureNonAdminLotBusinessConsistency(LotOlives lot, Long effectiveHuilerieId) {
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur) || lot == null || effectiveHuilerieId == null) {
+            return;
+        }
+
+        Long matiereHuilerieId = lot.getMatierePremiere() != null && lot.getMatierePremiere().getHuilerie() != null
+                ? lot.getMatierePremiere().getHuilerie().getIdHuilerie()
+                : null;
+        Long campagneHuilerieId = lot.getCampagne() != null && lot.getCampagne().getHuilerie() != null
+                ? lot.getCampagne().getHuilerie().getIdHuilerie()
+                : null;
+
+        if (matiereHuilerieId != null && !effectiveHuilerieId.equals(matiereHuilerieId)) {
+            throw new AccessDeniedException("Lot incoherent: matiere premiere d'une autre huilerie");
+        }
+
+        if (campagneHuilerieId != null && !effectiveHuilerieId.equals(campagneHuilerieId)) {
+            throw new AccessDeniedException("Lot incoherent: campagne d'une autre huilerie");
+        }
+    }
+
+    private void ensureNonAdminLotCreationConsistency(Models.MatierePremiere matierePremiere, CampagneOlives campagne, Long effectiveHuilerieId) {
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+        if (currentUserService.isAdmin(utilisateur) || effectiveHuilerieId == null) {
+            return;
+        }
+
+        Long matiereHuilerieId = matierePremiere != null && matierePremiere.getHuilerie() != null
+                ? matierePremiere.getHuilerie().getIdHuilerie()
+                : null;
+        Long campagneHuilerieId = campagne != null && campagne.getHuilerie() != null
+                ? campagne.getHuilerie().getIdHuilerie()
+                : null;
+
+        if (matiereHuilerieId != null && !effectiveHuilerieId.equals(matiereHuilerieId)) {
+            throw new AccessDeniedException("Matiere premiere non autorisee pour cette huilerie");
+        }
+
+        if (campagneHuilerieId != null && !effectiveHuilerieId.equals(campagneHuilerieId)) {
+            throw new AccessDeniedException("Campagne non autorisee pour cette huilerie");
+        }
     }
 
     //gère le stock :
@@ -523,7 +585,7 @@ public class PeseeService {
         }
 
         if (huilerieIds.size() > 1) {
-            throw new RuntimeException("Lot incoherent: rattache a plusieurs huileries");
+            return null;
         }
 
         return huilerieIds.iterator().next();
@@ -559,6 +621,7 @@ public class PeseeService {
     private PeseeDTO toDTOWithHuilerieId(Pesee pesee) {
         PeseeDTO dto = peseeMapper.toDTO(pesee);
         dto.setHuilerieId(resolveHuilerieId(pesee.getLot()));
+        dto.setHuilerieNom(resolveHuilerieNom(pesee.getLot()));
         return dto;
     }
 
@@ -593,6 +656,7 @@ public class PeseeService {
             if (requestedHuilerieId == null) {
                 throw new RuntimeException("huilerieId est obligatoire pour la reception");
             }
+            currentUserService.ensureCanAccessHuilerie(requestedHuilerieId);
             return requestedHuilerieId;
         }
 
@@ -617,5 +681,36 @@ public class PeseeService {
         if (!inScope) {
             throw new AccessDeniedException("Acces refuse a une pesee d'une autre huilerie");
         }
+    }
+
+    private String resolveHuilerieNom(LotOlives lot) {
+        if (lot == null || lot.getIdLot() == null) {
+            return null;
+        }
+
+        Set<String> huilerieNoms = stockRepository.findByLotOlives_IdLot(lot.getIdLot()).stream()
+                .map(Stock::getHuilerie)
+                .filter(huilerie -> huilerie != null && huilerie.getNom() != null && !huilerie.getNom().isBlank())
+                .map(Models.Huilerie::getNom)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        if (huilerieNoms.isEmpty()) {
+            return null;
+        }
+
+        if (huilerieNoms.size() > 1) {
+            return null;
+        }
+
+        return huilerieNoms.iterator().next();
+    }
+
+    private void ensureCanAccessPesee(Pesee pesee) {
+        Long huilerieId = resolveHuilerieId(pesee != null ? pesee.getLot() : null);
+        if (huilerieId == null) {
+            throw new AccessDeniedException("Acces refuse a une pesee sans huilerie exploitable");
+        }
+
+        currentUserService.ensureCanAccessHuilerie(huilerieId);
     }
 }

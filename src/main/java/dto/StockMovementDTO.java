@@ -8,6 +8,7 @@ public class StockMovementDTO {
     private Long id;
     private String reference;
     private Long huilerieId;
+    private String huilerieNom;
     private Long referenceId;
     private Double quantite;
     private String commentaire;

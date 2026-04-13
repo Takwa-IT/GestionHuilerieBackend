@@ -13,8 +13,10 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     Optional<Stock> findByHuilerie_IdHuilerieAndLotOlives_IdLot(Long huilerieId, Long lotId);
     //filtration de stock par huilerie
     List<Stock> findByHuilerie_IdHuilerie(Long huilerieId);
+    List<Stock> findByHuilerie_NomIgnoreCase(String huilerieNom);
     //recherche stock par id lot
     List<Stock> findByLotOlives_IdLot(Long lotId);
+    List<Stock> findByLotOlives_IdLotAndHuilerie_NomIgnoreCase(Long lotId, String huilerieNom);
     //recherche stock par id lot et huilerie
     List<Stock> findByLotOlives_IdLotAndHuilerie_IdHuilerie(Long lotId, Long huilerieId);
 }

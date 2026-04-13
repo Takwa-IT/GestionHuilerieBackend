@@ -22,6 +22,7 @@ public class HuilerieService {
     private final HuilerieRepository huilerieRepository;
     private final EntrepriseRepository entrepriseRepository;
     private final HuilerieMapper huilerieMapper;
+    private final CurrentUserService currentUserService;
 
     public HuilerieDTO create(HuilerieCreateDTO dto) {
         if (huilerieRepository.existsByNom(dto.getNom())) {
@@ -31,6 +32,7 @@ public class HuilerieService {
         Huilerie huilerie = huilerieMapper.toEntity(dto);
         Entreprise entreprise = entrepriseRepository.findById(dto.getEntrepriseId())
                 .orElseThrow(() -> new RuntimeException("Entreprise non trouvee"));
+        ensureEntrepriseAccess(entreprise.getIdEntreprise());
         huilerie.setEntreprise(entreprise);
 
         Huilerie saved = huilerieRepository.save(huilerie);
@@ -54,6 +56,7 @@ public class HuilerieService {
         if (dto.getEntrepriseId() != null) {
             Entreprise entreprise = entrepriseRepository.findById(dto.getEntrepriseId())
                     .orElseThrow(() -> new RuntimeException("Entreprise non trouvee"));
+            ensureEntrepriseAccess(entreprise.getIdEntreprise());
             huilerie.setEntreprise(entreprise);
         }
 
@@ -78,13 +81,21 @@ public class HuilerieService {
     public HuilerieDTO findById(Long idHuilerie) {
         Huilerie huilerie = huilerieRepository.findById(idHuilerie)
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
+        ensureEntrepriseAccess(huilerie.getEntreprise().getIdEntreprise());
         return huilerieMapper.toDTO(huilerie);
     }
 
     public List<HuilerieDTO> findAll() {
-        return huilerieRepository.findAll().stream()
+        Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
+        return huilerieRepository.findByEntreprise_IdEntreprise(entrepriseId).stream()
                 .map(huilerieMapper::toDTO)
                 .toList();
+    }
+
+    private void ensureEntrepriseAccess(Long entrepriseId) {
+        if (!currentUserService.getCurrentEntrepriseIdOrThrow().equals(entrepriseId)) {
+            throw new RuntimeException("Acces refuse a une autre entreprise");
+        }
     }
 }
 

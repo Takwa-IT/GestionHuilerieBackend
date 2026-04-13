@@ -8,6 +8,7 @@ import dto.ProfilRequestDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,10 +21,19 @@ public class AdminProfilService {
 
     private final ProfilRepository profilRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional(readOnly = true)
-    public List<ProfilDTO> findAll() {
-        return profilRepository.findAll().stream().map(this::toDTO).toList();
+    public List<ProfilDTO> findAll(String huilerieNom) {
+        Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
+        String normalizedHuilerieNom = normalizeHuilerieNom(huilerieNom);
+
+        return (normalizedHuilerieNom == null
+                ? utilisateurRepository.findDistinctProfilsByEntrepriseIdOrderByIdProfilAsc(entrepriseId)
+                : utilisateurRepository.findDistinctProfilsByEntrepriseIdAndHuilerieNom(entrepriseId, normalizedHuilerieNom))
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     public ProfilDTO create(ProfilRequestDTO request) {
@@ -37,6 +47,8 @@ public class AdminProfilService {
     }
 
     public ProfilDTO update(Long id, ProfilRequestDTO request) {
+        ensureProfilInAccessibleHuileries(id);
+
         Profil profil = profilRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
 
@@ -50,6 +62,8 @@ public class AdminProfilService {
     }
 
     public void delete(Long id) {
+        ensureProfilInAccessibleHuileries(id);
+
         Profil profil = profilRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
 
@@ -58,6 +72,26 @@ public class AdminProfilService {
         }
 
         profilRepository.delete(profil);
+    }
+
+    private void ensureProfilInAccessibleHuileries(Long profilId) {
+        Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
+        if (entrepriseId == null) {
+            throw new AccessDeniedException("Acces refuse au profil demande");
+        }
+
+        boolean belongsToEntreprise = utilisateurRepository.findDistinctProfilsByEntrepriseIdOrderByIdProfilAsc(entrepriseId)
+                .stream()
+                .anyMatch(profil -> profilId.equals(profil.getIdProfil()));
+
+        if (!belongsToEntreprise) {
+            throw new AccessDeniedException("Acces refuse a un profil hors entreprise accessible");
+        }
+    }
+
+    private String normalizeHuilerieNom(String huilerieNom) {
+        String normalized = huilerieNom == null ? null : huilerieNom.trim();
+        return (normalized == null || normalized.isEmpty()) ? null : normalized;
     }
 
     private ProfilDTO toDTO(Profil profil) {

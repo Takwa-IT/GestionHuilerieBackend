@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class AuthUtilisateurDTO {
     private Long id;
+    private Long entrepriseId;
     private Long huilerieId;
     private String nom;
     private String prenom;

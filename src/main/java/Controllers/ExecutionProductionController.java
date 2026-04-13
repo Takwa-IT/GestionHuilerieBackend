@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -39,7 +40,7 @@ public class ExecutionProductionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExecutionProductionDTO>> findAll() {
-        return ResponseEntity.ok(executionProductionService.findAll());
+    public ResponseEntity<List<ExecutionProductionDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(executionProductionService.findAll(huilerieNom));
     }
 }

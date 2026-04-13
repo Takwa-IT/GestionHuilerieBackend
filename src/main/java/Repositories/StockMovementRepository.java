@@ -14,4 +14,5 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     List<StockMovement> findByStock_LotOlives_IdLotOrderByDateMouvementAsc(Long lotId);
     //filtration des mouvement par huilerie
     List<StockMovement> findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(Long huilerieId);
+    List<StockMovement> findByStock_Huilerie_NomIgnoreCaseOrderByDateMouvementDesc(String huilerieNom);
 }

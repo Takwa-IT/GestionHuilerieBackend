@@ -16,6 +16,7 @@ public class ExecutionProductionDTO {
     private Double rendement;
     private String observations;
     private Long huilerieId;
+    private String huilerieNom;
     private Long guideProductionId;
     private String guideProductionReference;
     private Long machineId;

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,8 +27,8 @@ public class ProfilController {
     private final AdminProfilService adminProfilService;
 
     @GetMapping
-    public ResponseEntity<ApiResponseDTO<List<ProfilDTO>>> findAll() {
-        return ResponseEntity.ok(ApiResponseDTO.ok(adminProfilService.findAll(), "Liste des profils"));
+    public ResponseEntity<ApiResponseDTO<List<ProfilDTO>>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(ApiResponseDTO.ok(adminProfilService.findAll(huilerieNom), "Liste des profils"));
     }
 
     @PostMapping

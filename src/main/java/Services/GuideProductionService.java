@@ -5,6 +5,7 @@ import Models.EtapeProduction;
 import Models.GuideProduction;
 import Models.Huilerie;
 import Models.ParametreEtape;
+import Models.Utilisateur;
 import Repositories.GuideProductionRepository;
 import Repositories.HuilerieRepository;
 import dto.EtapeProductionCreateDTO;
@@ -27,10 +28,12 @@ public class GuideProductionService {
 
     private final GuideProductionRepository guideProductionRepository;
     private final HuilerieRepository huilerieRepository;
+    private final CurrentUserService currentUserService;
 
     public GuideProductionDTO create(GuideProductionCreateDTO dto) {
         Huilerie huilerie = huilerieRepository.findById(dto.getHuilerieId())
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
+        currentUserService.ensureCanAccessHuilerie(huilerie.getIdHuilerie());
 
         GuideProduction guideProduction = new GuideProduction();
         applyRequestToGuide(guideProduction, dto, huilerie, true);
@@ -48,6 +51,7 @@ public class GuideProductionService {
         GuideProduction guideProduction = findGuide(idGuideProduction);
         Huilerie huilerie = huilerieRepository.findById(dto.getHuilerieId())
                 .orElseThrow(() -> new RuntimeException("Huilerie non trouvee"));
+        currentUserService.ensureCanAccessHuilerie(huilerie.getIdHuilerie());
 
         applyRequestToGuide(guideProduction, dto, huilerie, false);
         return toDTO(guideProductionRepository.save(guideProduction));
@@ -63,8 +67,23 @@ public class GuideProductionService {
     }
 
     @Transactional(readOnly = true)
-    public List<GuideProductionDTO> findAll() {
-        return guideProductionRepository.findAll().stream()
+    public List<GuideProductionDTO> findAll(String huilerieNom) {
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+
+        List<GuideProduction> guides;
+        if (currentUserService.isAdmin(utilisateur)) {
+            guides = hasText(huilerieNom)
+                    ? guideProductionRepository.findByHuilerie_NomIgnoreCase(huilerieNom)
+                    : guideProductionRepository.findAll();
+            guides = guides.stream()
+                    .filter(guide -> guide.getHuilerie() != null
+                            && currentUserService.getAccessibleHuilerieIds().contains(guide.getHuilerie().getIdHuilerie()))
+                    .toList();
+        } else {
+            guides = guideProductionRepository.findByHuilerie_IdHuilerie(currentUserService.getCurrentHuilerieIdOrThrow());
+        }
+
+        return guides.stream()
                 .map(this::toDTO)
                 .toList();
     }
@@ -152,5 +171,9 @@ public class GuideProductionService {
         dto.setDescription(parametreEtape.getDescription());
         dto.setValeur(parametreEtape.getValeur());
         return dto;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

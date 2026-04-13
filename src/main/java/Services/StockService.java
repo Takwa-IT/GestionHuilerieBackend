@@ -20,20 +20,36 @@ public class StockService {
     private final StockMapper stockMapper;
     private final CurrentUserService currentUserService;
 
-    public List<StockDTO> findAll() {
+    public List<StockDTO> findAll(String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            return stockRepository.findAll().stream().map(stockMapper::toDTO).toList();
+            List<Models.Stock> stocks = hasText(huilerieNom)
+                    ? stockRepository.findByHuilerie_NomIgnoreCase(huilerieNom)
+                    : stockRepository.findAll();
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+            return stocks.stream()
+                    .filter(stock -> stock.getHuilerie() != null
+                            && accessibleHuilerieIds.contains(stock.getHuilerie().getIdHuilerie()))
+                    .map(stockMapper::toDTO)
+                    .toList();
         }
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
         return stockRepository.findByHuilerie_IdHuilerie(huilerieId).stream().map(stockMapper::toDTO).toList();
     }
 
-    public List<StockDTO> findByLot(Long lotId) {
+    public List<StockDTO> findByLot(Long lotId, String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            return stockRepository.findByLotOlives_IdLot(lotId).stream().map(stockMapper::toDTO).toList();
+            List<Models.Stock> stocks = hasText(huilerieNom)
+                    ? stockRepository.findByLotOlives_IdLotAndHuilerie_NomIgnoreCase(lotId, huilerieNom)
+                    : stockRepository.findByLotOlives_IdLot(lotId);
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+            return stocks.stream()
+                    .filter(stock -> stock.getHuilerie() != null
+                            && accessibleHuilerieIds.contains(stock.getHuilerie().getIdHuilerie()))
+                    .map(stockMapper::toDTO)
+                    .toList();
         }
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
@@ -53,10 +69,16 @@ public class StockService {
                 throw new AccessDeniedException("Acces refuse a une autre huilerie");
             }
             effectiveHuilerieId = currentHuilerieId;
+        } else {
+            currentUserService.ensureCanAccessHuilerie(huilerieId);
         }
 
         return stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, lotId)
                 .map(stockMapper::toDTO)
                 .orElseThrow(() -> new RuntimeException("Stock non trouve"));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

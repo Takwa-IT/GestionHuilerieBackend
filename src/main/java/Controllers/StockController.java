@@ -20,13 +20,15 @@ public class StockController {
     private final StockService stockService;
 
     @GetMapping
-    public ResponseEntity<List<StockDTO>> findAll() {
-        return ResponseEntity.ok(stockService.findAll());
+    public ResponseEntity<List<StockDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(stockService.findAll(huilerieNom));
     }
 
     @GetMapping("/lot/{lotId}")
-    public ResponseEntity<List<StockDTO>> findByLot(@PathVariable Long lotId) {
-        return ResponseEntity.ok(stockService.findByLot(lotId));
+    public ResponseEntity<List<StockDTO>> findByLot(
+            @PathVariable Long lotId,
+            @RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(stockService.findByLot(lotId, huilerieNom));
     }
 
     @GetMapping("/resolve")

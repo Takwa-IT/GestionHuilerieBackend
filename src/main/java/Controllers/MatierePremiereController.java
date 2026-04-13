@@ -45,7 +45,7 @@ public class MatierePremiereController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MatierePremiereDTO>> findAll() {
-        return ResponseEntity.ok(matierePremiereService.findAll());
+    public ResponseEntity<List<MatierePremiereDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(matierePremiereService.findAll(huilerieNom));
     }
 }

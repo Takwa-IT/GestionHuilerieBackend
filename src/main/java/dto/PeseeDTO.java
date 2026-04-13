@@ -8,6 +8,7 @@ public class PeseeDTO {
     private String reference;
     private Long lotId;
     private Long huilerieId;
+    private String huilerieNom;
     private String datePesee;
     private Double poidsBrut;
     private Double poidsTare;

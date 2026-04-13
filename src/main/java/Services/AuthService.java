@@ -76,6 +76,7 @@ public class AuthService {
         utilisateur.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
         utilisateur.setTelephone(request.getTelephone());
         utilisateur.setProfil(null);
+        utilisateur.setEntreprise(huilerie.getEntreprise());
         utilisateur.setHuilerie(huilerie);
         utilisateur.setActif(StatutUtilisateur.ACTIF);
 
@@ -295,6 +296,7 @@ public class AuthService {
     private AuthResponseDTO buildAuthResponse(Utilisateur utilisateur, String token, String refreshToken) {
         AuthUtilisateurDTO authUtilisateurDTO = new AuthUtilisateurDTO();
         authUtilisateurDTO.setId(utilisateur.getIdUtilisateur());
+        authUtilisateurDTO.setEntrepriseId(utilisateur.getEntreprise() != null ? utilisateur.getEntreprise().getIdEntreprise() : null);
         authUtilisateurDTO.setHuilerieId(utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getIdHuilerie() : null);
         authUtilisateurDTO.setNom(utilisateur.getNom());
         authUtilisateurDTO.setPrenom(utilisateur.getPrenom());

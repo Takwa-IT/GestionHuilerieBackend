@@ -1,6 +1,7 @@
 package Mapper;
 
 import Models.LotOlives;
+import Models.Huilerie;
 import Models.Stock;
 import dto.LotOlivesDTO;
 import org.springframework.stereotype.Component;
@@ -30,11 +31,13 @@ public class LotOlivesMapper {
         dto.setMatierePremiereId(entity.getMatierePremiere() != null ? entity.getMatierePremiere().getId() : null);
         dto.setMatierePremiereReference(entity.getMatierePremiere() != null ? entity.getMatierePremiere().getReference() : null);
         dto.setCampagneId(entity.getCampagne() != null ? entity.getCampagne().getIdCampagne() : null);
-        dto.setHuilerieId(resolveHuilerieId(entity));
+        Huilerie huilerie = resolveHuilerie(entity);
+        dto.setHuilerieId(huilerie != null ? huilerie.getIdHuilerie() : null);
+        dto.setHuilerieNom(huilerie != null ? huilerie.getNom() : null);
         return dto;
     }
 
-    private Long resolveHuilerieId(LotOlives entity) {
+    private Huilerie resolveHuilerie(LotOlives entity) {
         if (entity == null || entity.getStocks() == null) {
             return null;
         }
@@ -42,11 +45,16 @@ public class LotOlivesMapper {
         Set<Long> huilerieIds = entity.getStocks().stream()
                 .map(Stock::getHuilerie)
                 .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
-                .map(huilerie -> huilerie.getIdHuilerie())
+                .map(Huilerie::getIdHuilerie)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
 
         if (huilerieIds.size() == 1) {
-            return huilerieIds.iterator().next();
+            Long huilerieId = huilerieIds.iterator().next();
+            return entity.getStocks().stream()
+                    .map(Stock::getHuilerie)
+                    .filter(huilerie -> huilerie != null && huilerieId.equals(huilerie.getIdHuilerie()))
+                    .findFirst()
+                    .orElse(null);
         }
 
         return null;

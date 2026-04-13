@@ -35,6 +35,12 @@ public class PermissionAspect {
 
         String module = requirePermission.module();
         String action = requirePermission.action().name();
+
+        // Allow regular users (non-admin) to READ from LOTS_TRAÇABILITE module
+        if ("LOTS_TRAÇABILITE".equalsIgnoreCase(module) && "READ".equalsIgnoreCase(action) && !isAdminUser(utilisateur)) {
+            return;
+        }
+
         if (!permissionService.hasPermission(utilisateur.getIdUtilisateur(), module, action)) {
             log.warn("[SECURITY] userId={} a tente action={} sur module={} -> REFUSE", utilisateur.getIdUtilisateur(), action, module);
             throw new PermissionDeniedException(module, action);
@@ -47,5 +53,9 @@ public class PermissionAspect {
             return user.getUsername();
         }
         return authentication.getName();
+    }
+
+    private boolean isAdminUser(Utilisateur utilisateur) {
+        return utilisateur.getProfil() != null && "ADMIN".equalsIgnoreCase(utilisateur.getProfil().getNom());
     }
 }

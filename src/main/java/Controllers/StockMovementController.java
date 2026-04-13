@@ -37,8 +37,8 @@ public class StockMovementController {
 
     @GetMapping
     @RequirePermission(module = "STOCK_MOUVEMENT", action = PermissionAction.READ)
-    public ResponseEntity<List<StockMovementDTO>> findAll() {
-        return ResponseEntity.ok(stockMovementService.findAll());
+    public ResponseEntity<List<StockMovementDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(stockMovementService.findAll(huilerieNom));
     }
 
     @GetMapping("/huilerie/{huilerieId}")

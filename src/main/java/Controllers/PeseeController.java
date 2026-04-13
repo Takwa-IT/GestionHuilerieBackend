@@ -43,8 +43,8 @@ public class PeseeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PeseeDTO>> findAll() {
-        return ResponseEntity.ok(peseeService.findAll());
+    public ResponseEntity<List<PeseeDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
+        return ResponseEntity.ok(peseeService.findAll(huilerieNom));
     }
 
     @GetMapping("/{reference}/pdf")

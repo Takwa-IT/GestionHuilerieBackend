@@ -11,8 +11,9 @@ import java.util.List;
 @Repository
 public interface MachineRepository extends JpaRepository<Machine, Long> {
 
-    @Query("select m from Machine m where m.huilerie.nom = :huilerieNom")
+    @Query("select m from Machine m where lower(m.huilerie.nom) = lower(:huilerieNom)")
     List<Machine> findByHuilerieNom(@Param("huilerieNom") String huilerieNom);
 
     List<Machine> findByHuilerie_IdHuilerie(Long idHuilerie);
+    List<Machine> findByHuilerie_NomIgnoreCase(String huilerieNom);
 }

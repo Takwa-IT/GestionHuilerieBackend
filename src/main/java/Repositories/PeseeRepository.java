@@ -26,6 +26,16 @@ public interface PeseeRepository extends JpaRepository<Pesee, Long> {
             """)
         List<Pesee> findAllByHuilerie_IdHuilerieOrderByDatePeseeDesc(@Param("huilerieId") Long huilerieId);
 
+        @Query("""
+            select distinct p
+            from Pesee p
+            join p.lot l
+            join l.stocks s
+            where lower(s.huilerie.nom) = lower(:huilerieNom)
+            order by p.datePesee desc
+            """)
+        List<Pesee> findAllByHuilerieNomOrderByDatePeseeDesc(@Param("huilerieNom") String huilerieNom);
+
     Optional<Pesee> findByReference(String reference);
 
     boolean existsByReference(String reference);

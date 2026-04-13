@@ -33,6 +33,7 @@ public class StockMovementService {
         Long effectiveHuilerieId = currentUserService.isAdmin(utilisateur)
                 ? dto.getHuilerieId()
                 : currentUserService.getCurrentHuilerieIdOrThrow();
+        currentUserService.ensureCanAccessHuilerie(effectiveHuilerieId);
 
         Stock stock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, dto.getReferenceId())
                 .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
@@ -67,6 +68,7 @@ public class StockMovementService {
         }
 
         Long effectiveHuilerieId = isAdmin ? dto.getHuilerieId() : currentHuilerieId;
+        currentUserService.ensureCanAccessHuilerie(effectiveHuilerieId);
 
         Stock ancienStock = movement.getStock();
         Stock nouveauStock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, dto.getReferenceId())
@@ -109,11 +111,21 @@ public class StockMovementService {
         return stockMovementMapper.toDTO(saved);
     }
 
-    public List<StockMovementDTO> findAll() {
+    public List<StockMovementDTO> findAll(String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            return stockMovementRepository.findAll().stream()
+            List<StockMovement> movements = hasText(huilerieNom)
+                    ? stockMovementRepository.findByStock_Huilerie_NomIgnoreCaseOrderByDateMouvementDesc(huilerieNom)
+                    : stockMovementRepository.findAll().stream()
+                        .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+                        .toList();
+            List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+
+            return movements.stream()
                     .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+                    .filter(movement -> movement.getStock() != null
+                            && movement.getStock().getHuilerie() != null
+                            && accessibleHuilerieIds.contains(movement.getStock().getHuilerie().getIdHuilerie()))
                     .map(stockMovementMapper::toDTO)
                     .toList();
         }
@@ -135,6 +147,8 @@ public class StockMovementService {
                 throw new AccessDeniedException("Acces refuse a une autre huilerie");
             }
             effectiveHuilerieId = currentHuilerieId;
+        } else {
+            currentUserService.ensureCanAccessHuilerie(huilerieId);
         }
 
         return stockMovementRepository.findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(effectiveHuilerieId)
@@ -182,5 +196,9 @@ public class StockMovementService {
 
     private String nullSafe(String value) {
         return value == null ? "" : value;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

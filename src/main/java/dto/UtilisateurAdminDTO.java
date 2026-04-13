@@ -13,6 +13,7 @@ public class UtilisateurAdminDTO {
     private StatutUtilisateur actif;
     private Long profilId;
     private String profilNom;
+    private Long entrepriseId;
     private Long huilerieId;
     private String huilerieNom;
 }

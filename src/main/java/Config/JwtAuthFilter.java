@@ -87,8 +87,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private String extractToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
-            return authHeader.substring(7).trim();
+        if (authHeader != null) {
+            String trimmed = authHeader.trim();
+            if (trimmed.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                return normalizeToken(trimmed.substring(7));
+            }
+            if (!trimmed.isBlank()) {
+                return normalizeToken(trimmed);
+            }
+        }
+
+        String tokenHeader = request.getHeader("token");
+        if (tokenHeader != null && !tokenHeader.isBlank()) {
+            return normalizeToken(tokenHeader);
+        }
+
+        String accessTokenHeader = request.getHeader("accessToken");
+        if (accessTokenHeader != null && !accessTokenHeader.isBlank()) {
+            return normalizeToken(accessTokenHeader);
+        }
+
+        String xAuthTokenHeader = request.getHeader("X-Auth-Token");
+        if (xAuthTokenHeader != null && !xAuthTokenHeader.isBlank()) {
+            return normalizeToken(xAuthTokenHeader);
         }
 
         Cookie[] cookies = request.getCookies();
@@ -101,11 +122,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if ("token".equals(name) || "accessToken".equals(name) || "jwt".equals(name)) {
                 String value = cookie.getValue();
                 if (value != null && !value.isBlank()) {
-                    return value.trim();
+                    return normalizeToken(value);
                 }
             }
         }
 
         return null;
+    }
+
+    private String normalizeToken(String token) {
+        String normalized = token == null ? null : token.trim();
+        if (normalized == null || normalized.isBlank()) {
+            return null;
+        }
+
+        if (normalized.startsWith("\"") && normalized.endsWith("\"") && normalized.length() >= 2) {
+            normalized = normalized.substring(1, normalized.length() - 1).trim();
+        }
+
+        return normalized.isBlank() ? null : normalized;
     }
 }

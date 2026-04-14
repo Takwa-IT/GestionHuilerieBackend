@@ -26,12 +26,11 @@ public class AdminProfilService {
     @Transactional(readOnly = true)
     public List<ProfilDTO> findAll(String huilerieNom) {
         Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
-        String normalizedHuilerieNom = normalizeHuilerieNom(huilerieNom);
 
-        return (normalizedHuilerieNom == null
-                ? utilisateurRepository.findDistinctProfilsByEntrepriseIdOrderByIdProfilAsc(entrepriseId)
-                : utilisateurRepository.findDistinctProfilsByEntrepriseIdAndHuilerieNom(entrepriseId, normalizedHuilerieNom))
-                .stream()
+        // Retorna todos los profils disponibles (no solo los asociados a usuarios)
+        List<Profil> profils = profilRepository.findAllByOrderByIdProfilAsc();
+
+        return profils.stream()
                 .map(this::toDTO)
                 .toList();
     }

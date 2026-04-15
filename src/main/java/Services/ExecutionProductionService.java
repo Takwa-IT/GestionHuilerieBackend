@@ -46,7 +46,7 @@ public class ExecutionProductionService {
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));
         Machine machine = machineRepository.findById(dto.getMachineId())
                 .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
-        LotOlives lotOlives = lotOlivesRepository.findById(dto.getLotOlivesId())
+        LotOlives lot = lotOlivesRepository.findById(dto.getLotId())
                 .orElseThrow(() -> new RuntimeException("Lot d'olives non trouve"));
         MatierePremiere matierePremiere = matierePremiereRepository.findById(dto.getMatierePremiereId())
                 .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));
@@ -64,7 +64,7 @@ public class ExecutionProductionService {
         executionProduction.setObservations(dto.getObservations());
         executionProduction.setGuideProduction(guideProduction);
         executionProduction.setMachine(machine);
-        executionProduction.setLotOlives(lotOlives);
+        executionProduction.setLotOlives(lot);
         executionProduction.setMatierePremiere(matierePremiere);
 
         if (dto.getValeursReelles() != null) {
@@ -105,11 +105,11 @@ public class ExecutionProductionService {
 
     @Transactional(readOnly = true)
     public String buildCodeLotForLot(Long lotId) {
-        LotOlives lotOlives = lotOlivesRepository.findById(lotId)
+        LotOlives lot = lotOlivesRepository.findById(lotId)
                 .orElseThrow(() -> new RuntimeException("Lot d'olives non trouve"));
 
-        String lotReference = lotOlives.getReference();
-        return buildUniqueCodeLot(lotReference, lotOlives.getIdLot());
+        String lotReference = lot.getReference();
+        return buildUniqueCodeLot(lotReference, lot.getIdLot());
     }
 
     @Transactional(readOnly = true)
@@ -121,14 +121,14 @@ public class ExecutionProductionService {
     public List<ExecutionProductionDTO> findAll(String huilerieNom) {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         List<ExecutionProduction> executions = currentUserService.isAdmin(utilisateur)
-            ? (hasText(huilerieNom)
-                ? executionProductionRepository.findAllByHuilerieNom(huilerieNom)
-                : executionProductionRepository.findAll())
-            : executionProductionRepository.findAllByHuilerieId(currentUserService.getCurrentHuilerieIdOrThrow());
+                ? (hasText(huilerieNom)
+                        ? executionProductionRepository.findAllByHuilerieNom(huilerieNom)
+                        : executionProductionRepository.findAll())
+                : executionProductionRepository.findAllByHuilerieId(currentUserService.getCurrentHuilerieIdOrThrow());
 
         return executions.stream()
-            .map(this::safeToDTO)
-            .flatMap(Optional::stream)
+                .map(this::safeToDTO)
+                .flatMap(Optional::stream)
                 .toList();
     }
 
@@ -159,8 +159,8 @@ public class ExecutionProductionService {
             dto.setMachineNom(executionProduction.getMachine().getNomMachine());
         }
         if (executionProduction.getLotOlives() != null) {
-            dto.setLotOlivesId(executionProduction.getLotOlives().getIdLot());
-            dto.setLotOlivesVariete(executionProduction.getLotOlives().getVarieteOlive());
+            dto.setLotId(executionProduction.getLotOlives().getIdLot());
+            dto.setLotVariete(executionProduction.getLotOlives().getVarieteOlive());
         }
         if (executionProduction.getMatierePremiere() != null) {
             dto.setMatierePremiereId(executionProduction.getMatierePremiere().getId());

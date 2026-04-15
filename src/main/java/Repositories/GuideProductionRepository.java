@@ -11,3 +11,5 @@ public interface GuideProductionRepository extends JpaRepository<GuideProduction
     List<GuideProduction> findByHuilerie_IdHuilerie(Long huilerieId);
     List<GuideProduction> findByHuilerie_NomIgnoreCase(String huilerieNom);
 }
+
+

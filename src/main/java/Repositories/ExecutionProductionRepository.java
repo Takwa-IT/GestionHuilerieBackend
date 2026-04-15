@@ -11,6 +11,7 @@ import java.util.List;
 @Repository
 public interface ExecutionProductionRepository extends JpaRepository<ExecutionProduction, Long> {
 	List<ExecutionProduction> findByLotOlives_IdLot(Long lotId);
+
 	boolean existsByCodeLot(String codeLot);
 
 	@Query("""

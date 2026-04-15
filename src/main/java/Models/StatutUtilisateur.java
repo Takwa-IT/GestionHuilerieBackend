@@ -4,3 +4,5 @@ public enum StatutUtilisateur {
     ACTIF,
     INACTIF
 }
+
+

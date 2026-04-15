@@ -11,3 +11,5 @@ public class AuthPermissionDTO {
     private Boolean canDelete;
     private Boolean canExecuted;
 }
+
+

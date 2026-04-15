@@ -35,7 +35,7 @@ public class ExecutionProductionCreateDTO {
     private Long machineId;
 
     @NotNull
-    private Long lotOlivesId;
+    private Long lotId;
 
     @NotNull
     private Long matierePremiereId;
@@ -43,3 +43,5 @@ public class ExecutionProductionCreateDTO {
     @Valid
     private List<ValeurReelleParametreCreateDTO> valeursReelles;
 }
+
+

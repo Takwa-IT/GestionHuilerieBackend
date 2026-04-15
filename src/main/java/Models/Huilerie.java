@@ -7,7 +7,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "huilerie", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_huilerie_nom", columnNames = "nom")
+        @UniqueConstraint(name = "uk_huilerie_nom", columnNames = "nom")
 })
 @Data
 @NoArgsConstructor
@@ -34,40 +34,101 @@ public class Huilerie {
     @OneToMany(mappedBy = "huilerie", cascade = CascadeType.ALL)
     private List<Machine> machines;
 
+    @OneToMany(mappedBy = "huilerie")
+    private List<LotOlives> lots;
+
     @OneToMany(mappedBy = "huilerie", cascade = CascadeType.ALL)
     private List<CampagneOlives> campagnesOlives;
 
     @OneToMany(mappedBy = "huilerie")
     private List<Stock> stocks;
 
-    public Long getIdHuilerie() { return idHuilerie; }
-    public void setIdHuilerie(Long idHuilerie) { this.idHuilerie = idHuilerie; }
+    public Long getIdHuilerie() {
+        return idHuilerie;
+    }
 
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
+    public void setIdHuilerie(Long idHuilerie) {
+        this.idHuilerie = idHuilerie;
+    }
 
-    public String getLocalisation() { return localisation; }
-    public void setLocalisation(String localisation) { this.localisation = localisation; }
+    public String getNom() {
+        return nom;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
 
-    public String getCertification() { return certification; }
-    public void setCertification(String certification) { this.certification = certification; }
+    public String getLocalisation() {
+        return localisation;
+    }
 
-    public Integer getCapaciteProduction() { return capaciteProduction; }
-    public void setCapaciteProduction(Integer capaciteProduction) { this.capaciteProduction = capaciteProduction; }
+    public void setLocalisation(String localisation) {
+        this.localisation = localisation;
+    }
 
-    public Entreprise getEntreprise() { return entreprise; }
-    public void setEntreprise(Entreprise entreprise) { this.entreprise = entreprise; }
+    public String getType() {
+        return type;
+    }
 
-    public List<Machine> getMachines() { return machines; }
-    public void setMachines(List<Machine> machines) { this.machines = machines; }
+    public void setType(String type) {
+        this.type = type;
+    }
 
-    public List<CampagneOlives> getCampagnesOlives() { return campagnesOlives; }
-    public void setCampagnesOlives(List<CampagneOlives> campagnesOlives) { this.campagnesOlives = campagnesOlives; }
+    public String getCertification() {
+        return certification;
+    }
 
-    public List<Stock> getStocks() { return stocks; }
-    public void setStocks(List<Stock> stocks) { this.stocks = stocks; }
+    public void setCertification(String certification) {
+        this.certification = certification;
+    }
+
+    public Integer getCapaciteProduction() {
+        return capaciteProduction;
+    }
+
+    public void setCapaciteProduction(Integer capaciteProduction) {
+        this.capaciteProduction = capaciteProduction;
+    }
+
+    public Entreprise getEntreprise() {
+        return entreprise;
+    }
+
+    public void setEntreprise(Entreprise entreprise) {
+        this.entreprise = entreprise;
+    }
+
+    public List<Machine> getMachines() {
+        return machines;
+    }
+
+    public void setMachines(List<Machine> machines) {
+        this.machines = machines;
+    }
+
+    public List<LotOlives> getLots() {
+        return lots;
+    }
+
+    public void setLots(List<LotOlives> lots) {
+        this.lots = lots;
+    }
+
+    public List<CampagneOlives> getCampagnesOlives() {
+        return campagnesOlives;
+    }
+
+    public void setCampagnesOlives(List<CampagneOlives> campagnesOlives) {
+        this.campagnesOlives = campagnesOlives;
+    }
+
+    public List<Stock> getStocks() {
+        return stocks;
+    }
+
+    public void setStocks(List<Stock> stocks) {
+        this.stocks = stocks;
+    }
 
 }

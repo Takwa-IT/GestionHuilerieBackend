@@ -23,6 +23,7 @@ public interface ProduitFinalMapper {
     @Mapping(target = "idProduit", ignore = true)
     @Mapping(target = "reference", ignore = true)
     @Mapping(target = "executionProduction", ignore = true)
+    @Mapping(target = "executionProductionId", ignore = true)
     @Mapping(target = "stocks", ignore = true)
     void updateFromDTO(ProduitFinalUpdateDTO dto, @MappingTarget ProduitFinal entity);
 }

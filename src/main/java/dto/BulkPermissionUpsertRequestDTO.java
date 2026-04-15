@@ -16,3 +16,5 @@ public class BulkPermissionUpsertRequestDTO {
     @NotEmpty
     private List<PermissionItemUpsertDTO> permissions;
 }
+
+

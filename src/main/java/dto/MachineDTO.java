@@ -12,3 +12,5 @@ public class MachineDTO {
     private Integer capacite;
     private String huilerieNom;
 }
+
+

@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface CampagneOlivesRepository extends JpaRepository<CampagneOlives, Long> {
     Optional<CampagneOlives> findByAnnee(String annee);
+
+    Optional<CampagneOlives> findByReference(String reference);
 }

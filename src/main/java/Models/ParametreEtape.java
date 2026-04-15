@@ -42,3 +42,5 @@ public class ParametreEtape {
     @OneToMany(mappedBy = "parametreEtape")
     private List<ValeurReelleParametre> valeursReelles;
 }
+
+

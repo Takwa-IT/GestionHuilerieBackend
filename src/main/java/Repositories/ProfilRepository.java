@@ -13,3 +13,5 @@ public interface ProfilRepository extends JpaRepository<Profil, Long> {
 
 	List<Profil> findAllByOrderByIdProfilAsc();
 }
+
+

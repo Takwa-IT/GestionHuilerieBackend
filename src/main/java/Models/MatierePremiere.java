@@ -1,5 +1,6 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -29,30 +30,85 @@ public class MatierePremiere {
     @OneToMany(mappedBy = "matierePremiere")
     private List<Machine> machinesAffectees;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getReference() { return reference; }
-    public void setReference(String reference) { this.reference = reference; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
+    public String getReference() {
+        if (id != null) {
+            return ReferenceUtils.format("MP", id);
+        }
+        return reference;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public void setReference(String reference) {
+        this.reference = reference;
+    }
 
-    public String getUniteMesure() { return uniteMesure; }
-    public void setUniteMesure(String uniteMesure) { this.uniteMesure = uniteMesure; }
+    public String getNom() {
+        return nom;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
 
-    public Huilerie getHuilerie() { return huilerie; }
-    public void setHuilerie(Huilerie huilerie) { this.huilerie = huilerie; }
+    public String getType() {
+        return type;
+    }
 
-    public List<LotOlives> getLots() { return lots; }
-    public void setLots(List<LotOlives> lots) { this.lots = lots; }
+    public void setType(String type) {
+        this.type = type;
+    }
 
-    public List<Machine> getMachinesAffectees() { return machinesAffectees; }
-    public void setMachinesAffectees(List<Machine> machinesAffectees) { this.machinesAffectees = machinesAffectees; }
+    public String getUniteMesure() {
+        return uniteMesure;
+    }
+
+    public void setUniteMesure(String uniteMesure) {
+        this.uniteMesure = uniteMesure;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Huilerie getHuilerie() {
+        return huilerie;
+    }
+
+    public void setHuilerie(Huilerie huilerie) {
+        this.huilerie = huilerie;
+    }
+
+    public List<LotOlives> getLots() {
+        return lots;
+    }
+
+    public void setLots(List<LotOlives> lots) {
+        this.lots = lots;
+    }
+
+    public List<Machine> getMachinesAffectees() {
+        return machinesAffectees;
+    }
+
+    public void setMachinesAffectees(List<Machine> machinesAffectees) {
+        this.machinesAffectees = machinesAffectees;
+    }
+
+    @PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && id != null) {
+            reference = ReferenceUtils.format("MP", id);
+        }
+    }
 }

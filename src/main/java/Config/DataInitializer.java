@@ -56,6 +56,7 @@ public class DataInitializer implements ApplicationRunner {
         for (String moduleName : List.of(
                 "DASHBOARD",
                 "RECEPTION",
+                "CAMPAGNE_OLIVES",
                 "GUIDE_PRODUCTION",
                 "MACHINES",
                 "MATIERES_PREMIERES",
@@ -74,6 +75,8 @@ public class DataInitializer implements ApplicationRunner {
 
         findOrCreatePermission(responsableProduction, modules.get("DASHBOARD"), false, true, false, false, false);
         findOrCreatePermission(responsableProduction, modules.get("RECEPTION"), true, true, false, false, true);
+        findOrCreatePermission(responsableProduction, modules.get("CAMPAGNE_OLIVES"), true, true, true, false,
+                false);
         findOrCreatePermission(responsableProduction, modules.get("GUIDE_PRODUCTION"), true, true, true, false, true);
         findOrCreatePermission(responsableProduction, modules.get("MACHINES"), false, true, false, false, false);
         findOrCreatePermission(responsableProduction, modules.get("MATIERES_PREMIERES"), true, true, true, false,
@@ -114,7 +117,7 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void findOrCreatePermission(Profil profil, Module module, boolean canCreate, boolean canRead,
-                                        boolean canUpdate, boolean canDelete, boolean canExecuted) {
+            boolean canUpdate, boolean canDelete, boolean canExecuted) {
         permissionRepository.findByProfilIdProfilAndModuleIdModule(profil.getIdProfil(), module.getIdModule())
                 .orElseGet(() -> {
                     Permission permission = new Permission();
@@ -133,8 +136,8 @@ public class DataInitializer implements ApplicationRunner {
 
     private void seedDefaultAdminUser(Profil adminProfil) {
         if (utilisateurRepository.findByEmail("smatitakwapro@gmail.com").isPresent()) {
-                return;
-            }
+            return;
+        }
 
         Huilerie huilerie = huilerieRepository.findAll().stream().findFirst().orElse(null);
 

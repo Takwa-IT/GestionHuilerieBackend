@@ -21,3 +21,5 @@ public class ResetPasswordConfirmDTO {
     @JsonAlias({"newPassword", "password", "motDePasse"})
     private String nouveauMotDePasse;
 }
+
+

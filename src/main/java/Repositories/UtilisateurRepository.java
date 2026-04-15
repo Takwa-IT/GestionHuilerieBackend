@@ -61,3 +61,5 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 		""")
 	List<Profil> findDistinctProfilsByEntrepriseIdAndHuilerieNom(@Param("entrepriseId") Long entrepriseId, @Param("huilerieNom") String huilerieNom);
 }
+
+

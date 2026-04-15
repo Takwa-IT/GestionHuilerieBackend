@@ -17,3 +17,5 @@ public interface MatierePremiereRepository extends JpaRepository<MatierePremiere
 
     List<MatierePremiere> findByHuilerie_NomIgnoreCase(String huilerieNom);
 }
+
+

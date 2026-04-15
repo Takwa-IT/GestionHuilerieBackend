@@ -42,3 +42,5 @@ public class EtapeProduction {
     @OneToMany(mappedBy = "etapeProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ParametreEtape> parametres;
 }
+
+

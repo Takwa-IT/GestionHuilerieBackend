@@ -21,3 +21,5 @@ public class TraceabilityController {
         return ResponseEntity.ok(traceabilityService.getLotHistory(lotId));
     }
 }
+
+

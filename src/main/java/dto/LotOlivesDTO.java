@@ -11,7 +11,10 @@ public class LotOlivesDTO {
     private String origine;
     private String dateRecolte;
     private String dateReception;
+    private String fournisseurNom;
+    private String fournisseurCIN;
     private Integer dureeStockageAvantBroyage;
+    private Double pesee;
     private Double quantiteInitiale;
     private Double quantiteRestante;
     private Long matierePremiereId;

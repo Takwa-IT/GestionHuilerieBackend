@@ -9,3 +9,5 @@ public class UtilisateurStatusUpdateDTO {
     @NotNull
     private StatutUtilisateur actif;
 }
+
+

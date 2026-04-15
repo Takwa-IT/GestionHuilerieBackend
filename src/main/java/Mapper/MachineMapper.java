@@ -24,3 +24,5 @@ public interface MachineMapper {
     @Mapping(target = "matierePremiere", ignore = true)
     void updateFromDTO(MachineUpdateDTO dto, @MappingTarget Machine entity);
 }
+
+

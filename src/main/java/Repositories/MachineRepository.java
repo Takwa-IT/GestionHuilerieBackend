@@ -17,3 +17,5 @@ public interface MachineRepository extends JpaRepository<Machine, Long> {
     List<Machine> findByHuilerie_IdHuilerie(Long idHuilerie);
     List<Machine> findByHuilerie_NomIgnoreCase(String huilerieNom);
 }
+
+

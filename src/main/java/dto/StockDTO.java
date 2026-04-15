@@ -12,3 +12,5 @@ public class StockDTO {
     private Long referenceId;
     private Double quantiteDisponible;
 }
+
+

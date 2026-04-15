@@ -23,3 +23,5 @@ public class ModuleController {
         return ResponseEntity.ok(ApiResponseDTO.ok(adminModuleService.findAll(), "Liste des modules"));
     }
 }
+
+

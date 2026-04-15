@@ -2,10 +2,12 @@ package Services;
 
 import Config.ReferenceUtils;
 import Mapper.StockMovementMapper;
+import Models.LotOlives;
 import Models.Stock;
 import Models.StockMovement;
 import Models.TypeMouvement;
 import Models.Utilisateur;
+import Repositories.LotOlivesRepository;
 import Repositories.StockMovementRepository;
 import Repositories.StockRepository;
 import dto.StockMovementCreateDTO;
@@ -25,6 +27,7 @@ public class StockMovementService {
 
     private final StockMovementRepository stockMovementRepository;
     private final StockRepository stockRepository;
+    private final LotOlivesRepository lotOlivesRepository;
     private final StockMovementMapper stockMovementMapper;
     private final CurrentUserService currentUserService;
 
@@ -35,19 +38,31 @@ public class StockMovementService {
                 : currentUserService.getCurrentHuilerieIdOrThrow();
         currentUserService.ensureCanAccessHuilerie(effectiveHuilerieId);
 
-        Stock stock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, dto.getReferenceId())
-                .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
+        if (dto.getTypeMouvement() == TypeMouvement.ENTREE) {
+            throw new RuntimeException("Le type ENTREE est reserve a la creation d'un nouveau lot");
+        }
 
-        updateStockQuantity(stock, dto.getTypeMouvement(), dto.getQuantite());
+        // Récupérer le lot et son stock via la matière première
+        LotOlives lot = lotOlivesRepository.findById(dto.getLotId())
+                .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+
+        Stock stock = stockRepository.findByHuilerie_IdHuilerieAndMatierePremiere_Id(
+                effectiveHuilerieId,
+                lot.getMatierePremiere().getId())
+                .orElseThrow(() -> new RuntimeException("Stock non trouve pour cette matière premiere et huilerie"));
+
+        applyWholeLotMovement(stock, lot, dto.getTypeMouvement());
+        // Sauvegarder le lot après mise à jour
+        lotOlivesRepository.save(lot);
+        // Sauvegarder le stock avec la quantité mise à jour
+        stockRepository.save(stock);
 
         StockMovement movement = stockMovementMapper.toEntity(dto);
         movement.setStock(stock);
-
+        movement.setLotOlives(lot);
         StockMovement saved = stockMovementRepository.save(movement);
         saved.setReference(ReferenceUtils.format("MS", saved.getIdStockMovement()));
-        saved = stockMovementRepository.save(saved);
-        stockRepository.save(stock);
-        return stockMovementMapper.toDTO(saved);
+        return stockMovementMapper.toDTO(stockMovementRepository.save(saved));
     }
 
     public StockMovementDTO update(Long idStockMovement, StockMovementUpdateDTO dto) {
@@ -59,51 +74,18 @@ public class StockMovementService {
         Long currentHuilerieId = isAdmin ? null : currentUserService.getCurrentHuilerieIdOrThrow();
 
         Long movementHuilerieId = movement.getStock() != null
-            && movement.getStock().getHuilerie() != null
-            ? movement.getStock().getHuilerie().getIdHuilerie()
-            : null;
+                && movement.getStock().getHuilerie() != null
+                        ? movement.getStock().getHuilerie().getIdHuilerie()
+                        : null;
 
         if (!isAdmin && (movementHuilerieId == null || !movementHuilerieId.equals(currentHuilerieId))) {
             throw new AccessDeniedException("Acces refuse a un mouvement d'une autre huilerie");
         }
 
-        Long effectiveHuilerieId = isAdmin ? dto.getHuilerieId() : currentHuilerieId;
-        currentUserService.ensureCanAccessHuilerie(effectiveHuilerieId);
-
-        Stock ancienStock = movement.getStock();
-        Stock nouveauStock = stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, dto.getReferenceId())
-                .orElseThrow(() -> new RuntimeException("Stock non trouve pour ce lot et cette huilerie"));
-
-        double quantiteAncienne = safe(movement.getQuantite());
-        double quantiteNouvelle = safe(dto.getQuantite());
-        double ancienStockBase = safe(ancienStock.getQuantiteDisponible()) - deltaFor(movement.getTypeMouvement(), quantiteAncienne);
-
-        if (ancienStockBase < 0) {
-            throw new RuntimeException("Stock incoherent pour annuler l'ancien mouvement");
+        if (movement.getTypeMouvement() == TypeMouvement.ENTREE) {
+            throw new RuntimeException("Le mouvement ENTREE genere a l'arrivage n'est pas modifiable");
         }
 
-        if (ancienStock.getIdStock().equals(nouveauStock.getIdStock())) {
-            double stockFinal = ancienStockBase + deltaFor(dto.getTypeMouvement(), quantiteNouvelle);
-            if (stockFinal < 0) {
-                throw new RuntimeException("Quantite disponible insuffisante pour le stock");
-            }
-            ancienStock.setQuantiteDisponible(stockFinal);
-            stockRepository.save(ancienStock);
-        } else {
-            ancienStock.setQuantiteDisponible(ancienStockBase);
-            stockRepository.save(ancienStock);
-
-            double nouveauStockFinal = safe(nouveauStock.getQuantiteDisponible()) + deltaFor(dto.getTypeMouvement(), quantiteNouvelle);
-            if (nouveauStockFinal < 0) {
-                throw new RuntimeException("Quantite disponible insuffisante pour le stock cible");
-            }
-            nouveauStock.setQuantiteDisponible(nouveauStockFinal);
-            stockRepository.save(nouveauStock);
-        }
-
-        movement.setStock(nouveauStock);
-        movement.setTypeMouvement(dto.getTypeMouvement());
-        movement.setQuantite(quantiteNouvelle);
         movement.setCommentaire(dto.getCommentaire());
         movement.setDateMouvement(dto.getDateMouvement());
 
@@ -117,8 +99,8 @@ public class StockMovementService {
             List<StockMovement> movements = hasText(huilerieNom)
                     ? stockMovementRepository.findByStock_Huilerie_NomIgnoreCaseOrderByDateMouvementDesc(huilerieNom)
                     : stockMovementRepository.findAll().stream()
-                        .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
-                        .toList();
+                            .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+                            .toList();
             List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
 
             return movements.stream()
@@ -132,7 +114,7 @@ public class StockMovementService {
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
         return stockMovementRepository.findByStock_Huilerie_IdHuilerieOrderByDateMouvementDesc(huilerieId)
-            .stream()
+                .stream()
                 .map(stockMovementMapper::toDTO)
                 .toList();
     }
@@ -157,37 +139,43 @@ public class StockMovementService {
                 .toList();
     }
 
-    public StockMovement createArrivalForStock(Stock stock, Double quantite, String dateMouvement, String commentaire) {
-        stock.setQuantiteDisponible(safe(stock.getQuantiteDisponible()) + quantite);
+    public StockMovement createArrivalForStock(Stock stock, LotOlives lot, Double quantiteEntree, String dateMouvement,
+            String commentaire) {
+        stock.setLotOlives(lot);
+        double current = safe(stock.getQuantiteDisponible());
+        stock.setQuantiteDisponible(current + safe(quantiteEntree));
         stockRepository.save(stock);
 
         StockMovement movement = new StockMovement();
         movement.setStock(stock);
-        movement.setQuantite(quantite);
+        movement.setLotOlives(lot);
         movement.setCommentaire(commentaire);
         movement.setDateMouvement(dateMouvement);
-        movement.setTypeMouvement(TypeMouvement.ARRIVAL);
+        movement.setTypeMouvement(TypeMouvement.ENTREE);
         StockMovement saved = stockMovementRepository.save(movement);
         saved.setReference(ReferenceUtils.format("MS", saved.getIdStockMovement()));
         return stockMovementRepository.save(saved);
     }
 
-    private void updateStockQuantity(Stock stock, TypeMouvement typeMouvement, Double quantite) {
-        double current = safe(stock.getQuantiteDisponible());
-        double next = current + deltaFor(typeMouvement, quantite);
-
-        if (next < 0) {
-            throw new RuntimeException("Quantite disponible insuffisante pour le stock");
+    private void applyWholeLotMovement(Stock stock, LotOlives lot, TypeMouvement typeMouvement) {
+        // Vérifier que le lot a une quantité disponible
+        double lotQuantite = safe(lot.getQuantiteRestante());
+        if (lotQuantite <= 0) {
+            throw new RuntimeException("Aucune quantite disponible sur ce lot pour appliquer ce mouvement");
         }
 
-        stock.setQuantiteDisponible(next);
-    }
-
-    private double deltaFor(TypeMouvement typeMouvement, Double quantite) {
-        return switch (typeMouvement) {
-            case ARRIVAL, ADJUSTMENT -> quantite;
-            case DEPARTURE, TRANSFER -> -quantite;
-        };
+        switch (typeMouvement) {
+            case TRANSFERT, AJUSTEMENT -> {
+                // Mettre à jour la quantité du lot à 0
+                lot.setQuantiteRestante(0d);
+                // Mettre à jour la quantité du stock en soustrayant la quantité du lot
+                double currentStock = safe(stock.getQuantiteDisponible());
+                stock.setQuantiteDisponible(currentStock - lotQuantite);
+            }
+            case ENTREE -> {
+                // ENTREE est reservee a la creation du lot et n'est pas traitee ici.
+            }
+        }
     }
 
     private double safe(Double value) {

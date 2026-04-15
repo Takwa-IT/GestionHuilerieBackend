@@ -8,3 +8,5 @@ import org.springframework.stereotype.Repository;
 public interface ProduitFinalRepository extends JpaRepository<ProduitFinal, Long> {
     boolean existsByReference(String reference);
 }
+
+

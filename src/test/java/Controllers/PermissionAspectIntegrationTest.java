@@ -134,3 +134,4 @@ class PermissionAspectIntegrationTest {
         return jwtService.generateToken(utilisateur);
     }
 }
+

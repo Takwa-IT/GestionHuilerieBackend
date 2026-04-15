@@ -23,3 +23,5 @@ public class PermissionItemUpsertDTO {
     @NotNull
     private Boolean canExecuted;
 }
+
+

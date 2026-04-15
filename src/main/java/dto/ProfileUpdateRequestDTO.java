@@ -30,3 +30,5 @@ public class ProfileUpdateRequestDTO {
     @JsonAlias({"confirmPassword", "confirmationMotDePasse", "confirmNewPassword"})
     private String confirmPassword;
 }
+
+

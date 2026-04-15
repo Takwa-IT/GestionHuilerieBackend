@@ -54,3 +54,5 @@ public class ProduitFinalController {
         return ResponseEntity.ok(produitFinalService.findAll());
     }
 }
+
+

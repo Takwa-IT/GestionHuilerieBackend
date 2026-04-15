@@ -28,3 +28,5 @@ public class AnalyseLaboratoireController {
         return new ResponseEntity<>(analyseLaboratoireService.create(dto), HttpStatus.CREATED);
     }
 }
+
+

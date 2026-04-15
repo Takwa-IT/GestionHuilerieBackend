@@ -4,7 +4,6 @@ import Config.ReferenceUtils;
 import Models.AnalyseLaboratoire;
 import Models.ExecutionProduction;
 import Models.LotOlives;
-import Models.Pesee;
 import Models.ProduitFinal;
 import Models.Stock;
 import Models.StockMovement;
@@ -12,7 +11,6 @@ import Models.Utilisateur;
 import Repositories.AnalyseLaboratoireRepository;
 import Repositories.ExecutionProductionRepository;
 import Repositories.LotOlivesRepository;
-import Repositories.PeseeRepository;
 import Repositories.StockRepository;
 import Repositories.StockMovementRepository;
 import dto.LotTraceabilityDTO;
@@ -33,7 +31,6 @@ public class TraceabilityService {
 
     private final AnalyseLaboratoireRepository analyseLaboratoireRepository;
     private final LotOlivesRepository lotOlivesRepository;
-    private final PeseeRepository peseeRepository;
     private final ExecutionProductionRepository executionProductionRepository;
     private final StockMovementRepository stockMovementRepository;
     private final StockRepository stockRepository;
@@ -42,7 +39,16 @@ public class TraceabilityService {
     public LotTraceabilityDTO getLotHistory(Long lotId) {
         LotOlives lot = lotOlivesRepository.findById(lotId)
                 .orElseThrow(() -> new EntityNotFoundException("Lot non trouve"));
-        List<Stock> lotStocks = stockRepository.findByLotOlives_IdLot(lotId);
+
+        // Avec le nouveau modèle, chercher le stock via la matière première et
+        // l'huilerie
+        List<Stock> lotStocks = lot.getHuilerie() != null && lot.getMatierePremiere() != null
+                ? stockRepository.findByHuilerie_IdHuilerieAndMatierePremiere_Id(
+                        lot.getHuilerie().getIdHuilerie(),
+                        lot.getMatierePremiere().getId())
+                        .map(java.util.List::of)
+                        .orElse(java.util.List.of())
+                : java.util.List.of();
 
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
@@ -53,38 +59,19 @@ public class TraceabilityService {
                     .map(huilerie -> huilerie.getIdHuilerie())
                     .anyMatch(accessibleHuilerieIds::contains);
 
-            if (!inAdminScope) {
-                throw new AccessDeniedException("Acces refuse a un lot d'une autre entreprise");
+            if (!inAdminScope && lot.getHuilerie() != null) {
+                if (!accessibleHuilerieIds.contains(lot.getHuilerie().getIdHuilerie())) {
+                    throw new AccessDeniedException("Acces refuse a un lot d'une autre entreprise");
+                }
             }
         } else {
             Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
-            boolean hasLinkedHuilerie = lotStocks.stream()
-                    .map(Stock::getHuilerie)
-                    .anyMatch(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null);
-            if (!hasLinkedHuilerie) {
-                throw new AccessDeniedException("Acces refuse: lot sans rattachement huilerie exploitable");
-            }
-
-            boolean inScope = lotStocks.stream()
-                    .map(Stock::getHuilerie)
-                    .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
-                    .map(huilerie -> huilerie.getIdHuilerie())
-                    .anyMatch(huilerieId::equals);
-
-            if (!inScope) {
+            if (lot.getHuilerie() == null || !lot.getHuilerie().getIdHuilerie().equals(huilerieId)) {
                 throw new AccessDeniedException("Acces refuse a un lot d'une autre huilerie");
             }
         }
 
-        boolean hasLinkedHuilerie = lotStocks.stream()
-                .map(Stock::getHuilerie)
-                .anyMatch(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null);
-        if (!hasLinkedHuilerie) {
-            throw new AccessDeniedException("Acces refuse: lot sans rattachement huilerie exploitable");
-        }
-
         List<LotTraceabilityDTO.LifecycleItem> events = new ArrayList<>();
-        List<LotTraceabilityDTO.PeseeItem> pesees = new ArrayList<>();
         List<LotTraceabilityDTO.AnalyseItem> analyses = new ArrayList<>();
 
         LotTraceabilityDTO.LifecycleItem lotEvent = new LotTraceabilityDTO.LifecycleItem();
@@ -94,28 +81,12 @@ public class TraceabilityService {
         lotEvent.setReference(lot.getReference());
         events.add(lotEvent);
 
-        for (Pesee pesee : peseeRepository.findByLot_IdLotOrderByDatePeseeDesc(lotId)) {
-            LotTraceabilityDTO.PeseeItem peseeDTO = new LotTraceabilityDTO.PeseeItem();
-            peseeDTO.setReference(pesee.getReference());
-            peseeDTO.setDate(pesee.getDatePesee());
-            peseeDTO.setPoidsBrut(pesee.getPoidsBrut());
-            peseeDTO.setPoidsTare(pesee.getPoidsTare());
-            peseeDTO.setPoidsNet(pesee.getPoidsNet());
-            pesees.add(peseeDTO);
-
-            LotTraceabilityDTO.LifecycleItem event = new LotTraceabilityDTO.LifecycleItem();
-            event.setDate(pesee.getDatePesee());
-            event.setEtape("Pesee");
-            event.setDescription("Pesee enregistree, poids net = " + pesee.getPoidsNet() + " kg");
-            event.setReference(pesee.getReference());
-            events.add(event);
-        }
-
-        for (StockMovement movement : stockMovementRepository.findByStock_LotOlives_IdLotOrderByDateMouvementAsc(lotId)) {
+        for (StockMovement movement : stockMovementRepository
+                .findByLotOlives_IdLotOrderByDateMouvementAsc(lotId)) {
             LotTraceabilityDTO.LifecycleItem event = new LotTraceabilityDTO.LifecycleItem();
             event.setDate(movement.getDateMouvement());
             event.setEtape("Stock");
-            event.setDescription("Mouvement " + movement.getTypeMouvement() + ", quantite = " + movement.getQuantite() + " kg");
+            event.setDescription("Mouvement " + movement.getTypeMouvement() + " applique sur le lot entier");
             event.setReference(ReferenceUtils.format("ST", movement.getIdStockMovement()));
             events.add(event);
         }
@@ -133,7 +104,8 @@ public class TraceabilityService {
                 LotTraceabilityDTO.LifecycleItem produitEvent = new LotTraceabilityDTO.LifecycleItem();
                 produitEvent.setDate(produitFinal.getDateProduction());
                 produitEvent.setEtape("ProduitFinal");
-                produitEvent.setDescription(produitFinal.getNomProduit() + " produit, quantite = " + produitFinal.getQuantiteProduite());
+                produitEvent.setDescription(
+                        produitFinal.getNomProduit() + " produit, quantite = " + produitFinal.getQuantiteProduite());
                 produitEvent.setReference(produitFinal.getReference());
                 events.add(produitEvent);
             }
@@ -151,7 +123,8 @@ public class TraceabilityService {
             analyses.add(analyseItem);
         }
 
-        events.sort(Comparator.comparing(LotTraceabilityDTO.LifecycleItem::getDate, Comparator.nullsLast(String::compareTo)));
+        events.sort(Comparator.comparing(LotTraceabilityDTO.LifecycleItem::getDate,
+                Comparator.nullsLast(String::compareTo)));
 
         LotTraceabilityDTO dto = new LotTraceabilityDTO();
         dto.setLotId(lot.getIdLot());
@@ -159,7 +132,6 @@ public class TraceabilityService {
         dto.setOrigine(lot.getOrigine());
         dto.setQuantiteInitiale(lot.getQuantiteInitiale());
         dto.setQuantiteRestante(lot.getQuantiteRestante());
-        dto.setPesees(pesees);
         dto.setAnalyses(analyses);
         dto.setCycleVie(events);
         return dto;

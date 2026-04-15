@@ -11,3 +11,5 @@ public class AuthResponseDTO {
     private AuthUtilisateurDTO utilisateur;
     private List<AuthPermissionDTO> permissions;
 }
+
+

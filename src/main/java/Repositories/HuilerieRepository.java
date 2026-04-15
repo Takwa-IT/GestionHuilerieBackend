@@ -16,3 +16,5 @@ public interface HuilerieRepository extends JpaRepository<Huilerie, Long> {
     boolean existsByIdHuilerieAndEntreprise_IdEntreprise(Long idHuilerie, Long entrepriseId);
     boolean existsByNom(String nom);
 }
+
+

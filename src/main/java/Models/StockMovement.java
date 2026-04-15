@@ -1,5 +1,6 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.*;
 
 @Entity
@@ -10,7 +11,6 @@ public class StockMovement {
     private Long idStockMovement;
 
     private String reference;
-    private Double quantite;
     private String commentaire;
     private String dateMouvement;
 
@@ -21,6 +21,18 @@ public class StockMovement {
     @JoinColumn(name = "stock_id", nullable = false)
     private Stock stock;
 
+    @ManyToOne
+    @JoinColumn(name = "lot_id")
+    private LotOlives lotOlives;
+
+    public LotOlives getLotOlives() {
+        return lotOlives;
+    }
+
+    public void setLotOlives(LotOlives lotOlives) {
+        this.lotOlives = lotOlives;
+    }
+
     public Long getIdStockMovement() {
         return idStockMovement;
     }
@@ -29,21 +41,53 @@ public class StockMovement {
         this.idStockMovement = idStockMovement;
     }
 
-    public String getReference() { return reference; }
-    public void setReference(String reference) { this.reference = reference; }
+    public String getReference() {
+        if (idStockMovement != null) {
+            return ReferenceUtils.format("MS", idStockMovement);
+        }
+        return reference;
+    }
 
-    public Double getQuantite() { return quantite; }
-    public void setQuantite(Double quantite) { this.quantite = quantite; }
+    public void setReference(String reference) {
+        this.reference = reference;
+    }
 
-    public String getCommentaire() { return commentaire; }
-    public void setCommentaire(String commentaire) { this.commentaire = commentaire; }
+    public String getCommentaire() {
+        return commentaire;
+    }
 
-    public String getDateMouvement() { return dateMouvement; }
-    public void setDateMouvement(String dateMouvement) { this.dateMouvement = dateMouvement; }
+    public void setCommentaire(String commentaire) {
+        this.commentaire = commentaire;
+    }
 
-    public TypeMouvement getTypeMouvement() { return typeMouvement; }
-    public void setTypeMouvement(TypeMouvement typeMouvement) { this.typeMouvement = typeMouvement; }
+    public String getDateMouvement() {
+        return dateMouvement;
+    }
 
-    public Stock getStock() { return stock; }
-    public void setStock(Stock stock) { this.stock = stock; }
+    public void setDateMouvement(String dateMouvement) {
+        this.dateMouvement = dateMouvement;
+    }
+
+    public TypeMouvement getTypeMouvement() {
+        return typeMouvement;
+    }
+
+    public void setTypeMouvement(TypeMouvement typeMouvement) {
+        this.typeMouvement = typeMouvement;
+    }
+
+    public Stock getStock() {
+        return stock;
+    }
+
+    public void setStock(Stock stock) {
+        this.stock = stock;
+    }
+
+    @PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && idStockMovement != null) {
+            reference = ReferenceUtils.format("MS", idStockMovement);
+        }
+    }
 }

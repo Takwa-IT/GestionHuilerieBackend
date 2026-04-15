@@ -11,3 +11,5 @@ public class LoginRequestDTO {
     @NotBlank
     private String motDePasse;
 }
+
+

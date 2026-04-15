@@ -17,3 +17,5 @@ public class PermissionDTO {
     private Long profilId;
     private Long moduleId;
 }
+
+

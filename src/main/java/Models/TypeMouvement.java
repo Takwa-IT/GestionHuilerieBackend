@@ -1,8 +1,7 @@
 package Models;
 
 public enum TypeMouvement {
-    ARRIVAL,
-    DEPARTURE,
-    TRANSFER,
-    ADJUSTMENT
+    ENTREE,
+    TRANSFERT,
+    AJUSTEMENT
 }

@@ -175,3 +175,5 @@ public class AdminUtilisateurService {
     private record ResolvedUserScope(Entreprise entreprise, Huilerie huilerie) {
     }
 }
+
+

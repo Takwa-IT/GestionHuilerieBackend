@@ -8,3 +8,5 @@ public class ProduitFinalUpdateDTO {
     private Double quantiteProduite;
     private String dateProduction;
 }
+
+

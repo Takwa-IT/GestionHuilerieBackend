@@ -13,3 +13,5 @@ public class HuilerieDTO {
     private Long entrepriseId;
     private Boolean active;
 }
+
+

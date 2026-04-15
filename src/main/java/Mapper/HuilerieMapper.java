@@ -1,6 +1,5 @@
 package Mapper;
 
-
 import Models.Huilerie;
 import dto.HuilerieCreateDTO;
 import dto.HuilerieDTO;
@@ -15,6 +14,7 @@ public interface HuilerieMapper {
     @Mapping(target = "idHuilerie", ignore = true)
     @Mapping(target = "entreprise", ignore = true)
     @Mapping(target = "machines", ignore = true)
+    @Mapping(target = "lots", ignore = true)
     @Mapping(target = "campagnesOlives", ignore = true)
     @Mapping(target = "stocks", ignore = true)
     Huilerie toEntity(HuilerieCreateDTO dto);
@@ -25,6 +25,7 @@ public interface HuilerieMapper {
     @Mapping(target = "idHuilerie", ignore = true)
     @Mapping(target = "entreprise", ignore = true)
     @Mapping(target = "machines", ignore = true)
+    @Mapping(target = "lots", ignore = true)
     @Mapping(target = "campagnesOlives", ignore = true)
     @Mapping(target = "stocks", ignore = true)
     void updateFromDTO(HuilerieUpdateDTO dto, @MappingTarget Huilerie entity);

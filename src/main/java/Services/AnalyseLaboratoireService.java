@@ -21,7 +21,7 @@ public class AnalyseLaboratoireService {
 
     private final AnalyseLaboratoireRepository analyseLaboratoireRepository;
     private final AnalyseLaboratoireMapper analyseLaboratoireMapper;
-    private final LotOlivesService lotOlivesService;
+    private final LotOlivesService lotService;
 
     public List<AnalyseLaboratoireDTO> findByLot(Long lotId) {
         return analyseLaboratoireRepository.findByLot_IdLotOrderByDateAnalyseAsc(lotId)
@@ -31,7 +31,7 @@ public class AnalyseLaboratoireService {
     }
 
     public AnalyseLaboratoireDTO create(AnalyseLaboratoireCreateDTO dto) {
-        LotOlives lot = lotOlivesService.findLot(dto.getLotId());
+        LotOlives lot = lotService.findLot(dto.getLotId());
 
         AnalyseLaboratoire entity = analyseLaboratoireMapper.toEntity(dto);
         entity.setLot(lot);

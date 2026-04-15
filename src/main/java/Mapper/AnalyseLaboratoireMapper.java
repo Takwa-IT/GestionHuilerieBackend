@@ -17,3 +17,5 @@ public interface AnalyseLaboratoireMapper {
     @Mapping(target = "lot", ignore = true)
     AnalyseLaboratoire toEntity(AnalyseLaboratoireCreateDTO dto);
 }
+
+

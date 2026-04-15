@@ -23,3 +23,5 @@ public class AnalyseLaboratoireCreateDTO {
     @NotNull
     private Long lotId;
 }
+
+

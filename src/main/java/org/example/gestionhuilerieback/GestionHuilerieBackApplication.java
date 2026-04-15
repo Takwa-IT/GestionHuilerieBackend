@@ -26,3 +26,5 @@ public class GestionHuilerieBackApplication {
 		SpringApplication.run(GestionHuilerieBackApplication.class, args);
 	}
 }
+
+

@@ -96,8 +96,8 @@ public class ProduitFinalService {
             dto.setMachineNom(executionProduction.getMachine().getNomMachine());
         }
         if (executionProduction.getLotOlives() != null) {
-            dto.setLotOlivesId(executionProduction.getLotOlives().getIdLot());
-            dto.setLotOlivesVariete(executionProduction.getLotOlives().getVarieteOlive());
+            dto.setLotId(executionProduction.getLotOlives().getIdLot());
+            dto.setLotVariete(executionProduction.getLotOlives().getVarieteOlive());
         }
         if (executionProduction.getMatierePremiere() != null) {
             dto.setMatierePremiereId(executionProduction.getMatierePremiere().getId());

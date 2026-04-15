@@ -59,3 +59,5 @@ public class PermissionAspect {
         return utilisateur.getProfil() != null && "ADMIN".equalsIgnoreCase(utilisateur.getProfil().getNom());
     }
 }
+
+

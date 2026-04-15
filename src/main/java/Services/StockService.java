@@ -1,7 +1,9 @@
 package Services;
 
 import Mapper.StockMapper;
+import Models.LotOlives;
 import Models.Utilisateur;
+import Repositories.LotOlivesRepository;
 import Repositories.StockRepository;
 import dto.StockDTO;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.util.List;
 public class StockService {
 
     private final StockRepository stockRepository;
+    private final LotOlivesRepository lotOlivesRepository;
     private final StockMapper stockMapper;
     private final CurrentUserService currentUserService;
 
@@ -39,22 +42,30 @@ public class StockService {
     }
 
     public List<StockDTO> findByLot(Long lotId, String huilerieNom) {
+        LotOlives lot = lotOlivesRepository.findById(lotId)
+                .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
             List<Models.Stock> stocks = hasText(huilerieNom)
-                    ? stockRepository.findByLotOlives_IdLotAndHuilerie_NomIgnoreCase(lotId, huilerieNom)
-                    : stockRepository.findByLotOlives_IdLot(lotId);
+                    ? stockRepository.findByHuilerie_NomIgnoreCase(huilerieNom)
+                    : stockRepository.findAll();
             List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
             return stocks.stream()
                     .filter(stock -> stock.getHuilerie() != null
-                            && accessibleHuilerieIds.contains(stock.getHuilerie().getIdHuilerie()))
+                            && accessibleHuilerieIds.contains(stock.getHuilerie().getIdHuilerie())
+                            && stock.getMatierePremiere() != null
+                            && lot.getMatierePremiere() != null
+                            && stock.getMatierePremiere().getId().equals(lot.getMatierePremiere().getId()))
                     .map(stockMapper::toDTO)
                     .toList();
         }
 
         Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
-        return stockRepository.findByLotOlives_IdLotAndHuilerie_IdHuilerie(lotId, huilerieId)
-                .stream()
+        return stockRepository.findByHuilerie_IdHuilerie(huilerieId).stream()
+                .filter(stock -> stock.getMatierePremiere() != null
+                        && lot.getMatierePremiere() != null
+                        && stock.getMatierePremiere().getId().equals(lot.getMatierePremiere().getId()))
                 .map(stockMapper::toDTO)
                 .toList();
     }
@@ -73,7 +84,14 @@ public class StockService {
             currentUserService.ensureCanAccessHuilerie(huilerieId);
         }
 
-        return stockRepository.findByHuilerie_IdHuilerieAndLotOlives_IdLot(effectiveHuilerieId, lotId)
+        LotOlives lot = lotOlivesRepository.findById(lotId)
+                .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+
+        return stockRepository.findByHuilerie_IdHuilerie(effectiveHuilerieId).stream()
+                .filter(stock -> stock.getMatierePremiere() != null
+                        && lot.getMatierePremiere() != null
+                        && stock.getMatierePremiere().getId().equals(lot.getMatierePremiere().getId()))
+                .findFirst()
                 .map(stockMapper::toDTO)
                 .orElseThrow(() -> new RuntimeException("Stock non trouve"));
     }

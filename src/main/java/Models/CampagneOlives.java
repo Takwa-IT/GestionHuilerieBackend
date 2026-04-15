@@ -1,12 +1,13 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
 
 @Entity
 @Table(name = "campagne_olives", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_campagne_annee", columnNames = "annee")
+        @UniqueConstraint(name = "uk_campagne_annee", columnNames = "annee")
 })
 @Data
 @NoArgsConstructor
@@ -16,6 +17,9 @@ public class CampagneOlives {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idCampagne;
+
+    @Column(unique = true)
+    private String reference;
 
     @Column(nullable = false, unique = true)
     private String annee;
@@ -28,4 +32,18 @@ public class CampagneOlives {
 
     @OneToMany(mappedBy = "campagne")
     private List<LotOlives> lots;
+
+    public String getReference() {
+        if (idCampagne != null) {
+            return ReferenceUtils.format("CP", idCampagne);
+        }
+        return reference;
+    }
+
+    @PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && idCampagne != null) {
+            reference = ReferenceUtils.format("CP", idCampagne);
+        }
+    }
 }

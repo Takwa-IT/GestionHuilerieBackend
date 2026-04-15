@@ -11,3 +11,5 @@ public @interface RequirePermission {
     String module();
     PermissionAction action();
 }
+
+

@@ -24,21 +24,53 @@ public class Entreprise {
     @OneToMany(mappedBy = "entreprise", cascade = CascadeType.ALL)
     private List<Huilerie> huileries;
 
-    public Long getIdEntreprise() { return idEntreprise; }
-    public void setIdEntreprise(Long idEntreprise) { this.idEntreprise = idEntreprise; }
+    public Long getIdEntreprise() {
+        return idEntreprise;
+    }
 
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
+    public void setIdEntreprise(Long idEntreprise) {
+        this.idEntreprise = idEntreprise;
+    }
 
-    public String getAdresse() { return adresse; }
-    public void setAdresse(String adresse) { this.adresse = adresse; }
+    public String getNom() {
+        return nom;
+    }
 
-    public String getTelephone() { return telephone; }
-    public void setTelephone(String telephone) { this.telephone = telephone; }
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getAdresse() {
+        return adresse;
+    }
 
-    public List<Huilerie> getHuileries() { return huileries; }
-    public void setHuileries(List<Huilerie> huileries) { this.huileries = huileries; }
+    public void setAdresse(String adresse) {
+        this.adresse = adresse;
+    }
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public List<Huilerie> getHuileries() {
+        return huileries;
+    }
+
+    public void setHuileries(List<Huilerie> huileries) {
+        this.huileries = huileries;
+    }
 }
+
+

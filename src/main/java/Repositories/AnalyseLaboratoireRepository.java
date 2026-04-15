@@ -10,3 +10,5 @@ import java.util.List;
 public interface AnalyseLaboratoireRepository extends JpaRepository<AnalyseLaboratoire, Long> {
     //cherche les analyses d'un lot
     List<AnalyseLaboratoire> findByLot_IdLotOrderByDateAnalyseAsc(Long lotId);}
+
+

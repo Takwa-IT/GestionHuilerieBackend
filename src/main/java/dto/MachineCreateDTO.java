@@ -22,3 +22,5 @@ public class MachineCreateDTO {
     @NotBlank
     private String huilerieNom;
 }
+
+

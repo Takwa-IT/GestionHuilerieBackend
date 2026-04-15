@@ -1,9 +1,8 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.util.List;
 
 @Entity
 @Table(name = "machine")
@@ -15,6 +14,9 @@ public class Machine {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idMachine;
+
+    @Column(unique = true)
+    private String reference;
 
     private String nomMachine;
     private String typeMachine;
@@ -29,13 +31,23 @@ public class Machine {
     @JoinColumn(name = "matiere_premiere_id")
     private MatierePremiere matierePremiere;
 
-
     public Long getIdMachine() {
         return idMachine;
     }
 
     public void setIdMachine(Long idMachine) {
         this.idMachine = idMachine;
+    }
+
+    public String getReference() {
+        if (idMachine != null) {
+            return ReferenceUtils.format("MC", idMachine);
+        }
+        return reference;
+    }
+
+    public void setReference(String reference) {
+        this.reference = reference;
     }
 
     public String getNomMachine() {
@@ -86,5 +98,11 @@ public class Machine {
         this.matierePremiere = matierePremiere;
     }
 
+    @PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && idMachine != null) {
+            reference = ReferenceUtils.format("MC", idMachine);
+        }
+    }
 
 }

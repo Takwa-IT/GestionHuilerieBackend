@@ -1,5 +1,6 @@
 package Models;
 
+import Config.ReferenceUtils;
 import jakarta.persistence.*;
 
 @Entity
@@ -17,34 +18,89 @@ public class AnalyseLaboratoire {
     private String classeQualiteFinale;
     private String dateAnalyse;
 
-    @ManyToOne
-    @JoinColumn(name = "lot_id", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "lot_id", nullable = false, unique = true)
     private LotOlives lot;
 
-    public Long getIdAnalyse() { return idAnalyse; }
-    public void setIdAnalyse(Long idAnalyse) { this.idAnalyse = idAnalyse; }
+    public Long getIdAnalyse() {
+        return idAnalyse;
+    }
 
-    public String getReference() { return reference; }
-    public void setReference(String reference) { this.reference = reference; }
+    public void setIdAnalyse(Long idAnalyse) {
+        this.idAnalyse = idAnalyse;
+    }
 
-    public Double getAcidite() { return acidite; }
-    public void setAcidite(Double acidite) { this.acidite = acidite; }
+    public String getReference() {
+        if (idAnalyse != null) {
+            return ReferenceUtils.format("AL", idAnalyse);
+        }
+        return reference;
+    }
 
-    public Double getIndicePeroxyde() { return indicePeroxyde; }
-    public void setIndicePeroxyde(Double indicePeroxyde) { this.indicePeroxyde = indicePeroxyde; }
+    public void setReference(String reference) {
+        this.reference = reference;
+    }
 
-    public Double getK232() { return k232; }
-    public void setK232(Double k232) { this.k232 = k232; }
+    public Double getAcidite() {
+        return acidite;
+    }
 
-    public Double getK270() { return k270; }
-    public void setK270(Double k270) { this.k270 = k270; }
+    public void setAcidite(Double acidite) {
+        this.acidite = acidite;
+    }
 
-    public String getClasseQualiteFinale() { return classeQualiteFinale; }
-    public void setClasseQualiteFinale(String classeQualiteFinale) { this.classeQualiteFinale = classeQualiteFinale; }
+    public Double getIndicePeroxyde() {
+        return indicePeroxyde;
+    }
 
-    public String getDateAnalyse() { return dateAnalyse; }
-    public void setDateAnalyse(String dateAnalyse) { this.dateAnalyse = dateAnalyse; }
+    public void setIndicePeroxyde(Double indicePeroxyde) {
+        this.indicePeroxyde = indicePeroxyde;
+    }
 
-    public LotOlives getLot() { return lot; }
-    public void setLot(LotOlives lot) { this.lot = lot; }
+    public Double getK232() {
+        return k232;
+    }
+
+    public void setK232(Double k232) {
+        this.k232 = k232;
+    }
+
+    public Double getK270() {
+        return k270;
+    }
+
+    public void setK270(Double k270) {
+        this.k270 = k270;
+    }
+
+    public String getClasseQualiteFinale() {
+        return classeQualiteFinale;
+    }
+
+    public void setClasseQualiteFinale(String classeQualiteFinale) {
+        this.classeQualiteFinale = classeQualiteFinale;
+    }
+
+    public String getDateAnalyse() {
+        return dateAnalyse;
+    }
+
+    public void setDateAnalyse(String dateAnalyse) {
+        this.dateAnalyse = dateAnalyse;
+    }
+
+    public LotOlives getLot() {
+        return lot;
+    }
+
+    public void setLot(LotOlives lot) {
+        this.lot = lot;
+    }
+
+    @PostPersist
+    public void buildReferenceAfterPersist() {
+        if (reference == null && idAnalyse != null) {
+            reference = ReferenceUtils.format("AL", idAnalyse);
+        }
+    }
 }

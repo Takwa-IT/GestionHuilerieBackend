@@ -21,8 +21,8 @@ public class ExecutionProductionDTO {
     private String guideProductionReference;
     private Long machineId;
     private String machineNom;
-    private Long lotOlivesId;
-    private String lotOlivesVariete;
+    private Long lotId;
+    private String lotVariete;
     private Long matierePremiereId;
     private String matierePremiereNom;
     private Long produitFinalId;
@@ -30,3 +30,5 @@ public class ExecutionProductionDTO {
     private String produitFinalNomProduit;
     private List<ValeurReelleParametreDTO> valeursReelles;
 }
+
+

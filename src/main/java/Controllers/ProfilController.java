@@ -47,3 +47,5 @@ public class ProfilController {
         return ResponseEntity.ok(ApiResponseDTO.ok(null, "Profil supprime"));
     }
 }
+
+

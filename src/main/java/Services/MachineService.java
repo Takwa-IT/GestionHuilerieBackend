@@ -1,5 +1,6 @@
 package Services;
 
+import Config.ReferenceUtils;
 import Mapper.MachineMapper;
 import Models.Huilerie;
 import Models.Machine;
@@ -35,6 +36,8 @@ public class MachineService {
         machine.setHuilerie(huilerie);
 
         Machine saved = machineRepository.save(machine);
+        saved.setReference(ReferenceUtils.format("MC", saved.getIdMachine()));
+        saved = machineRepository.save(saved);
         return machineMapper.toDTO(saved);
     }
 
@@ -74,7 +77,8 @@ public class MachineService {
                     : machineRepository.findAll();
             return machines.stream()
                     .filter(machine -> machine.getHuilerie() != null
-                            && currentUserService.getAccessibleHuilerieIds().contains(machine.getHuilerie().getIdHuilerie()))
+                            && currentUserService.getAccessibleHuilerieIds()
+                                    .contains(machine.getHuilerie().getIdHuilerie()))
                     .map(machineMapper::toDTO)
                     .toList();
         }
@@ -96,12 +100,13 @@ public class MachineService {
 
         return machineRepository.findByHuilerieNom(huilerieNom).stream()
                 .filter(machine -> machine.getHuilerie() != null
-                        && currentUserService.getAccessibleHuilerieIds().contains(machine.getHuilerie().getIdHuilerie()))
+                        && currentUserService.getAccessibleHuilerieIds()
+                                .contains(machine.getHuilerie().getIdHuilerie()))
                 .map(machineMapper::toDTO)
                 .toList();
     }
 
-    //affectation du matiere premiere a une machine
+    // affectation du matiere premiere a une machine
     public MachineDTO assignMatierePremiere(Long machineId, MachineRawMaterialAssignmentDTO dto) {
         Machine machine = machineRepository.findById(machineId)
                 .orElseThrow(() -> new RuntimeException("Machine non trouvee"));

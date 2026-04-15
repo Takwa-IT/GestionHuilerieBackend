@@ -11,18 +11,8 @@ public class LotTraceabilityDTO {
     private String origine;
     private Double quantiteInitiale;
     private Double quantiteRestante;
-    private List<PeseeItem> pesees;
     private List<AnalyseItem> analyses;
     private List<LifecycleItem> cycleVie;
-
-    @Data
-    public static class PeseeItem {
-        private String reference;
-        private String date;
-        private Double poidsBrut;
-        private Double poidsTare;
-        private Double poidsNet;
-    }
 
     @Data
     public static class AnalyseItem {

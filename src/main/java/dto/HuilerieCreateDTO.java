@@ -23,3 +23,5 @@ public class HuilerieCreateDTO {
 
     private Boolean active = true;
 }
+
+

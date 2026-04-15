@@ -13,3 +13,5 @@ public class PermissionModuleDTO {
     private Boolean canDelete;
     private Boolean canExecuted;
 }
+
+

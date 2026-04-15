@@ -69,3 +69,5 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDTO.fail(ex.getMessage(), List.of(ex.getMessage())));
     }
 }
+
+

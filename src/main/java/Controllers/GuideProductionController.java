@@ -55,3 +55,5 @@ public class GuideProductionController {
         return ResponseEntity.ok(guideProductionService.findAll(huilerieNom));
     }
 }
+
+

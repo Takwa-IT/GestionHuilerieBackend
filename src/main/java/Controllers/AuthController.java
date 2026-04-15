@@ -110,3 +110,5 @@ public class AuthController {
         return ResponseEntity.ok(authService.updateProfile(user.getUsername(), request));
     }
 }
+
+

@@ -14,3 +14,5 @@ public class AnalyseLaboratoireDTO {
     private String dateAnalyse;
     private Long lotId;
 }
+
+

@@ -1,7 +1,7 @@
 package Mapper;
 
-import Models.LotOlives;
 import Models.Huilerie;
+import Models.LotOlives;
 import Models.Stock;
 import dto.LotOlivesDTO;
 import org.springframework.stereotype.Component;
@@ -25,11 +25,15 @@ public class LotOlivesMapper {
         dto.setOrigine(entity.getOrigine());
         dto.setDateRecolte(entity.getDateRecolte());
         dto.setDateReception(entity.getDateReception());
+        dto.setFournisseurNom(entity.getFournisseurNom());
+        dto.setFournisseurCIN(entity.getFournisseurCIN());
         dto.setDureeStockageAvantBroyage(entity.getDureeStockageAvantBroyage());
+        dto.setPesee(entity.getPesee());
         dto.setQuantiteInitiale(entity.getQuantiteInitiale());
         dto.setQuantiteRestante(entity.getQuantiteRestante());
         dto.setMatierePremiereId(entity.getMatierePremiere() != null ? entity.getMatierePremiere().getId() : null);
-        dto.setMatierePremiereReference(entity.getMatierePremiere() != null ? entity.getMatierePremiere().getReference() : null);
+        dto.setMatierePremiereReference(
+                entity.getMatierePremiere() != null ? entity.getMatierePremiere().getReference() : null);
         dto.setCampagneId(entity.getCampagne() != null ? entity.getCampagne().getIdCampagne() : null);
         Huilerie huilerie = resolveHuilerie(entity);
         dto.setHuilerieId(huilerie != null ? huilerie.getIdHuilerie() : null);
@@ -38,7 +42,15 @@ public class LotOlivesMapper {
     }
 
     private Huilerie resolveHuilerie(LotOlives entity) {
-        if (entity == null || entity.getStocks() == null) {
+        if (entity == null) {
+            return null;
+        }
+
+        if (entity.getHuilerie() != null && entity.getHuilerie().getIdHuilerie() != null) {
+            return entity.getHuilerie();
+        }
+
+        if (entity.getStocks() == null) {
             return null;
         }
 

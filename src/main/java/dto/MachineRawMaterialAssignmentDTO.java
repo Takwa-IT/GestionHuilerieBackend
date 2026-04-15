@@ -8,3 +8,5 @@ public class MachineRawMaterialAssignmentDTO {
     @NotNull
     private Long matierePremiereId;
 }
+
+

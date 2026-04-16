@@ -1,16 +1,14 @@
 package Config;
 
-import Models.Huilerie;
+import Models.*;
 import Models.Module;
-import Models.Permission;
-import Models.Profil;
-import Models.StatutUtilisateur;
-import Models.Utilisateur;
 import Repositories.HuilerieRepository;
 import Repositories.ModuleRepository;
 import Repositories.PermissionRepository;
 import Repositories.ProfilRepository;
 import Repositories.UtilisateurRepository;
+import Repositories.AdministrateurRepository;
+import Repositories.EntrepriseRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +36,8 @@ public class DataInitializer implements ApplicationRunner {
     private final PermissionRepository permissionRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final HuilerieRepository huilerieRepository;
+    private final AdministrateurRepository administrateurRepository;
+    private final EntrepriseRepository entrepriseRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.seed.admin-password:Admin123!}")
@@ -135,33 +135,40 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedDefaultAdminUser(Profil adminProfil) {
-        if (utilisateurRepository.findByEmail("smatitakwapro@gmail.com").isPresent()) {
+        // Verifier que l'admin par défaut n'existe pas déjà
+        if (utilisateurRepository.findByEmail("admin@default.com").isPresent()) {
+            log.info("[SEED] Admin par défaut existe déjà, aucune création");
             return;
         }
 
-        Huilerie huilerie = huilerieRepository.findAll().stream().findFirst().orElse(null);
+        // Récupérer une Entreprise pour l'Administrateur
+        Entreprise entreprise = huilerieRepository.findAll().stream()
+            .map(Huilerie::getEntreprise)
+            .findFirst()
+            .orElse(null);
 
-        if (huilerie == null) {
-            log.warn("[SEED] Aucun utilisateur admin cree: aucune huilerie disponible");
+        if (entreprise == null) {
+            log.warn("[SEED] Aucun utilisateur admin cree: aucune entreprise disponible");
             return;
         }
 
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setNom("Admin");
-        utilisateur.setPrenom("Système");
-        utilisateur.setEmail("smatitakwapro@gmail.com");
-        utilisateur.setMotDePasse(passwordEncoder.encode(adminPassword));
-        utilisateur.setTelephone(null);
-        utilisateur.setProfil(adminProfil);
-        utilisateur.setEntreprise(huilerie.getEntreprise());
-        utilisateur.setHuilerie(huilerie);
-        utilisateur.setActif(StatutUtilisateur.ACTIF);
+        // Créer un Administrateur (avec profil ADMIN et entreprise liée)
+        Administrateur admin = new Administrateur();
+        admin.setNom("Admin");
+        admin.setPrenom("Système");
+        admin.setEmail("admin@default.com");
+        admin.setMotDePasse(passwordEncoder.encode(adminPassword));
+        admin.setTelephone(null);
+        admin.setProfil(adminProfil);
+        admin.setEntrepriseAdmin(entreprise);
+        admin.setActif(StatutUtilisateur.ACTIF);
 
-        utilisateur.setEmailVerified(true);
-        utilisateur.setVerificationToken(UUID.randomUUID().toString());
-        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+        // Verification email déjà active pour l'admin par défaut
+        admin.setEmailVerified(true);
+        admin.setVerificationToken(UUID.randomUUID().toString());
+        admin.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
 
-        utilisateurRepository.save(utilisateur);
-        log.info("[SEED] Utilisateur admin cree: {}", utilisateur.getEmail());
+        utilisateurRepository.save(admin);
+        log.info("[SEED] Administrateur par défaut cree: {}", admin.getEmail());
     }
 }

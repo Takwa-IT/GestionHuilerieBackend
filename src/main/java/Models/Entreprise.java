@@ -24,6 +24,9 @@ public class Entreprise {
     @OneToMany(mappedBy = "entreprise", cascade = CascadeType.ALL)
     private List<Huilerie> huileries;
 
+    @OneToOne(mappedBy = "entrepriseAdmin")
+    private Administrateur administrateur;
+
     public Long getIdEntreprise() {
         return idEntreprise;
     }
@@ -70,6 +73,14 @@ public class Entreprise {
 
     public void setHuileries(List<Huilerie> huileries) {
         this.huileries = huileries;
+    }
+
+    public Administrateur getAdministrateur() {
+        return administrateur;
+    }
+
+    public void setAdministrateur(Administrateur administrateur) {
+        this.administrateur = administrateur;
     }
 }
 

@@ -8,9 +8,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import java.time.LocalDateTime;
 
@@ -18,6 +21,7 @@ import java.time.LocalDateTime;
 @Table(name = "utilisateur", indexes = {
         @Index(name = "idx_utilisateur_id", columnList = "id_utilisateur")
 })
+@Inheritance(strategy = InheritanceType.JOINED)
 public class Utilisateur {
 
     @Id
@@ -47,12 +51,10 @@ public class Utilisateur {
     @JoinColumn(name = "profil_id", nullable = true)
     private Profil profil;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "entreprise_id", nullable = false)
+    @Transient
     private Entreprise entreprise;
 
-    @ManyToOne(optional = true)
-    @JoinColumn(name = "huilerie_id", nullable = true)
+    @Transient
     private Huilerie huilerie;
 
     @Column(name = "email_verified", nullable = false)

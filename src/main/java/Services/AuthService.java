@@ -1,13 +1,12 @@
 package Services;
 
 import Config.UnauthorizedException;
-import Models.Huilerie;
 import Models.PasswordResetToken;
 import Models.Permission;
 import Models.RefreshToken;
 import Models.StatutUtilisateur;
 import Models.Utilisateur;
-import Repositories.HuilerieRepository;
+import Models.Employe;
 import Repositories.PasswordResetTokenRepository;
 import Repositories.PermissionRepository;
 import Repositories.RefreshTokenRepository;
@@ -36,7 +35,6 @@ import java.util.UUID;
 @Transactional
 public class AuthService {
     private final UtilisateurRepository utilisateurRepository;
-    private final HuilerieRepository huilerieRepository;
     private final PermissionRepository permissionRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -66,26 +64,27 @@ public class AuthService {
                     throw new IllegalArgumentException("Email deja utilise");
                 });
 
-        Huilerie huilerie = huilerieRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Aucune huilerie disponible"));
-
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setNom(request.getNom());
-        utilisateur.setPrenom(request.getPrenom());
-        utilisateur.setEmail(request.getEmail());
-        utilisateur.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
-        utilisateur.setTelephone(request.getTelephone());
-        utilisateur.setProfil(null);
-        utilisateur.setEntreprise(huilerie.getEntreprise());
-        utilisateur.setHuilerie(huilerie);
-        utilisateur.setActif(StatutUtilisateur.ACTIF);
+        // Creer un Employe au lieu d'un Utilisateur au signup
+        Employe employe = new Employe();
+        employe.setNom(request.getNom());
+        employe.setPrenom(request.getPrenom());
+        employe.setEmail(request.getEmail());
+        employe.setMotDePasse(passwordEncoder.encode(request.getMotDePasse()));
+        employe.setTelephone(request.getTelephone());
+        employe.setProfil(null);
+        employe.setActif(StatutUtilisateur.ACTIF);
+        employe.setHuilerieEmp(null); // Huilerie assignee par admin ultérieurement
 
         // Verification email obligatoire avant login
-        utilisateur.setEmailVerified(false);
-        utilisateur.setVerificationToken(UUID.randomUUID().toString());
-        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+        employe.setEmailVerified(false);
+        employe.setVerificationToken(UUID.randomUUID().toString());
+        employe.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
 
-        Utilisateur saved = utilisateurRepository.save(utilisateur);
+        Utilisateur saved = utilisateurRepository.save(employe);
+        if (saved instanceof Employe savedEmploye) {
+            savedEmploye.setIdEmploye(savedEmploye.getIdUtilisateur());
+            saved = utilisateurRepository.save(savedEmploye);
+        }
         sendVerificationEmail(saved);
 
         // Pas de JWT au signup tant que l'email n'est pas verifie

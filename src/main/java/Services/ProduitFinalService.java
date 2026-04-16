@@ -35,7 +35,6 @@ public class ProduitFinalService {
 
         ProduitFinal entity = produitFinalMapper.toEntity(dto);
         entity.setReference("TMP-PF-" + UUID.randomUUID());
-        entity.setExecutionProductionId(executionProduction.getIdExecutionProduction());
         entity.setExecutionProduction(executionProduction);
 
         ProduitFinal savedProduitFinal = produitFinalRepository.save(entity);
@@ -79,7 +78,7 @@ public class ProduitFinalService {
     private ExecutionProductionDTO toExecutionDTO(ExecutionProduction executionProduction) {
         ExecutionProductionDTO dto = new ExecutionProductionDTO();
         dto.setIdExecutionProduction(executionProduction.getIdExecutionProduction());
-        dto.setCodeLot(executionProduction.getCodeLot());
+        dto.setReference(executionProduction.getReference());
         dto.setDateDebut(executionProduction.getDateDebut());
         dto.setDateFinPrevue(executionProduction.getDateFinPrevue());
         dto.setDateFinReelle(executionProduction.getDateFinReelle());
@@ -99,26 +98,10 @@ public class ProduitFinalService {
             dto.setLotId(executionProduction.getLotOlives().getIdLot());
             dto.setLotVariete(executionProduction.getLotOlives().getVarieteOlive());
         }
-        if (executionProduction.getMatierePremiere() != null) {
-            dto.setMatierePremiereId(executionProduction.getMatierePremiere().getId());
-            dto.setMatierePremiereNom(executionProduction.getMatierePremiere().getNom());
-        }
         if (executionProduction.getProduitFinal() != null) {
             dto.setProduitFinalId(executionProduction.getProduitFinal().getIdProduit());
             dto.setProduitFinalReference(executionProduction.getProduitFinal().getReference());
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
-        }
-        if (executionProduction.getValeursReelles() != null) {
-            dto.setValeursReelles(executionProduction.getValeursReelles().stream().map(valeurReelleParametre -> {
-                var valeurDto = new dto.ValeurReelleParametreDTO();
-                valeurDto.setIdValeurReelleParametre(valeurReelleParametre.getIdValeurReelleParametre());
-                valeurDto.setValeurReelle(valeurReelleParametre.getValeurReelle());
-                if (valeurReelleParametre.getParametreEtape() != null) {
-                    valeurDto.setParametreEtapeId(valeurReelleParametre.getParametreEtape().getIdParametreEtape());
-                    valeurDto.setParametreEtapeNom(valeurReelleParametre.getParametreEtape().getNom());
-                }
-                return valeurDto;
-            }).toList());
         }
         return dto;
     }

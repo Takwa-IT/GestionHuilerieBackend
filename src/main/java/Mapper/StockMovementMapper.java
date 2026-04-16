@@ -16,8 +16,8 @@ public interface StockMovementMapper {
     StockMovement toEntity(StockMovementCreateDTO dto);
 
     @Mapping(target = "id", source = "idStockMovement")
-    @Mapping(target = "huilerieId", source = "stock.huilerie.idHuilerie")
-    @Mapping(target = "huilerieNom", source = "stock.huilerie.nom")
+    @Mapping(target = "huilerieId", source = "stock.lotOlives.huilerie.idHuilerie")
+    @Mapping(target = "huilerieNom", source = "stock.lotOlives.huilerie.nom")
     @Mapping(target = "lotId", source = "lotOlives.idLot")
     StockMovementDTO toDTO(StockMovement entity);
 }

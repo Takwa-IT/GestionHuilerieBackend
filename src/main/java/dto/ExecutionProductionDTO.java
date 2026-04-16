@@ -2,13 +2,11 @@ package dto;
 
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 public class ExecutionProductionDTO {
 
     private Long idExecutionProduction;
-    private String codeLot;
+    private String reference;
     private String dateDebut;
     private String dateFinPrevue;
     private String dateFinReelle;
@@ -23,12 +21,9 @@ public class ExecutionProductionDTO {
     private String machineNom;
     private Long lotId;
     private String lotVariete;
-    private Long matierePremiereId;
-    private String matierePremiereNom;
     private Long produitFinalId;
     private String produitFinalReference;
     private String produitFinalNomProduit;
-    private List<ValeurReelleParametreDTO> valeursReelles;
 }
 
 

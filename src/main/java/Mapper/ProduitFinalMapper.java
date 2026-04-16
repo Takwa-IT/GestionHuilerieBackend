@@ -14,7 +14,6 @@ public interface ProduitFinalMapper {
     @Mapping(target = "idProduit", ignore = true)
     @Mapping(target = "reference", ignore = true)
     @Mapping(target = "executionProduction", ignore = true)
-    @Mapping(target = "stocks", ignore = true)
     ProduitFinal toEntity(ProduitFinalCreateDTO dto);
 
     @Mapping(target = "executionProductionId", source = "executionProduction.idExecutionProduction")
@@ -23,7 +22,5 @@ public interface ProduitFinalMapper {
     @Mapping(target = "idProduit", ignore = true)
     @Mapping(target = "reference", ignore = true)
     @Mapping(target = "executionProduction", ignore = true)
-    @Mapping(target = "executionProductionId", ignore = true)
-    @Mapping(target = "stocks", ignore = true)
     void updateFromDTO(ProduitFinalUpdateDTO dto, @MappingTarget ProduitFinal entity);
 }

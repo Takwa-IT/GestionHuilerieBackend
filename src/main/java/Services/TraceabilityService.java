@@ -43,7 +43,7 @@ public class TraceabilityService {
         // Avec le nouveau modèle, chercher le stock via la matière première et
         // l'huilerie
         List<Stock> lotStocks = lot.getHuilerie() != null && lot.getMatierePremiere() != null
-                ? stockRepository.findByHuilerie_IdHuilerieAndMatierePremiere_Id(
+            ? stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
                         lot.getHuilerie().getIdHuilerie(),
                         lot.getMatierePremiere().getId())
                         .map(java.util.List::of)
@@ -54,9 +54,11 @@ public class TraceabilityService {
         if (currentUserService.isAdmin(utilisateur)) {
             List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
             boolean inAdminScope = lotStocks.stream()
-                    .map(Stock::getHuilerie)
-                    .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
-                    .map(huilerie -> huilerie.getIdHuilerie())
+                    .map(Stock::getLotOlives)
+                    .filter(lotStock -> lotStock != null
+                        && lotStock.getHuilerie() != null
+                        && lotStock.getHuilerie().getIdHuilerie() != null)
+                    .map(lotStock -> lotStock.getHuilerie().getIdHuilerie())
                     .anyMatch(accessibleHuilerieIds::contains);
 
             if (!inAdminScope && lot.getHuilerie() != null) {

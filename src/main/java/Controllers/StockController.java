@@ -37,4 +37,14 @@ public class StockController {
             @RequestParam Long huilerieId) {
         return ResponseEntity.ok(stockService.findByLotAndHuilerie(lotId, huilerieId));
     }
+
+    @GetMapping("/huilerie/{huilerieId}")
+    public ResponseEntity<List<StockDTO>> findAllByHuilerieId(@PathVariable Long huilerieId) {
+        return ResponseEntity.ok(stockService.findAllByHuilerieId(huilerieId));
+    }
+
+    @GetMapping("/{idStock}")
+    public ResponseEntity<StockDTO> findById(@PathVariable Long idStock) {
+        return ResponseEntity.ok(stockService.findById(idStock));
+    }
 }

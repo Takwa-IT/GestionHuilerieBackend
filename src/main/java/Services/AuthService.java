@@ -5,8 +5,11 @@ import Models.PasswordResetToken;
 import Models.Permission;
 import Models.RefreshToken;
 import Models.StatutUtilisateur;
-import Models.Utilisateur;
+import Models.Administrateur;
 import Models.Employe;
+import Models.Entreprise;
+import Models.Huilerie;
+import Models.Utilisateur;
 import Repositories.PasswordResetTokenRepository;
 import Repositories.PermissionRepository;
 import Repositories.RefreshTokenRepository;
@@ -295,8 +298,19 @@ public class AuthService {
     private AuthResponseDTO buildAuthResponse(Utilisateur utilisateur, String token, String refreshToken) {
         AuthUtilisateurDTO authUtilisateurDTO = new AuthUtilisateurDTO();
         authUtilisateurDTO.setId(utilisateur.getIdUtilisateur());
-        authUtilisateurDTO.setEntrepriseId(utilisateur.getEntreprise() != null ? utilisateur.getEntreprise().getIdEntreprise() : null);
-        authUtilisateurDTO.setHuilerieId(utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getIdHuilerie() : null);
+        if (utilisateur instanceof Administrateur admin) {
+            Entreprise entreprise = admin.getEntrepriseAdmin();
+            authUtilisateurDTO.setEntrepriseId(entreprise != null ? entreprise.getIdEntreprise() : null);
+            authUtilisateurDTO.setHuilerieId(null);
+        } else if (utilisateur instanceof Employe employe) {
+            Huilerie huilerie = employe.getHuilerieEmp();
+            authUtilisateurDTO.setHuilerieId(huilerie != null ? huilerie.getIdHuilerie() : null);
+            Entreprise entreprise = huilerie != null ? huilerie.getEntreprise() : null;
+            authUtilisateurDTO.setEntrepriseId(entreprise != null ? entreprise.getIdEntreprise() : null);
+        } else {
+            authUtilisateurDTO.setEntrepriseId(utilisateur.getEntreprise() != null ? utilisateur.getEntreprise().getIdEntreprise() : null);
+            authUtilisateurDTO.setHuilerieId(utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getIdHuilerie() : null);
+        }
         authUtilisateurDTO.setNom(utilisateur.getNom());
         authUtilisateurDTO.setPrenom(utilisateur.getPrenom());
         authUtilisateurDTO.setEmail(utilisateur.getEmail());

@@ -10,9 +10,14 @@ import java.util.List;
 
 @Repository
 public interface ExecutionProductionRepository extends JpaRepository<ExecutionProduction, Long> {
-	List<ExecutionProduction> findByLotOlives_IdLot(Long lotId);
+	@Query("select e from ExecutionProduction e where e.lot.idLot = :lotId")
+	List<ExecutionProduction> findByLotOlives_IdLot(@Param("lotId") Long lotId);
 
-	boolean existsByCodeLot(String codeLot);
+	boolean existsByReference(String reference);
+
+	default boolean existsByCodeLot(String codeLot) {
+		return existsByReference(codeLot);
+	}
 
 	@Query("""
 			select e

@@ -16,7 +16,6 @@ public interface HuilerieMapper {
     @Mapping(target = "machines", ignore = true)
     @Mapping(target = "lots", ignore = true)
     @Mapping(target = "campagnesOlives", ignore = true)
-    @Mapping(target = "stocks", ignore = true)
     Huilerie toEntity(HuilerieCreateDTO dto);
 
     @Mapping(target = "entrepriseId", source = "entreprise.idEntreprise")
@@ -27,6 +26,5 @@ public interface HuilerieMapper {
     @Mapping(target = "machines", ignore = true)
     @Mapping(target = "lots", ignore = true)
     @Mapping(target = "campagnesOlives", ignore = true)
-    @Mapping(target = "stocks", ignore = true)
     void updateFromDTO(HuilerieUpdateDTO dto, @MappingTarget Huilerie entity);
 }

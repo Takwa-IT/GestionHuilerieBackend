@@ -1,6 +1,7 @@
 package dto;
 
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class StockDTO {
@@ -11,6 +12,8 @@ public class StockDTO {
     private String typeStock;
     private Long referenceId;
     private Double quantiteDisponible;
+    private Long matierePremiereId;
+    private List<String> lotReferences;
 }
 
 

@@ -1,29 +1,22 @@
 package Services;
 
 import Models.ExecutionProduction;
+import Models.GuideProduction;
 import Models.LotOlives;
 import Models.Machine;
-import Models.MatierePremiere;
-import Models.ParametreEtape;
 import Models.Stock;
 import Models.Utilisateur;
-import Models.ValeurReelleParametre;
 import Repositories.ExecutionProductionRepository;
 import Repositories.GuideProductionRepository;
 import Repositories.LotOlivesRepository;
 import Repositories.MachineRepository;
-import Repositories.MatierePremiereRepository;
-import Repositories.ParametreEtapeRepository;
 import dto.ExecutionProductionCreateDTO;
 import dto.ExecutionProductionDTO;
-import dto.ValeurReelleParametreCreateDTO;
-import dto.ValeurReelleParametreDTO;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,25 +30,21 @@ public class ExecutionProductionService {
     private final GuideProductionRepository guideProductionRepository;
     private final MachineRepository machineRepository;
     private final LotOlivesRepository lotOlivesRepository;
-    private final MatierePremiereRepository matierePremiereRepository;
-    private final ParametreEtapeRepository parametreEtapeRepository;
     private final CurrentUserService currentUserService;
 
     public ExecutionProductionDTO create(ExecutionProductionCreateDTO dto) {
-        var guideProduction = guideProductionRepository.findById(dto.getGuideProductionId())
+        GuideProduction guideProduction = guideProductionRepository.findById(dto.getGuideProductionId())
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));
         Machine machine = machineRepository.findById(dto.getMachineId())
                 .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
         LotOlives lot = lotOlivesRepository.findById(dto.getLotId())
                 .orElseThrow(() -> new RuntimeException("Lot d'olives non trouve"));
-        MatierePremiere matierePremiere = matierePremiereRepository.findById(dto.getMatierePremiereId())
-                .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));
 
-        machine.setMatierePremiere(matierePremiere);
-        machineRepository.save(machine);
+        Long huilerieId = resolveHuilerieId(guideProduction, machine, lot);
+        currentUserService.ensureCanAccessHuilerie(huilerieId);
 
         ExecutionProduction executionProduction = new ExecutionProduction();
-        executionProduction.setCodeLot(dto.getCodeLot());
+        executionProduction.setReference(dto.getReference());
         executionProduction.setDateDebut(dto.getDateDebut());
         executionProduction.setDateFinPrevue(dto.getDateFinPrevue());
         executionProduction.setDateFinReelle(dto.getDateFinReelle());
@@ -64,25 +53,28 @@ public class ExecutionProductionService {
         executionProduction.setObservations(dto.getObservations());
         executionProduction.setGuideProduction(guideProduction);
         executionProduction.setMachine(machine);
-        executionProduction.setLotOlives(lot);
-        executionProduction.setMatierePremiere(matierePremiere);
-
-        if (dto.getValeursReelles() != null) {
-            List<ValeurReelleParametre> valeursReelles = new ArrayList<>();
-            for (ValeurReelleParametreCreateDTO valeurDTO : dto.getValeursReelles()) {
-                ParametreEtape parametreEtape = parametreEtapeRepository.findById(valeurDTO.getParametreEtapeId())
-                        .orElseThrow(() -> new RuntimeException("Parametre d'etape non trouve"));
-
-                ValeurReelleParametre valeurReelle = new ValeurReelleParametre();
-                valeurReelle.setValeurReelle(valeurDTO.getValeurReelle());
-                valeurReelle.setParametreEtape(parametreEtape);
-                valeurReelle.setExecutionProduction(executionProduction);
-                valeursReelles.add(valeurReelle);
-            }
-            executionProduction.setValeursReelles(valeursReelles);
-        }
+        executionProduction.setLot(lot);
 
         return toDTO(executionProductionRepository.save(executionProduction));
+    }
+
+    private Long resolveHuilerieId(GuideProduction guideProduction, Machine machine, LotOlives lot) {
+        Long guideHuilerieId = resolveHuilerieId(guideProduction != null ? guideProduction.getHuilerie() : null, "guide de production");
+        Long machineHuilerieId = resolveHuilerieId(machine != null ? machine.getHuilerie() : null, "machine");
+        Long lotHuilerieId = resolveHuilerieId(lot != null ? lot.getHuilerie() : null, "lot d'olives");
+
+        if (!guideHuilerieId.equals(machineHuilerieId) || !guideHuilerieId.equals(lotHuilerieId)) {
+            throw new RuntimeException("Le guide, la machine et le lot doivent appartenir a la meme huilerie");
+        }
+
+        return guideHuilerieId;
+    }
+
+    private Long resolveHuilerieId(Models.Huilerie huilerie, String source) {
+        if (huilerie == null || huilerie.getIdHuilerie() == null) {
+            throw new RuntimeException(source + " sans huilerie associee");
+        }
+        return huilerie.getIdHuilerie();
     }
 
     private String buildUniqueCodeLot(String requestedCodeLot, Long lotId) {
@@ -140,7 +132,7 @@ public class ExecutionProductionService {
     private ExecutionProductionDTO toDTO(ExecutionProduction executionProduction) {
         ExecutionProductionDTO dto = new ExecutionProductionDTO();
         dto.setIdExecutionProduction(executionProduction.getIdExecutionProduction());
-        dto.setCodeLot(executionProduction.getCodeLot());
+        dto.setReference(executionProduction.getReference());
         dto.setDateDebut(executionProduction.getDateDebut());
         dto.setDateFinPrevue(executionProduction.getDateFinPrevue());
         dto.setDateFinReelle(executionProduction.getDateFinReelle());
@@ -158,21 +150,14 @@ public class ExecutionProductionService {
             dto.setMachineId(executionProduction.getMachine().getIdMachine());
             dto.setMachineNom(executionProduction.getMachine().getNomMachine());
         }
-        if (executionProduction.getLotOlives() != null) {
-            dto.setLotId(executionProduction.getLotOlives().getIdLot());
-            dto.setLotVariete(executionProduction.getLotOlives().getVarieteOlive());
-        }
-        if (executionProduction.getMatierePremiere() != null) {
-            dto.setMatierePremiereId(executionProduction.getMatierePremiere().getId());
-            dto.setMatierePremiereNom(executionProduction.getMatierePremiere().getNom());
+        if (executionProduction.getLot() != null) {
+            dto.setLotId(executionProduction.getLot().getIdLot());
+            dto.setLotVariete(executionProduction.getLot().getVarieteOlive());
         }
         if (executionProduction.getProduitFinal() != null) {
             dto.setProduitFinalId(executionProduction.getProduitFinal().getIdProduit());
             dto.setProduitFinalReference(executionProduction.getProduitFinal().getReference());
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
-        }
-        if (executionProduction.getValeursReelles() != null) {
-            dto.setValeursReelles(executionProduction.getValeursReelles().stream().map(this::toDTO).toList());
         }
         return dto;
     }
@@ -214,26 +199,15 @@ public class ExecutionProductionService {
             return executionProduction.getMachine().getHuilerie();
         }
 
-        if (executionProduction.getLotOlives() == null || executionProduction.getLotOlives().getStocks() == null) {
+        if (executionProduction.getLot() == null || executionProduction.getLot().getStocks() == null) {
             return null;
         }
 
-        return executionProduction.getLotOlives().getStocks().stream()
-                .map(Stock::getHuilerie)
+        return executionProduction.getLot().getStocks().stream()
+                .map(stock -> stock.getLotOlives() != null ? stock.getLotOlives().getHuilerie() : null)
                 .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
                 .findFirst()
                 .orElse(null);
-    }
-
-    private ValeurReelleParametreDTO toDTO(ValeurReelleParametre valeurReelleParametre) {
-        ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
-        dto.setIdValeurReelleParametre(valeurReelleParametre.getIdValeurReelleParametre());
-        dto.setValeurReelle(valeurReelleParametre.getValeurReelle());
-        if (valeurReelleParametre.getParametreEtape() != null) {
-            dto.setParametreEtapeId(valeurReelleParametre.getParametreEtape().getIdParametreEtape());
-            dto.setParametreEtapeNom(valeurReelleParametre.getParametreEtape().getNom());
-        }
-        return dto;
     }
 
     private boolean hasText(String value) {

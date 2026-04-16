@@ -9,19 +9,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "execution_production", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_execution_production_code_lot", columnNames = "codeLot")
-})
+@Table(name = "execution_production")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,7 +29,7 @@ public class ExecutionProduction {
     private Long idExecutionProduction;
 
     @Column(nullable = false, unique = true)
-    private String codeLot;
+    private String reference;
 
     private String dateDebut;
 
@@ -57,15 +54,38 @@ public class ExecutionProduction {
 
     @ManyToOne
     @JoinColumn(name = "lot_olives_id", nullable = false)
-    private LotOlives lotOlives;
-
-    @ManyToOne
-    @JoinColumn(name = "matiere_premiere_id", nullable = false)
-    private MatierePremiere matierePremiere;
-
-    @OneToOne(mappedBy = "executionProduction")
-    private ProduitFinal produitFinal;
+    private LotOlives lot;
 
     @OneToMany(mappedBy = "executionProduction", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ValeurReelleParametre> valeursReelles;
+    private List<ProduitFinal> produitsFinaux = new ArrayList<>();
+
+    public String getCodeLot() {
+        return reference;
+    }
+
+    public void setCodeLot(String codeLot) {
+        this.reference = codeLot;
+    }
+
+    public LotOlives getLotOlives() {
+        return lot;
+    }
+
+    public void setLotOlives(LotOlives lotOlives) {
+        this.lot = lotOlives;
+    }
+
+    public ProduitFinal getProduitFinal() {
+        return produitsFinaux == null || produitsFinaux.isEmpty() ? null : produitsFinaux.get(0);
+    }
+
+    public void setProduitFinal(ProduitFinal produitFinal) {
+        if (produitsFinaux == null) {
+            produitsFinaux = new ArrayList<>();
+        }
+        produitsFinaux.clear();
+        if (produitFinal != null) {
+            produitsFinaux.add(produitFinal);
+        }
+    }
 }

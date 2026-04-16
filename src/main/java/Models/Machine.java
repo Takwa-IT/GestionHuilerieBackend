@@ -4,6 +4,8 @@ import Config.ReferenceUtils;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "machine")
 @Data
@@ -30,6 +32,9 @@ public class Machine {
     @ManyToOne
     @JoinColumn(name = "matiere_premiere_id")
     private MatierePremiere matierePremiere;
+
+    @OneToMany(mappedBy = "machine")
+    private List<ExecutionProduction> executionsProduction;
 
     public Long getIdMachine() {
         return idMachine;
@@ -96,6 +101,14 @@ public class Machine {
 
     public void setMatierePremiere(MatierePremiere matierePremiere) {
         this.matierePremiere = matierePremiere;
+    }
+
+    public List<ExecutionProduction> getExecutionsProduction() {
+        return executionsProduction;
+    }
+
+    public void setExecutionsProduction(List<ExecutionProduction> executionsProduction) {
+        this.executionsProduction = executionsProduction;
     }
 
     @PostPersist

@@ -35,6 +35,7 @@ public interface EmployeMapper {
     @Mapping(target = "entreprise", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "actif", ignore = true)
+    @Mapping(target = "email", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "verificationToken", ignore = true)
     @Mapping(target = "verificationTokenExpiresAt", ignore = true)

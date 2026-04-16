@@ -40,9 +40,6 @@ public class Huilerie {
     @OneToMany(mappedBy = "huilerie", cascade = CascadeType.ALL)
     private List<CampagneOlives> campagnesOlives;
 
-    @OneToMany(mappedBy = "huilerie")
-    private List<Stock> stocks;
-
     public Long getIdHuilerie() {
         return idHuilerie;
     }
@@ -121,14 +118,6 @@ public class Huilerie {
 
     public void setCampagnesOlives(List<CampagneOlives> campagnesOlives) {
         this.campagnesOlives = campagnesOlives;
-    }
-
-    public List<Stock> getStocks() {
-        return stocks;
-    }
-
-    public void setStocks(List<Stock> stocks) {
-        this.stocks = stocks;
     }
 
 }

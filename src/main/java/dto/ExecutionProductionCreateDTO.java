@@ -1,17 +1,14 @@
 package dto;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
-import java.util.List;
 
 @Data
 public class ExecutionProductionCreateDTO {
 
     @NotBlank
-    private String codeLot;
+    private String reference;
 
     @NotBlank
     private String dateDebut;
@@ -36,12 +33,6 @@ public class ExecutionProductionCreateDTO {
 
     @NotNull
     private Long lotId;
-
-    @NotNull
-    private Long matierePremiereId;
-
-    @Valid
-    private List<ValeurReelleParametreCreateDTO> valeursReelles;
 }
 
 

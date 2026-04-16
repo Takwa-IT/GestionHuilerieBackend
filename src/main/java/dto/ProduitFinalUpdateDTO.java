@@ -6,6 +6,7 @@ import lombok.Data;
 public class ProduitFinalUpdateDTO {
     private String nomProduit;
     private Double quantiteProduite;
+    private String qualite;
     private String dateProduction;
 }
 

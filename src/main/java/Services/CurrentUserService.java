@@ -1,5 +1,9 @@
 package Services;
 
+import Models.Administrateur;
+import Models.Employe;
+import Models.Entreprise;
+import Models.Huilerie;
 import Models.Utilisateur;
 import Repositories.HuilerieRepository;
 import Repositories.UtilisateurRepository;
@@ -47,6 +51,18 @@ public class CurrentUserService {
 
     public Long getCurrentHuilerieIdOrThrow() {
         Utilisateur utilisateur = getAuthenticatedUtilisateur();
+        if (utilisateur instanceof Employe employe) {
+            Huilerie huilerie = employe.getHuilerieEmp();
+            if (huilerie == null || huilerie.getIdHuilerie() == null) {
+                throw new AccessDeniedException("Employe sans huilerie associee");
+            }
+            return huilerie.getIdHuilerie();
+        }
+
+        if (utilisateur instanceof Administrateur) {
+            throw new AccessDeniedException("Administrateur sans huilerie associee");
+        }
+
         if (utilisateur.getHuilerie() == null || utilisateur.getHuilerie().getIdHuilerie() == null) {
             throw new AccessDeniedException("Utilisateur sans huilerie associee");
         }
@@ -55,6 +71,28 @@ public class CurrentUserService {
 
     public Long getCurrentEntrepriseIdOrThrow() {
         Utilisateur utilisateur = getAuthenticatedUtilisateur();
+        
+        // Pour les administrateurs, utiliser la vraie relation persistée
+        if (utilisateur instanceof Administrateur) {
+            Administrateur admin = (Administrateur) utilisateur;
+            Entreprise entreprise = admin.getEntrepriseAdmin();
+            if (entreprise == null || entreprise.getIdEntreprise() == null) {
+                throw new AccessDeniedException("Administrateur sans entreprise associee");
+            }
+            return entreprise.getIdEntreprise();
+        }
+        
+        // Pour les employés, récupérer l'entreprise via la huilerie
+        if (utilisateur instanceof Employe) {
+            Employe employe = (Employe) utilisateur;
+            Huilerie huilerie = employe.getHuilerieEmp();
+            if (huilerie == null || huilerie.getEntreprise() == null || huilerie.getEntreprise().getIdEntreprise() == null) {
+                throw new AccessDeniedException("Employe sans huilerie ou entreprise associee");
+            }
+            return huilerie.getEntreprise().getIdEntreprise();
+        }
+        
+        // Fallback pour les autres utilisateurs
         if (utilisateur.getEntreprise() == null || utilisateur.getEntreprise().getIdEntreprise() == null) {
             throw new AccessDeniedException("Utilisateur sans entreprise associee");
         }

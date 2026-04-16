@@ -12,6 +12,8 @@ import org.mapstruct.MappingTarget;
 public interface MachineMapper {
 
     @Mapping(target = "idMachine", ignore = true)
+    @Mapping(target = "reference", ignore = true)
+    @Mapping(target = "executionsProduction", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "matierePremiere", ignore = true)
     Machine toEntity(MachineCreateDTO dto);
@@ -20,6 +22,8 @@ public interface MachineMapper {
     MachineDTO toDTO(Machine entity);
 
     @Mapping(target = "idMachine", ignore = true)
+    @Mapping(target = "reference", ignore = true)
+    @Mapping(target = "executionsProduction", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "matierePremiere", ignore = true)
     void updateFromDTO(MachineUpdateDTO dto, @MappingTarget Machine entity);

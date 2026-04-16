@@ -19,7 +19,7 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(
-            @Value("${security.jwt.secret}") String secret,
+            @Value("${security.jwt.secret:mySuperSecretKeyThatIsVeryLongAndSecureForJWTTokenGeneration2026ForOilProductionSystemSecurity}") String secret,
             @Value("${security.jwt.expiration-ms:86400000}") long expirationMs
     ) {
         this.secret = secret;

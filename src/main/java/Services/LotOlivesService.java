@@ -94,15 +94,14 @@ public class LotOlivesService {
 
         // Une ligne stock représente une matière première dans une huilerie
         // On récupère ou crée le stock consolidé pour cette matière première
-        Stock stock = stockRepository.findByHuilerie_IdHuilerieAndMatierePremiere_Id(
+        Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
                 effectiveHuilerieId,
                 matierePremiere.getId())
                 .orElseGet(() -> {
                     Stock newStock = new Stock();
                     newStock.setTypeStock(matierePremiere.getType());
                     newStock.setQuantiteDisponible(0d);
-                    newStock.setMatierePremiere(matierePremiere);
-                    newStock.setHuilerie(persistedLot.getHuilerie());
+                    newStock.setLotOlives(persistedLot);
                     Stock savedStock = stockRepository.save(newStock);
                     savedStock.setReference(ReferenceUtils.format("ST", savedStock.getIdStock()));
                     return stockRepository.save(savedStock);

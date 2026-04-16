@@ -41,7 +41,7 @@ public class LotOlives {
     @OneToOne(mappedBy = "lot")
     private AnalyseLaboratoire analyseLaboratoire;
 
-    @OneToMany(mappedBy = "lotOlives")
+    @OneToMany(mappedBy = "lot")
     private List<ExecutionProduction> executionsProduction;
 
     @OneToMany(mappedBy = "lotOlives")

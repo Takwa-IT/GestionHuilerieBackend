@@ -1,11 +1,9 @@
 package Repositories;
 
-import Models.ValeurReelleParametre;
+import Models.LotOlives;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ValeurReelleParametreRepository extends JpaRepository<ValeurReelleParametre, Long> {
+public interface LotRepository extends JpaRepository<LotOlives, Long> {
 }
-
-

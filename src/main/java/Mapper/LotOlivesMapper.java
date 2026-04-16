@@ -55,7 +55,7 @@ public class LotOlivesMapper {
         }
 
         Set<Long> huilerieIds = entity.getStocks().stream()
-                .map(Stock::getHuilerie)
+                .map(stock -> stock.getLotOlives() != null ? stock.getLotOlives().getHuilerie() : null)
                 .filter(huilerie -> huilerie != null && huilerie.getIdHuilerie() != null)
                 .map(Huilerie::getIdHuilerie)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
@@ -63,7 +63,7 @@ public class LotOlivesMapper {
         if (huilerieIds.size() == 1) {
             Long huilerieId = huilerieIds.iterator().next();
             return entity.getStocks().stream()
-                    .map(Stock::getHuilerie)
+                    .map(stock -> stock.getLotOlives() != null ? stock.getLotOlives().getHuilerie() : null)
                     .filter(huilerie -> huilerie != null && huilerieId.equals(huilerie.getIdHuilerie()))
                     .findFirst()
                     .orElse(null);

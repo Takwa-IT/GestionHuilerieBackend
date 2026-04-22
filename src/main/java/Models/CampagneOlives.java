@@ -6,9 +6,7 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "campagne_olives", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_campagne_annee", columnNames = "annee")
-})
+@Table(name = "campagne_olives")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,7 +19,7 @@ public class CampagneOlives {
     @Column(unique = true)
     private String reference;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String annee;
     private String dateDebut;
     private String dateFin;

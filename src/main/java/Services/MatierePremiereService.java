@@ -80,8 +80,46 @@ public class MatierePremiereService {
 
     //recupere une matiere premiere par reference pour le module CRUD
     public MatierePremiere findMatiere(String reference) {
-        return matierePremiereRepository.findByReference(reference)
-                .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));
+        String rawValue = reference == null ? "" : reference.trim();
+        String normalizedReference = normalizeReference(rawValue);
+        String lookupKey = normalizeLookupKey(rawValue);
+
+        if (!normalizedReference.isBlank()) {
+            var foundByReference = matierePremiereRepository.findByNormalizedReference(normalizedReference);
+            if (foundByReference.isPresent()) {
+                return foundByReference.get();
+            }
+
+            Long extractedId = extractTrailingNumericId(normalizedReference);
+            if (extractedId != null) {
+                var foundById = matierePremiereRepository.findById(extractedId);
+                if (foundById.isPresent()) {
+                    return foundById.get();
+                }
+            }
+        }
+
+        if (!rawValue.isBlank()) {
+            var foundByName = matierePremiereRepository.findByNomIgnoreCase(rawValue);
+            if (foundByName.isPresent()) {
+                return foundByName.get();
+            }
+        }
+
+        var foundByFuzzyMatch = matierePremiereRepository.findAll().stream()
+                .filter(matiere -> {
+                    String candidateReferenceKey = normalizeLookupKey(matiere.getReference());
+                    String candidateNameKey = normalizeLookupKey(matiere.getNom());
+                    return (!lookupKey.isBlank() && lookupKey.equals(candidateReferenceKey))
+                            || (!lookupKey.isBlank() && lookupKey.equals(candidateNameKey));
+                })
+                .findFirst();
+
+        if (foundByFuzzyMatch.isPresent()) {
+            return foundByFuzzyMatch.get();
+        }
+
+        throw new RuntimeException("Matiere premiere non trouvee");
     }
 
     //recupere une matiere premiere par ID + utilisable dans les autres methodes existantes
@@ -93,6 +131,45 @@ public class MatierePremiereService {
     private String normalizeName(String value) {
         String normalized = value == null ? null : value.trim();
         return (normalized == null || normalized.isEmpty()) ? null : normalized;
+    }
+
+    private String normalizeReference(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .trim()
+                .replaceAll("[\\s,;:]+$", "")
+                .toUpperCase();
+    }
+
+    private Long extractTrailingNumericId(String normalizedReference) {
+        if (normalizedReference == null || normalizedReference.isBlank()) {
+            return null;
+        }
+
+        String digitsOnly = normalizedReference.replaceAll("^\\D+", "");
+        if (digitsOnly.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Long.parseLong(digitsOnly);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String normalizeLookupKey(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .trim()
+                .toUpperCase()
+                .replaceAll("[^A-Z0-9]", "");
     }
 
 }

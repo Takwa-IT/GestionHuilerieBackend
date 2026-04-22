@@ -39,6 +39,16 @@ public class MachineController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{idMachine}/activer")
+    public ResponseEntity<MachineDTO> activer(@PathVariable Long idMachine) {
+        return ResponseEntity.ok(machineService.activer(idMachine));
+    }
+
+    @PutMapping("/{idMachine}/desactiver")
+    public ResponseEntity<MachineDTO> desactiver(@PathVariable Long idMachine) {
+        return ResponseEntity.ok(machineService.desactiver(idMachine));
+    }
+
     @GetMapping("/{idMachine}")
     public ResponseEntity<MachineDTO> findById(@PathVariable Long idMachine) {
         return ResponseEntity.ok(machineService.findById(idMachine));

@@ -3,6 +3,7 @@ package Services;
 import Config.ReferenceUtils;
 import Mapper.ProduitFinalMapper;
 import Models.ExecutionProduction;
+import Models.ParametreEtape;
 import Models.ProduitFinal;
 import Repositories.ExecutionProductionRepository;
 import Repositories.ProduitFinalRepository;
@@ -10,6 +11,7 @@ import dto.ExecutionProductionDTO;
 import dto.ProduitFinalCreateDTO;
 import dto.ProduitFinalDTO;
 import dto.ProduitFinalUpdateDTO;
+import dto.ValeurReelleParametreDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,11 +100,50 @@ public class ProduitFinalService {
             dto.setLotId(executionProduction.getLotOlives().getIdLot());
             dto.setLotVariete(executionProduction.getLotOlives().getVarieteOlive());
         }
+        dto.setValeursReelles(loadValeursReelles(executionProduction));
         if (executionProduction.getProduitFinal() != null) {
             dto.setProduitFinalId(executionProduction.getProduitFinal().getIdProduit());
             dto.setProduitFinalReference(executionProduction.getProduitFinal().getReference());
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
         }
+        return dto;
+    }
+
+    private java.util.List<ValeurReelleParametreDTO> loadValeursReelles(ExecutionProduction executionProduction) {
+        if (executionProduction == null || executionProduction.getGuideProduction() == null) {
+            return java.util.List.of();
+        }
+
+        if (executionProduction.getParametres() != null && !executionProduction.getParametres().isEmpty()) {
+            return executionProduction.getParametres().stream()
+                    .sorted(java.util.Comparator
+                            .comparing((ParametreEtape p) -> p.getEtapeProduction() != null
+                                    && p.getEtapeProduction().getOrdre() != null
+                                    ? p.getEtapeProduction().getOrdre()
+                                    : Integer.MAX_VALUE)
+                            .thenComparing(p -> p.getIdParametreEtape() == null ? Long.MAX_VALUE : p.getIdParametreEtape()))
+                    .map(this::toDTO)
+                    .toList();
+        }
+
+        if (executionProduction.getGuideProduction().getEtapes() == null) {
+            return java.util.List.of();
+        }
+
+        return executionProduction.getGuideProduction().getEtapes().stream()
+                .sorted(java.util.Comparator.comparing(etape -> etape.getOrdre() == null ? Integer.MAX_VALUE : etape.getOrdre()))
+                .flatMap(etape -> (etape.getParametres() == null ? java.util.List.<ParametreEtape>of() : etape.getParametres()).stream()
+                        .filter(parametre -> parametre.getExecutionProduction() == null))
+                .map(this::toDTO)
+                .toList();
+    }
+
+    private ValeurReelleParametreDTO toDTO(ParametreEtape parametre) {
+        ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
+        dto.setParametreEtapeId(parametre.getIdParametreEtape());
+        dto.setParametreEtapeNom(parametre.getNom());
+        dto.setValeurEstime(parametre.getValeur());
+        dto.setValeurReelle(parametre.getValeurReelle());
         return dto;
     }
 }

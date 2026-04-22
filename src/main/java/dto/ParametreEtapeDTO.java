@@ -10,6 +10,7 @@ public class ParametreEtapeDTO {
     private String uniteMesure;
     private String description;
     private String valeur;
+    private String valeurReelle;
 }
 
 

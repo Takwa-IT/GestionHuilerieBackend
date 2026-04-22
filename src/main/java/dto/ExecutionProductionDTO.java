@@ -2,6 +2,8 @@ package dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ExecutionProductionDTO {
 
@@ -24,6 +26,5 @@ public class ExecutionProductionDTO {
     private Long produitFinalId;
     private String produitFinalReference;
     private String produitFinalNomProduit;
+    private List<ValeurReelleParametreDTO> valeursReelles;
 }
-
-

@@ -31,8 +31,29 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponseDTO<Void>> handleConflict(DataIntegrityViolationException ex) {
+        String message = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
+
+        if (message == null || message.isBlank()) {
+            message = "Conflit de donnees";
+        }
+
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponseDTO.fail("Conflit de donnees", List.of("Une contrainte d'unicite a ete violee")));
+                .body(ApiResponseDTO.fail("Conflit de donnees", List.of(message)));
+    }
+
+    @ExceptionHandler(LotDeletionException.class)
+    public ResponseEntity<ApiResponseDTO<Void>> handleLotDeletionException(LotDeletionException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDTO.fail(ex.getMessage(), List.of(ex.getReason())));
+    }
+
+    @ExceptionHandler(org.hibernate.TransientPropertyValueException.class)
+    public ResponseEntity<ApiResponseDTO<Void>> handleTransientPropertyValue(org.hibernate.TransientPropertyValueException ex) {
+        String reason = "Ce lot est lié à d'autres données et ne peut pas être supprimé.";
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDTO.fail("Impossible de supprimer ce lot", List.of(reason)));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -3,6 +3,8 @@ package Controllers;
 import Services.ExecutionProductionService;
 import dto.ExecutionProductionCreateDTO;
 import dto.ExecutionProductionDTO;
+import dto.ValeurReelleParametreDTO;
+import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,15 @@ public class ExecutionProductionController {
     public ResponseEntity<List<ExecutionProductionDTO>> findAll(@RequestParam(required = false) String huilerieNom) {
         return ResponseEntity.ok(executionProductionService.findAll(huilerieNom));
     }
-}
+
+        @PostMapping("/{id}/valeurs-reelles")
+        public void saveValeursReelles(
+                @PathVariable Long id,
+                @RequestBody List<ValeurReelleParametreDTO> valeurs
+        ) {
+            executionProductionService.saveValeursReelles(id, valeurs);
+        }
+    }
+
 
 

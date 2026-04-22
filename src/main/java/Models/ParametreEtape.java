@@ -38,6 +38,10 @@ public class ParametreEtape {
     @JoinColumn(name = "etape_production_id", nullable = false)
     private EtapeProduction etapeProduction;
 
+    @ManyToOne
+    @JoinColumn(name = "execution_production_id")
+    private ExecutionProduction executionProduction;
+
     public String getValeur() {
         return valeurEstime;
     }
@@ -46,5 +50,3 @@ public class ParametreEtape {
         this.valeurEstime = valeur;
     }
 }
-
-

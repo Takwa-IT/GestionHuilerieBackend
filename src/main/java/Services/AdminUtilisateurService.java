@@ -4,6 +4,8 @@ import Models.Entreprise;
 import Models.Huilerie;
 import Models.Profil;
 import Models.Utilisateur;
+import Models.Administrateur;
+import Models.Employe;
 import Repositories.EntrepriseRepository;
 import Repositories.HuilerieRepository;
 import Repositories.ProfilRepository;
@@ -74,23 +76,21 @@ public class AdminUtilisateurService {
     public UtilisateurAdminDTO update(Long id, UtilisateurAdminRequestDTO request) {
         Utilisateur utilisateur = utilisateurRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
-        ensureSameEntreprise(utilisateur);
+        Profil profil = profilRepository.findById(request.getProfilId())
+                .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
+        ResolvedUserScope scope = resolveUserScope(request, profil);
+        ensureSameEntreprise(utilisateur, scope.entreprise().getIdEntreprise());
 
         utilisateurRepository.findByEmail(request.getEmail())
                 .filter(existing -> !existing.getIdUtilisateur().equals(id))
                 .ifPresent(u -> { throw new DataIntegrityViolationException("Email deja utilise"); });
-
-        Profil profil = profilRepository.findById(request.getProfilId())
-                .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
-        ResolvedUserScope scope = resolveUserScope(request, profil);
 
         utilisateur.setNom(request.getNom());
         utilisateur.setPrenom(request.getPrenom());
         utilisateur.setEmail(request.getEmail());
         utilisateur.setTelephone(request.getTelephone());
         utilisateur.setProfil(profil);
-        utilisateur.setEntreprise(scope.entreprise());
-        utilisateur.setHuilerie(scope.huilerie());
+        applyScope(utilisateur, scope);
         return toDTO(utilisateurRepository.save(utilisateur));
     }
 
@@ -110,11 +110,56 @@ public class AdminUtilisateurService {
     }
 
     private void ensureSameEntreprise(Utilisateur utilisateur) {
+        ensureSameEntreprise(utilisateur, null);
+    }
+
+    private void ensureSameEntreprise(Utilisateur utilisateur, Long requestedEntrepriseId) {
         Long currentEntrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
-        Long targetEntrepriseId = utilisateur.getEntreprise() != null ? utilisateur.getEntreprise().getIdEntreprise() : null;
+        Long targetEntrepriseId = resolveEntrepriseId(utilisateur);
+
+        if (targetEntrepriseId == null && requestedEntrepriseId != null && currentEntrepriseId.equals(requestedEntrepriseId)) {
+            return;
+        }
 
         if (targetEntrepriseId == null || !currentEntrepriseId.equals(targetEntrepriseId)) {
             throw new AccessDeniedException("Acces refuse a un utilisateur d'une autre entreprise");
+        }
+    }
+
+    private Long resolveEntrepriseId(Utilisateur utilisateur) {
+        if (utilisateur instanceof Administrateur administrateur) {
+            return administrateur.getEntrepriseAdmin() != null
+                    ? administrateur.getEntrepriseAdmin().getIdEntreprise()
+                    : null;
+        }
+
+        if (utilisateur instanceof Employe employe) {
+            return employe.getHuilerieEmp() != null && employe.getHuilerieEmp().getEntreprise() != null
+                    ? employe.getHuilerieEmp().getEntreprise().getIdEntreprise()
+                    : null;
+        }
+
+        if (utilisateur.getEntreprise() != null) {
+            return utilisateur.getEntreprise().getIdEntreprise();
+        }
+
+        if (utilisateur.getHuilerie() != null && utilisateur.getHuilerie().getEntreprise() != null) {
+            return utilisateur.getHuilerie().getEntreprise().getIdEntreprise();
+        }
+
+        return null;
+    }
+
+    private void applyScope(Utilisateur utilisateur, ResolvedUserScope scope) {
+        utilisateur.setEntreprise(scope.entreprise());
+        utilisateur.setHuilerie(scope.huilerie());
+
+        if (utilisateur instanceof Employe employe) {
+            employe.setHuilerieEmp(scope.huilerie());
+        }
+
+        if (utilisateur instanceof Administrateur administrateur) {
+            administrateur.setEntrepriseAdmin(scope.entreprise());
         }
     }
 
@@ -164,7 +209,10 @@ public class AdminUtilisateurService {
             throw new IllegalArgumentException("Acces refuse a une autre entreprise");
         }
 
-        boolean isAdminProfile = profil.getNom() != null && "ADMIN".equalsIgnoreCase(profil.getNom());
+        String profilNom = profil.getNom() != null ? profil.getNom().trim().toUpperCase() : "";
+        boolean isAdminProfile = "ADMIN".equals(profilNom)
+                || "ADMINISTRATEUR".equals(profilNom)
+                || profilNom.contains("ADMIN");
         if (!isAdminProfile && huilerie == null) {
             throw new IllegalArgumentException("Huilerie obligatoire pour ce profil");
         }

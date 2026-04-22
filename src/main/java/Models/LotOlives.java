@@ -26,6 +26,9 @@ public class LotOlives {
     private Double quantiteInitiale;
     private Double quantiteRestante;
 
+    @Column(name = "bon_pesee_pdf_path")
+    private String bonPeseePdfPath;
+
     @ManyToOne
     @JoinColumn(name = "matiere_premiere_id", nullable = false)
     private MatierePremiere matierePremiere;
@@ -160,6 +163,14 @@ public class LotOlives {
 
     public void setQuantiteRestante(Double quantiteRestante) {
         this.quantiteRestante = quantiteRestante;
+    }
+
+    public String getBonPeseePdfPath() {
+        return bonPeseePdfPath;
+    }
+
+    public void setBonPeseePdfPath(String bonPeseePdfPath) {
+        this.bonPeseePdfPath = bonPeseePdfPath;
     }
 
     public MatierePremiere getMatierePremiere() {

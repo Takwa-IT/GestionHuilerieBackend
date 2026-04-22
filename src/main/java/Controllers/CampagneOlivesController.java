@@ -51,8 +51,9 @@ public class CampagneOlivesController {
     @GetMapping
     @RequirePermission(module = "CAMPAGNE_OLIVES", action = PermissionAction.READ)
     public ResponseEntity<List<CampagneOlivesDTO>> findAll(
+            @RequestParam(required = false) String reference,
             @RequestParam(required = false) String huilerieNom) {
-        return ResponseEntity.ok(campagneOlivesService.findAll(huilerieNom));
+        return ResponseEntity.ok(campagneOlivesService.findAll(reference, huilerieNom));
     }
 
     @GetMapping("/reference/{reference}")

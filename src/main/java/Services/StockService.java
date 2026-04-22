@@ -25,7 +25,7 @@ public class StockService {
 
     private final StockRepository stockRepository;
     private final LotOlivesRepository lotOlivesRepository;
-        private final StockMovementRepository stockMovementRepository;
+    private final StockMovementRepository stockMovementRepository;
     private final StockMapper stockMapper;
     private final CurrentUserService currentUserService;
 
@@ -107,67 +107,86 @@ public class StockService {
                 .orElseThrow(() -> new RuntimeException("Stock non trouve"));
     }
 
-        public List<StockDTO> findAllByHuilerieId(Long huilerieId) {
-                Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
+    public List<StockDTO> findAllByHuilerieId(Long huilerieId) {
+        Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
 
-                if (!currentUserService.isAdmin(utilisateur)) {
-                        Long currentHuilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
-                        if (!currentHuilerieId.equals(huilerieId)) {
-                                throw new AccessDeniedException("Acces refuse a une autre huilerie");
-                        }
-                        return stockRepository.findByLotOlives_Huilerie_IdHuilerie(currentHuilerieId).stream()
-                                        .map(this::toDTO)
-                                        .toList();
-                }
-
-                currentUserService.ensureCanAccessHuilerie(huilerieId);
-                return stockRepository.findByLotOlives_Huilerie_IdHuilerie(huilerieId).stream()
-                                .map(this::toDTO)
-                                .toList();
+        if (!currentUserService.isAdmin(utilisateur)) {
+            Long currentHuilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
+            if (!currentHuilerieId.equals(huilerieId)) {
+                throw new AccessDeniedException("Acces refuse a une autre huilerie");
+            }
+            return stockRepository.findByLotOlives_Huilerie_IdHuilerie(currentHuilerieId).stream()
+                    .map(this::toDTO)
+                    .toList();
         }
 
-        public StockDTO findById(Long idStock) {
-                Stock stock = stockRepository.findById(idStock)
-                                .orElseThrow(() -> new RuntimeException("Stock non trouve"));
+        currentUserService.ensureCanAccessHuilerie(huilerieId);
+        return stockRepository.findByLotOlives_Huilerie_IdHuilerie(huilerieId).stream()
+                .map(this::toDTO)
+                .toList();
+    }
 
-                if (stock.getLotOlives() == null || stock.getLotOlives().getHuilerie() == null || stock.getLotOlives().getHuilerie().getIdHuilerie() == null) {
-                        throw new RuntimeException("Stock sans huilerie associee");
-                }
+    public StockDTO findById(Long idStock) {
+        Stock stock = stockRepository.findById(idStock)
+                .orElseThrow(() -> new RuntimeException("Stock non trouve"));
 
-                currentUserService.ensureCanAccessHuilerie(stock.getLotOlives().getHuilerie().getIdHuilerie());
-                return toDTO(stock);
+        if (stock.getLotOlives() == null || stock.getLotOlives().getHuilerie() == null || stock.getLotOlives().getHuilerie().getIdHuilerie() == null) {
+            throw new RuntimeException("Stock sans huilerie associee");
         }
 
-        private StockDTO toDTO(Stock stock) {
-                StockDTO dto = stockMapper.toDTO(stock);
-                dto.setMatierePremiereId(resolveMatierePremiereId(stock));
-                dto.setLotReferences(resolveLotReferences(stock.getIdStock()));
-                return dto;
+        currentUserService.ensureCanAccessHuilerie(stock.getLotOlives().getHuilerie().getIdHuilerie());
+        return toDTO(stock);
+    }
+
+    private StockDTO toDTO(Stock stock) {
+        StockDTO dto = stockMapper.toDTO(stock);
+        Long matierePremiereId = resolveMatierePremiereId(stock);
+        dto.setMatierePremiereId(matierePremiereId);
+        dto.setLotReferences(resolveLotReferences(stock, matierePremiereId));
+        return dto;
+    }
+
+    private Long resolveMatierePremiereId(Stock stock) {
+        if (stock == null || stock.getLotOlives() == null || stock.getLotOlives().getMatierePremiere() == null) {
+            return null;
+        }
+        return stock.getLotOlives().getMatierePremiere().getId();
+    }
+
+    private List<String> resolveLotReferences(Stock stock, Long matierePremiereId) {
+        if (stock == null || stock.getIdStock() == null) {
+            return List.of();
         }
 
-        private Long resolveMatierePremiereId(Stock stock) {
-                if (stock == null || stock.getLotOlives() == null || stock.getLotOlives().getMatierePremiere() == null) {
-                        return null;
-                }
-                return stock.getLotOlives().getMatierePremiere().getId();
+        Set<String> lotReferences = new LinkedHashSet<>();
+        List<StockMovement> movements = stockMovementRepository
+                .findByStock_IdStockOrderByDateMouvementAsc(stock.getIdStock());
+
+        for (StockMovement movement : movements) {
+            if (movement.getLotOlives() != null
+                    && movement.getLotOlives().getReference() != null
+                    && isSameMatierePremiere(movement.getLotOlives(), matierePremiereId)) {
+                lotReferences.add(movement.getLotOlives().getReference());
+            }
         }
 
-        private List<String> resolveLotReferences(Long stockId) {
-                if (stockId == null) {
-                        return List.of();
-                }
-
-                Set<String> lotReferences = new LinkedHashSet<>();
-                List<StockMovement> movements = stockMovementRepository.findByStock_IdStockOrderByDateMouvementAsc(stockId);
-
-                for (StockMovement movement : movements) {
-                        if (movement.getLotOlives() != null && movement.getLotOlives().getReference() != null) {
-                                lotReferences.add(movement.getLotOlives().getReference());
-                        }
-                }
-
-                return List.copyOf(lotReferences);
+        if (stock.getLotOlives() != null
+                && stock.getLotOlives().getReference() != null
+                && isSameMatierePremiere(stock.getLotOlives(), matierePremiereId)) {
+            lotReferences.add(stock.getLotOlives().getReference());
         }
+
+        return List.copyOf(lotReferences);
+    }
+
+    private boolean isSameMatierePremiere(LotOlives lot, Long expectedMatierePremiereId) {
+        if (lot == null || lot.getMatierePremiere() == null || expectedMatierePremiereId == null) {
+            return false;
+        }
+
+        Long lotMatiereId = lot.getMatierePremiere().getId();
+        return lotMatiereId != null && expectedMatierePremiereId.equals(lotMatiereId);
+    }
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();

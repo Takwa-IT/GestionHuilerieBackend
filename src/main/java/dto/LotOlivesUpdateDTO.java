@@ -1,12 +1,11 @@
 package dto;
 
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 @Data
-public class LotOlivesDTO {
-    private Long idLot;
-    private String reference;
-    private String varieteOlive;
+public class LotOlivesUpdateDTO {
+    private String variete;
     private String maturite;
     private String origine;
     private String dateRecolte;
@@ -14,13 +13,16 @@ public class LotOlivesDTO {
     private String fournisseurNom;
     private String fournisseurCIN;
     private Integer dureeStockageAvantBroyage;
+
+    @Positive
     private Double pesee;
+
+    @Positive
     private Double quantiteInitiale;
+
+    @Positive
     private Double quantiteRestante;
-    private String bonPeseePdfPath;
-    private Long matierePremiereId;
+
     private String matierePremiereReference;
-    private Long campagneId;
-    private Long huilerieId;
-    private String huilerieNom;
+    private String campagneReference;
 }

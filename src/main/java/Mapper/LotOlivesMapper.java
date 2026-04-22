@@ -31,6 +31,7 @@ public class LotOlivesMapper {
         dto.setPesee(entity.getPesee());
         dto.setQuantiteInitiale(entity.getQuantiteInitiale());
         dto.setQuantiteRestante(entity.getQuantiteRestante());
+        dto.setBonPeseePdfPath(entity.getBonPeseePdfPath());
         dto.setMatierePremiereId(entity.getMatierePremiere() != null ? entity.getMatierePremiere().getId() : null);
         dto.setMatierePremiereReference(
                 entity.getMatierePremiere() != null ? entity.getMatierePremiere().getReference() : null);

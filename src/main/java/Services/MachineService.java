@@ -58,9 +58,21 @@ public class MachineService {
     }
 
     public void delete(Long idMachine) {
+        desactiver(idMachine);
+    }
+
+    public MachineDTO activer(Long idMachine) {
         Machine machine = machineRepository.findById(idMachine)
                 .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
-        machineRepository.delete(machine);
+        machine.setEtatMachine("EN_SERVICE");
+        return machineMapper.toDTO(machineRepository.save(machine));
+    }
+
+    public MachineDTO desactiver(Long idMachine) {
+        Machine machine = machineRepository.findById(idMachine)
+                .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
+        machine.setEtatMachine("DESACTIVEE");
+        return machineMapper.toDTO(machineRepository.save(machine));
     }
 
     public MachineDTO findById(Long idMachine) {
@@ -78,7 +90,7 @@ public class MachineService {
             return machines.stream()
                     .filter(machine -> machine.getHuilerie() != null
                             && currentUserService.getAccessibleHuilerieIds()
-                                    .contains(machine.getHuilerie().getIdHuilerie()))
+                            .contains(machine.getHuilerie().getIdHuilerie()))
                     .map(machineMapper::toDTO)
                     .toList();
         }
@@ -101,7 +113,7 @@ public class MachineService {
         return machineRepository.findByHuilerieNom(huilerieNom).stream()
                 .filter(machine -> machine.getHuilerie() != null
                         && currentUserService.getAccessibleHuilerieIds()
-                                .contains(machine.getHuilerie().getIdHuilerie()))
+                        .contains(machine.getHuilerie().getIdHuilerie()))
                 .map(machineMapper::toDTO)
                 .toList();
     }

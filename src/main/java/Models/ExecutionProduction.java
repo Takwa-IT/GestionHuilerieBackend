@@ -59,6 +59,9 @@ public class ExecutionProduction {
     @OneToMany(mappedBy = "executionProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProduitFinal> produitsFinaux = new ArrayList<>();
 
+    @OneToMany(mappedBy = "executionProduction")
+    private List<ParametreEtape> parametres = new ArrayList<>();
+
     public String getCodeLot() {
         return reference;
     }

@@ -170,6 +170,7 @@ public class GuideProductionService {
         dto.setUniteMesure(parametreEtape.getUniteMesure());
         dto.setDescription(parametreEtape.getDescription());
         dto.setValeur(parametreEtape.getValeur());
+        dto.setValeurReelle(parametreEtape.getValeurReelle());
         return dto;
     }
 

@@ -16,12 +16,15 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class MachineService {
+
+    private static final Set<String> ALLOWED_MACHINE_TYPES = Set.of("2_phase", "3_phase", "presse");
 
     private final MachineRepository machineRepository;
     private final HuilerieRepository huilerieRepository;
@@ -31,6 +34,7 @@ public class MachineService {
 
     public MachineDTO create(MachineCreateDTO dto) {
         Machine machine = machineMapper.toEntity(dto);
+        machine.setTypeMachine(normalizeMachineType(machine.getTypeMachine()));
         Huilerie huilerie = findHuilerieByNom(dto.getHuilerieNom());
         currentUserService.ensureCanAccessHuilerie(huilerie.getIdHuilerie());
         machine.setHuilerie(huilerie);
@@ -46,6 +50,10 @@ public class MachineService {
                 .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
 
         machineMapper.updateFromDTO(dto, machine);
+
+        if (dto.getTypeMachine() != null) {
+            machine.setTypeMachine(normalizeMachineType(dto.getTypeMachine()));
+        }
 
         if (dto.getHuilerieNom() != null) {
             Huilerie huilerie = findHuilerieByNom(dto.getHuilerieNom());
@@ -81,12 +89,20 @@ public class MachineService {
         return machineMapper.toDTO(machine);
     }
 
-    public List<MachineDTO> findAll(String huilerieNom) {
+    public List<MachineDTO> findAll(String huilerieNom, String typeMachine) {
+        String normalizedType = hasText(typeMachine) ? normalizeMachineType(typeMachine) : null;
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
-            List<Machine> machines = hasText(huilerieNom)
-                    ? machineRepository.findByHuilerie_NomIgnoreCase(huilerieNom)
-                    : machineRepository.findAll();
+            List<Machine> machines;
+            if (hasText(huilerieNom) && normalizedType != null) {
+                machines = machineRepository.findByHuilerie_NomIgnoreCaseAndTypeMachineIgnoreCase(huilerieNom, normalizedType);
+            } else if (hasText(huilerieNom)) {
+                machines = machineRepository.findByHuilerie_NomIgnoreCase(huilerieNom);
+            } else if (normalizedType != null) {
+                machines = machineRepository.findByTypeMachineIgnoreCase(normalizedType);
+            } else {
+                machines = machineRepository.findAll();
+            }
             return machines.stream()
                     .filter(machine -> machine.getHuilerie() != null
                             && currentUserService.getAccessibleHuilerieIds()
@@ -96,7 +112,11 @@ public class MachineService {
         }
 
         Long idHuilerie = currentUserService.getCurrentHuilerieIdOrThrow();
-        return machineRepository.findByHuilerie_IdHuilerie(idHuilerie).stream()
+        List<Machine> machines = normalizedType != null
+                ? machineRepository.findByHuilerie_IdHuilerieAndTypeMachineIgnoreCase(idHuilerie, normalizedType)
+                : machineRepository.findByHuilerie_IdHuilerie(idHuilerie);
+
+        return machines.stream()
                 .map(machineMapper::toDTO)
                 .toList();
     }
@@ -133,5 +153,18 @@ public class MachineService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String normalizeMachineType(String value) {
+        if (!hasText(value)) {
+            throw new IllegalArgumentException("Le type de machine est obligatoire.");
+        }
+
+        String normalized = value.trim().toLowerCase();
+        if (!ALLOWED_MACHINE_TYPES.contains(normalized)) {
+            throw new IllegalArgumentException("Type machine invalide. Valeurs autorisees: 2_phase, 3_phase, presse.");
+        }
+
+        return normalized;
     }
 }

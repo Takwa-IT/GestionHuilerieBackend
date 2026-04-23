@@ -113,6 +113,7 @@ public class GuideProductionService {
                     for (ParametreEtapeCreateDTO parametreDTO : etapeDTO.getParametres()) {
                         ParametreEtape parametre = new ParametreEtape();
                         parametre.setNom(parametreDTO.getNom());
+                        parametre.setCodeParametre(parametreDTO.getCodeParametre());
                         parametre.setUniteMesure(parametreDTO.getUniteMesure());
                         parametre.setDescription(parametreDTO.getDescription());
                         parametre.setValeur(parametreDTO.getValeur());
@@ -167,6 +168,7 @@ public class GuideProductionService {
         ParametreEtapeDTO dto = new ParametreEtapeDTO();
         dto.setIdParametreEtape(parametreEtape.getIdParametreEtape());
         dto.setNom(parametreEtape.getNom());
+        dto.setCodeParametre(parametreEtape.getCodeParametre());
         dto.setUniteMesure(parametreEtape.getUniteMesure());
         dto.setDescription(parametreEtape.getDescription());
         dto.setValeur(parametreEtape.getValeur());

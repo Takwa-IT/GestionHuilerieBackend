@@ -33,7 +33,7 @@ spring:
             writetimeout: 5000
 
 server:
-  port: 8000
+  port: 8500
 
 security:
   jwt:

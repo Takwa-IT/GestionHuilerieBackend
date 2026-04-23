@@ -26,6 +26,9 @@ public class ParametreEtape {
     @Column(nullable = false)
     private String nom;
 
+    @Column(name = "code_parametre")
+    private String codeParametre;
+
     private String uniteMesure;
 
     private String description;

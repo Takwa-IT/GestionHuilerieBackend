@@ -1,6 +1,8 @@
 package Models;
 
 import Config.ReferenceUtils;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -20,7 +22,8 @@ public class MatierePremiere {
     private String uniteMesure;
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "huilerie_id", nullable = false)
     private Huilerie huilerie;
 

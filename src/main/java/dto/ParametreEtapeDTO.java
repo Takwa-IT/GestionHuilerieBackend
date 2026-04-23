@@ -7,6 +7,7 @@ public class ParametreEtapeDTO {
 
     private Long idParametreEtape;
     private String nom;
+    private String codeParametre;
     private String uniteMesure;
     private String description;
     private String valeur;

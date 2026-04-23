@@ -23,6 +23,8 @@ public class ExecutionProductionCreateDTO {
 
     private Double rendement;
 
+    private Boolean controleTemperature;
+
     private String observations;
 
     @NotNull

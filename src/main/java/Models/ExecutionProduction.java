@@ -44,6 +44,8 @@ public class ExecutionProduction {
 
     private String observations;
 
+    private Boolean controleTemperature;
+
     @ManyToOne
     @JoinColumn(name = "guide_production_id", nullable = false)
     private GuideProduction guideProduction;
@@ -61,6 +63,9 @@ public class ExecutionProduction {
 
     @OneToMany(mappedBy = "executionProduction")
     private List<ParametreEtape> parametres = new ArrayList<>();
+
+    @OneToMany(mappedBy = "executionProduction", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private List<Prediction> predictions = new ArrayList<>();
 
     public String getCodeLot() {
         return reference;

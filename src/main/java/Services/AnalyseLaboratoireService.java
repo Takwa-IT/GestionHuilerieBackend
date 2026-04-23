@@ -11,8 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,28 +32,24 @@ public class AnalyseLaboratoireService {
 
     public AnalyseLaboratoireDTO create(AnalyseLaboratoireCreateDTO dto) {
         LotOlives lot = lotService.findLot(dto.getLotId());
+        AnalyseLaboratoire entity = analyseLaboratoireRepository.findFirstByLot_IdLot(lot.getIdLot())
+                .orElseGet(AnalyseLaboratoire::new);
 
-        AnalyseLaboratoire entity = analyseLaboratoireMapper.toEntity(dto);
         entity.setLot(lot);
-        if (entity.getDateAnalyse() == null || entity.getDateAnalyse().isBlank()) {
-            entity.setDateAnalyse(LocalDate.now().toString());
-        }
-        if (entity.getClasseQualiteFinale() == null || entity.getClasseQualiteFinale().isBlank()) {
-            entity.setClasseQualiteFinale(computeClasseQualite(dto));
+        entity.setAcidite_huile_pourcent(dto.getAcidite_huile_pourcent());
+        entity.setIndice_peroxyde_meq_o2_kg(dto.getIndice_peroxyde_meq_o2_kg());
+        entity.setPolyphenols_mg_kg(dto.getPolyphenols_mg_kg());
+        entity.setK232(dto.getK232());
+        entity.setK270(dto.getK270());
+
+        if (dto.getDateAnalyse() == null || dto.getDateAnalyse().isBlank()) {
+            entity.setDateAnalyse(java.time.LocalDate.now().toString());
+        } else {
+            entity.setDateAnalyse(dto.getDateAnalyse());
         }
 
         AnalyseLaboratoire saved = analyseLaboratoireRepository.save(entity);
         saved.setReference(ReferenceUtils.format("AL", saved.getIdAnalyse()));
         return analyseLaboratoireMapper.toDTO(analyseLaboratoireRepository.save(saved));
-    }
-
-    private String computeClasseQualite(AnalyseLaboratoireCreateDTO dto) {
-        if (dto.getAcidite() <= 0.8 && dto.getIndicePeroxyde() <= 20 && dto.getK232() <= 2.5 && dto.getK270() <= 0.22) {
-            return "EXTRA_VIERGE";
-        }
-        if (dto.getAcidite() <= 2.0) {
-            return "VIERGE";
-        }
-        return "COURANTE";
     }
 }

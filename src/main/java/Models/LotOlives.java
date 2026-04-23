@@ -1,6 +1,8 @@
 package Models;
 
 import Config.ReferenceUtils;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -17,6 +19,14 @@ public class LotOlives {
     private String variete;
     private String maturite;
     private String origine;
+    private String region;
+    private String methodeRecolte;
+    private String typeSol;
+    private Integer tempsDepuisRecolteHeures;
+    private Double humiditePourcent;
+    private Double aciditeOlivesPourcent;
+    private Double tauxFeuillesPourcent;
+    private String lavageEffectue;
     private String dateRecolte;
     private String dateReception;
     private String fournisseurNom;
@@ -29,15 +39,18 @@ public class LotOlives {
     @Column(name = "bon_pesee_pdf_path")
     private String bonPeseePdfPath;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "matiere_premiere_id", nullable = false)
     private MatierePremiere matierePremiere;
 
     @ManyToOne
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "campagne_id", nullable = false)
     private CampagneOlives campagne;
 
     @ManyToOne
+    @NotFound(action = NotFoundAction.IGNORE)
     @JoinColumn(name = "huilerie_id")
     private Huilerie huilerie;
 
@@ -99,6 +112,70 @@ public class LotOlives {
 
     public void setOrigine(String origine) {
         this.origine = origine;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public String getMethodeRecolte() {
+        return methodeRecolte;
+    }
+
+    public void setMethodeRecolte(String methodeRecolte) {
+        this.methodeRecolte = methodeRecolte;
+    }
+
+    public String getTypeSol() {
+        return typeSol;
+    }
+
+    public void setTypeSol(String typeSol) {
+        this.typeSol = typeSol;
+    }
+
+    public Integer getTempsDepuisRecolteHeures() {
+        return tempsDepuisRecolteHeures;
+    }
+
+    public void setTempsDepuisRecolteHeures(Integer tempsDepuisRecolteHeures) {
+        this.tempsDepuisRecolteHeures = tempsDepuisRecolteHeures;
+    }
+
+    public Double getHumiditePourcent() {
+        return humiditePourcent;
+    }
+
+    public void setHumiditePourcent(Double humiditePourcent) {
+        this.humiditePourcent = humiditePourcent;
+    }
+
+    public Double getAciditeOlivesPourcent() {
+        return aciditeOlivesPourcent;
+    }
+
+    public void setAciditeOlivesPourcent(Double aciditeOlivesPourcent) {
+        this.aciditeOlivesPourcent = aciditeOlivesPourcent;
+    }
+
+    public Double getTauxFeuillesPourcent() {
+        return tauxFeuillesPourcent;
+    }
+
+    public void setTauxFeuillesPourcent(Double tauxFeuillesPourcent) {
+        this.tauxFeuillesPourcent = tauxFeuillesPourcent;
+    }
+
+    public String getLavageEffectue() {
+        return lavageEffectue;
+    }
+
+    public void setLavageEffectue(String lavageEffectue) {
+        this.lavageEffectue = lavageEffectue;
     }
 
     public String getDateRecolte() {

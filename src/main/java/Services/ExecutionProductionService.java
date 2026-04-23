@@ -5,6 +5,7 @@ import Models.GuideProduction;
 import Models.LotOlives;
 import Models.Machine;
 import Models.ParametreEtape;
+import Models.Prediction;
 import Models.TypeMouvement;
 import Repositories.ParametreEtapeRepository;
 import dto.ValeurReelleParametreDTO;
@@ -60,6 +61,7 @@ public class ExecutionProductionService {
         executionProduction.setStatut(dto.getStatut());
         executionProduction.setRendement(dto.getRendement());
         executionProduction.setObservations(dto.getObservations());
+        executionProduction.setControleTemperature(dto.getControleTemperature());
         executionProduction.setGuideProduction(guideProduction);
         executionProduction.setMachine(machine);
         executionProduction.setLot(lot);
@@ -159,6 +161,7 @@ public class ExecutionProductionService {
         dto.setStatut(executionProduction.getStatut());
         dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
+        dto.setControleTemperature(executionProduction.getControleTemperature());
         dto.setHuilerieId(resolveHuilerieId(executionProduction));
         dto.setHuilerieNom(resolveHuilerieNom(executionProduction));
 
@@ -181,6 +184,28 @@ public class ExecutionProductionService {
         }
 
         dto.setValeursReelles(loadValeursReelles(executionProduction));
+
+        if (executionProduction.getPredictions() != null) {
+            dto.setPredictions(executionProduction.getPredictions().stream()
+                    .map(this::toPredictionDTO)
+                    .toList());
+        }
+
+        return dto;
+    }
+
+    private dto.PredictionDTO toPredictionDTO(Prediction prediction) {
+        dto.PredictionDTO dto = new dto.PredictionDTO();
+        dto.setIdPrediction(prediction.getIdPrediction());
+        dto.setModePrediction(prediction.getModePrediction());
+        dto.setQualitePredite(prediction.getQualitePredite());
+        dto.setProbabiliteQualite(prediction.getProbabiliteQualite());
+        dto.setRendementPreditPourcent(prediction.getRendementPreditPourcent());
+        dto.setQuantiteHuileRecalculeeLitres(prediction.getQuantiteHuileRecalculeeLitres());
+        dto.setExecutionProductionId(prediction.getExecutionProduction() != null
+                ? prediction.getExecutionProduction().getIdExecutionProduction()
+                : null);
+        dto.setDateCreation(prediction.getDateCreation());
         return dto;
     }
 

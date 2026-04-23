@@ -15,6 +15,7 @@ public class ExecutionProductionDTO {
     private String statut;
     private Double rendement;
     private String observations;
+    private Boolean controleTemperature;
     private Long huilerieId;
     private String huilerieNom;
     private Long guideProductionId;
@@ -27,4 +28,5 @@ public class ExecutionProductionDTO {
     private String produitFinalReference;
     private String produitFinalNomProduit;
     private List<ValeurReelleParametreDTO> valeursReelles;
+    private List<PredictionDTO> predictions;
 }

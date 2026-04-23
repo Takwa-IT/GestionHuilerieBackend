@@ -11,11 +11,11 @@ public class AnalyseLaboratoire {
     private Long idAnalyse;
 
     private String reference;
-    private Double acidite;
-    private Double indicePeroxyde;
+    private Double acidite_huile_pourcent;
+    private Double indice_peroxyde_meq_o2_kg;
+    private Double polyphenols_mg_kg;
     private Double k232;
     private Double k270;
-    private String classeQualiteFinale;
     private String dateAnalyse;
 
     @OneToOne
@@ -41,20 +41,28 @@ public class AnalyseLaboratoire {
         this.reference = reference;
     }
 
-    public Double getAcidite() {
-        return acidite;
+    public Double getAcidite_huile_pourcent() {
+        return acidite_huile_pourcent;
     }
 
-    public void setAcidite(Double acidite) {
-        this.acidite = acidite;
+    public void setAcidite_huile_pourcent(Double acidite_huile_pourcent) {
+        this.acidite_huile_pourcent = acidite_huile_pourcent;
     }
 
-    public Double getIndicePeroxyde() {
-        return indicePeroxyde;
+    public Double getIndice_peroxyde_meq_o2_kg() {
+        return indice_peroxyde_meq_o2_kg;
     }
 
-    public void setIndicePeroxyde(Double indicePeroxyde) {
-        this.indicePeroxyde = indicePeroxyde;
+    public void setIndice_peroxyde_meq_o2_kg(Double indice_peroxyde_meq_o2_kg) {
+        this.indice_peroxyde_meq_o2_kg = indice_peroxyde_meq_o2_kg;
+    }
+
+    public Double getPolyphenols_mg_kg() {
+        return polyphenols_mg_kg;
+    }
+
+    public void setPolyphenols_mg_kg(Double polyphenols_mg_kg) {
+        this.polyphenols_mg_kg = polyphenols_mg_kg;
     }
 
     public Double getK232() {
@@ -71,14 +79,6 @@ public class AnalyseLaboratoire {
 
     public void setK270(Double k270) {
         this.k270 = k270;
-    }
-
-    public String getClasseQualiteFinale() {
-        return classeQualiteFinale;
-    }
-
-    public void setClasseQualiteFinale(String classeQualiteFinale) {
-        this.classeQualiteFinale = classeQualiteFinale;
     }
 
     public String getDateAnalyse() {

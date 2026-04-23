@@ -43,11 +43,11 @@ public class TraceabilityService {
         // Avec le nouveau modèle, chercher le stock via la matière première et
         // l'huilerie
         List<Stock> lotStocks = lot.getHuilerie() != null && lot.getMatierePremiere() != null
-            ? stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
+                ? stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
                         lot.getHuilerie().getIdHuilerie(),
                         lot.getMatierePremiere().getId())
-                        .map(java.util.List::of)
-                        .orElse(java.util.List.of())
+                .map(java.util.List::of)
+                .orElse(java.util.List.of())
                 : java.util.List.of();
 
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
@@ -56,8 +56,8 @@ public class TraceabilityService {
             boolean inAdminScope = lotStocks.stream()
                     .map(Stock::getLotOlives)
                     .filter(lotStock -> lotStock != null
-                        && lotStock.getHuilerie() != null
-                        && lotStock.getHuilerie().getIdHuilerie() != null)
+                            && lotStock.getHuilerie() != null
+                            && lotStock.getHuilerie().getIdHuilerie() != null)
                     .map(lotStock -> lotStock.getHuilerie().getIdHuilerie())
                     .anyMatch(accessibleHuilerieIds::contains);
 
@@ -117,11 +117,11 @@ public class TraceabilityService {
             LotTraceabilityDTO.AnalyseItem analyseItem = new LotTraceabilityDTO.AnalyseItem();
             analyseItem.setIdAnalyse(analyse.getIdAnalyse());
             analyseItem.setDate(analyse.getDateAnalyse());
-            analyseItem.setAcidite(analyse.getAcidite());
-            analyseItem.setIndicePeroxyde(analyse.getIndicePeroxyde());
+            analyseItem.setAcidite_huile_pourcent(analyse.getAcidite_huile_pourcent());
+            analyseItem.setIndice_peroxyde_meq_o2_kg(analyse.getIndice_peroxyde_meq_o2_kg());
+            analyseItem.setPolyphenols_mg_kg(analyse.getPolyphenols_mg_kg());
             analyseItem.setK232(analyse.getK232());
             analyseItem.setK270(analyse.getK270());
-            analyseItem.setClasseQualiteFinale(analyse.getClasseQualiteFinale());
             analyses.add(analyseItem);
         }
 
@@ -132,6 +132,10 @@ public class TraceabilityService {
         dto.setLotId(lot.getIdLot());
         dto.setVarieteOlive(lot.getVarieteOlive());
         dto.setOrigine(lot.getOrigine());
+        dto.setRegion(lot.getRegion());
+        dto.setMethodeRecolte(lot.getMethodeRecolte());
+        dto.setTypeSol(lot.getTypeSol());
+        dto.setTempsDepuisRecolteHeures(lot.getTempsDepuisRecolteHeures());
         dto.setQuantiteInitiale(lot.getQuantiteInitiale());
         dto.setQuantiteRestante(lot.getQuantiteRestante());
         dto.setAnalyses(analyses);

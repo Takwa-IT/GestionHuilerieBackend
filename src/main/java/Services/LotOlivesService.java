@@ -16,6 +16,7 @@ import Repositories.StockRepository;
 import dto.LotArrivageCreateDTO;
 import dto.LotOlivesDTO;
 import dto.LotOlivesUpdateDTO;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Value;
@@ -88,6 +89,14 @@ public class LotOlivesService {
         lot.setVariete(variete);
         lot.setMaturite(dto.getMaturite());
         lot.setOrigine(dto.getOrigine());
+        lot.setRegion(dto.getRegion());
+        lot.setMethodeRecolte(dto.getMethodeRecolte());
+        lot.setTypeSol(dto.getTypeSol());
+        lot.setTempsDepuisRecolteHeures(dto.getTempsDepuisRecolteHeures());
+        lot.setHumiditePourcent(dto.getHumiditePourcent());
+        lot.setAciditeOlivesPourcent(dto.getAciditeOlivesPourcent());
+        lot.setTauxFeuillesPourcent(dto.getTauxFeuillesPourcent());
+        lot.setLavageEffectue(normalizeLavageEffectue(dto.getLavageEffectue()));
         lot.setDateRecolte(dto.getDateRecolte());
         lot.setDateReception(dto.getDateReception());
         lot.setFournisseurNom(dto.getFournisseurNom());
@@ -233,6 +242,30 @@ public class LotOlivesService {
         if (dto.getOrigine() != null) {
             lot.setOrigine(dto.getOrigine());
         }
+        if (dto.getRegion() != null) {
+            lot.setRegion(dto.getRegion());
+        }
+        if (dto.getMethodeRecolte() != null) {
+            lot.setMethodeRecolte(dto.getMethodeRecolte());
+        }
+        if (dto.getTypeSol() != null) {
+            lot.setTypeSol(dto.getTypeSol());
+        }
+        if (dto.getTempsDepuisRecolteHeures() != null) {
+            lot.setTempsDepuisRecolteHeures(dto.getTempsDepuisRecolteHeures());
+        }
+        if (dto.getHumiditePourcent() != null) {
+            lot.setHumiditePourcent(dto.getHumiditePourcent());
+        }
+        if (dto.getAciditeOlivesPourcent() != null) {
+            lot.setAciditeOlivesPourcent(dto.getAciditeOlivesPourcent());
+        }
+        if (dto.getTauxFeuillesPourcent() != null) {
+            lot.setTauxFeuillesPourcent(dto.getTauxFeuillesPourcent());
+        }
+        if (dto.getLavageEffectue() != null) {
+            lot.setLavageEffectue(normalizeLavageEffectue(dto.getLavageEffectue()));
+        }
         if (dto.getDateRecolte() != null) {
             lot.setDateRecolte(dto.getDateRecolte());
         }
@@ -259,7 +292,8 @@ public class LotOlivesService {
         }
 
         if (dto.getMatierePremiereReference() != null && !dto.getMatierePremiereReference().trim().isEmpty()) {
-            MatierePremiere matierePremiere = matierePremiereService.findMatiere(dto.getMatierePremiereReference().trim());
+            MatierePremiere matierePremiere = matierePremiereService
+                    .findMatiere(dto.getMatierePremiereReference().trim());
             lot.setMatierePremiere(matierePremiere);
         }
 
@@ -273,6 +307,14 @@ public class LotOlivesService {
 
         LotOlives saved = lotOlivesRepository.save(lot);
         return lotOlivesMapper.toDTO(saved);
+    }
+
+    private String normalizeLavageEffectue(String value) {
+        if (!hasText(value)) {
+            return null;
+        }
+
+        return value.trim();
     }
 
     @Transactional
@@ -306,14 +348,13 @@ public class LotOlivesService {
             }
             throw new LotDeletionException(
                     "Impossible de supprimer ce lot",
-                    reason
-            );
+                    reason);
         }
     }
 
     public LotOlives findLot(Long idLot) {
         LotOlives lot = lotOlivesRepository.findById(idLot)
-                .orElseThrow(() -> new RuntimeException("Lot non trouve"));
+                .orElseThrow(() -> new EntityNotFoundException("Lot non trouve"));
         Long huilerieId = lot.getHuilerie() != null ? lot.getHuilerie().getIdHuilerie() : null;
         currentUserService.ensureCanAccessHuilerie(huilerieId);
         return lot;
@@ -480,7 +521,6 @@ public class LotOlivesService {
         Font value = new Font(Font.HELVETICA, 10, Font.NORMAL, Color.BLACK);
         Font footer = new Font(Font.HELVETICA, 9, Font.ITALIC, new Color(110, 110, 110));
 
-
         try {
             PdfWriter.getInstance(document, outputStream);
             document.open();
@@ -522,6 +562,15 @@ public class LotOlivesService {
                     labelBackground, valueBackground, border);
             addLabeledCell(lotTable, "Origine", nullSafe(lot.getOrigine()), label, value,
                     labelBackground, valueBackground, border);
+            addLabeledCell(lotTable, "Region", nullSafe(lot.getRegion()), label, value,
+                    labelBackground, valueBackground, border);
+            addLabeledCell(lotTable, "Methode recolte", nullSafe(lot.getMethodeRecolte()), label, value,
+                    labelBackground, valueBackground, border);
+            addLabeledCell(lotTable, "Type sol", nullSafe(lot.getTypeSol()), label, value,
+                    labelBackground, valueBackground, border);
+            addLabeledCell(lotTable, "Temps depuis recolte",
+                    (lot.getTempsDepuisRecolteHeures() == null ? "-" : lot.getTempsDepuisRecolteHeures() + " heure(s)"),
+                    label, value, labelBackground, valueBackground, border);
             addLabeledCell(lotTable, "Date recolte", nullSafe(lot.getDateRecolte()), label, value,
                     labelBackground, valueBackground, border);
             addLabeledCell(lotTable, "Duree avant broyage", (lot.getDureeStockageAvantBroyage() == null ? "-"

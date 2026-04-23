@@ -23,6 +23,14 @@ public class LotOlivesMapper {
         dto.setVarieteOlive(entity.getVarieteOlive());
         dto.setMaturite(entity.getMaturite());
         dto.setOrigine(entity.getOrigine());
+        dto.setRegion(entity.getRegion());
+        dto.setMethodeRecolte(entity.getMethodeRecolte());
+        dto.setTypeSol(entity.getTypeSol());
+        dto.setTempsDepuisRecolteHeures(entity.getTempsDepuisRecolteHeures());
+        dto.setHumiditePourcent(entity.getHumiditePourcent());
+        dto.setAciditeOlivesPourcent(entity.getAciditeOlivesPourcent());
+        dto.setTauxFeuillesPourcent(entity.getTauxFeuillesPourcent());
+        dto.setLavageEffectue(entity.getLavageEffectue());
         dto.setDateRecolte(entity.getDateRecolte());
         dto.setDateReception(entity.getDateReception());
         dto.setFournisseurNom(entity.getFournisseurNom());

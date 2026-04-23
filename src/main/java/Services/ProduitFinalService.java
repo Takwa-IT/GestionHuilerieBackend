@@ -5,6 +5,7 @@ import Mapper.ProduitFinalMapper;
 import Models.ExecutionProduction;
 import Models.ParametreEtape;
 import Models.ProduitFinal;
+import Models.ValeurReelleParametre;
 import Repositories.ExecutionProductionRepository;
 import Repositories.ProduitFinalRepository;
 import dto.ExecutionProductionDTO;
@@ -17,7 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -114,17 +118,12 @@ public class ProduitFinalService {
             return java.util.List.of();
         }
 
-        if (executionProduction.getParametres() != null && !executionProduction.getParametres().isEmpty()) {
-            return executionProduction.getParametres().stream()
-                    .sorted(java.util.Comparator
-                            .comparing((ParametreEtape p) -> p.getEtapeProduction() != null
-                                    && p.getEtapeProduction().getOrdre() != null
-                                    ? p.getEtapeProduction().getOrdre()
-                                    : Integer.MAX_VALUE)
-                            .thenComparing(p -> p.getIdParametreEtape() == null ? Long.MAX_VALUE : p.getIdParametreEtape()))
-                    .map(this::toDTO)
-                    .toList();
-        }
+        Map<Long, ValeurReelleParametre> valeursByParametreId = executionProduction.getValeursReelles() == null
+            ? java.util.Map.of()
+            : executionProduction.getValeursReelles().stream()
+                .filter(v -> v.getParametreEtape() != null && v.getParametreEtape().getIdParametreEtape() != null)
+                .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
+                    (first, second) -> second));
 
         if (executionProduction.getGuideProduction().getEtapes() == null) {
             return java.util.List.of();
@@ -134,16 +133,16 @@ public class ProduitFinalService {
                 .sorted(java.util.Comparator.comparing(etape -> etape.getOrdre() == null ? Integer.MAX_VALUE : etape.getOrdre()))
                 .flatMap(etape -> (etape.getParametres() == null ? java.util.List.<ParametreEtape>of() : etape.getParametres()).stream()
                         .filter(parametre -> parametre.getExecutionProduction() == null))
-                .map(this::toDTO)
+                .map(parametre -> toDTO(parametre, valeursByParametreId.get(parametre.getIdParametreEtape())))
                 .toList();
     }
 
-    private ValeurReelleParametreDTO toDTO(ParametreEtape parametre) {
+    private ValeurReelleParametreDTO toDTO(ParametreEtape parametre, ValeurReelleParametre valeurReelle) {
         ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
         dto.setParametreEtapeId(parametre.getIdParametreEtape());
         dto.setParametreEtapeNom(parametre.getNom());
         dto.setValeurEstime(parametre.getValeur());
-        dto.setValeurReelle(parametre.getValeurReelle());
+        dto.setValeurReelle(valeurReelle != null ? valeurReelle.getValeurReelle() : null);
         return dto;
     }
 }

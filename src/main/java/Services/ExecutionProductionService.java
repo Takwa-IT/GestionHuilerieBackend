@@ -7,6 +7,7 @@ import Models.Machine;
 import Models.ParametreEtape;
 import Models.Prediction;
 import Models.TypeMouvement;
+import Models.ValeurReelleParametre;
 import Repositories.ParametreEtapeRepository;
 import dto.ValeurReelleParametreDTO;
 
@@ -24,7 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -214,18 +218,12 @@ public class ExecutionProductionService {
             return List.of();
         }
 
-        if (executionProduction.getParametres() != null && !executionProduction.getParametres().isEmpty()) {
-            return executionProduction.getParametres().stream()
-                    .sorted(java.util.Comparator
-                            .comparing((ParametreEtape p) -> p.getEtapeProduction() != null
-                                    && p.getEtapeProduction().getOrdre() != null
-                                    ? p.getEtapeProduction().getOrdre()
-                                    : Integer.MAX_VALUE)
-                            .thenComparing(
-                                    p -> p.getIdParametreEtape() == null ? Long.MAX_VALUE : p.getIdParametreEtape()))
-                    .map(this::toDTO)
-                    .toList();
-        }
+        Map<Long, ValeurReelleParametre> valeursByParametreId = executionProduction.getValeursReelles() == null
+            ? Map.of()
+            : executionProduction.getValeursReelles().stream()
+                .filter(v -> v.getParametreEtape() != null && v.getParametreEtape().getIdParametreEtape() != null)
+                .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
+                    (first, second) -> second));
 
         if (executionProduction.getGuideProduction().getEtapes() == null) {
             return List.of();
@@ -237,16 +235,16 @@ public class ExecutionProductionService {
                 .flatMap(etape -> (etape.getParametres() == null ? List.<ParametreEtape>of() : etape.getParametres())
                         .stream()
                         .filter(parametre -> parametre.getExecutionProduction() == null))
-                .map(this::toDTO)
+                .map(parametre -> toDTO(parametre, valeursByParametreId.get(parametre.getIdParametreEtape())))
                 .toList();
     }
 
-    private ValeurReelleParametreDTO toDTO(ParametreEtape parametre) {
+    private ValeurReelleParametreDTO toDTO(ParametreEtape parametre, ValeurReelleParametre valeurReelle) {
         ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
         dto.setParametreEtapeId(parametre.getIdParametreEtape());
         dto.setParametreEtapeNom(parametre.getNom());
         dto.setValeurEstime(parametre.getValeur());
-        dto.setValeurReelle(parametre.getValeurReelle());
+        dto.setValeurReelle(valeurReelle != null ? valeurReelle.getValeurReelle() : null);
         return dto;
     }
 
@@ -306,6 +304,10 @@ public class ExecutionProductionService {
     public void saveValeursReelles(Long idExecutionProduction, List<ValeurReelleParametreDTO> valeurs) {
         ExecutionProduction execution = findExecution(idExecutionProduction);
 
+        if (execution.getValeursReelles() == null) {
+            execution.setValeursReelles(new java.util.ArrayList<>());
+        }
+
         for (ValeurReelleParametreDTO dto : valeurs) {
             ParametreEtape paramOriginal = parametreEtapeRepository.findById(dto.getParametreEtapeId())
                     .orElseThrow(() -> new RuntimeException("Paramètre non trouvé"));
@@ -321,16 +323,18 @@ public class ExecutionProductionService {
                 throw new RuntimeException("Le paramètre ne correspond pas au guide de cette exécution");
             }
 
-            ParametreEtape paramNouveau = new ParametreEtape();
-            paramNouveau.setNom(paramOriginal.getNom());
-            paramNouveau.setUniteMesure(paramOriginal.getUniteMesure());
-            paramNouveau.setDescription(paramOriginal.getDescription());
-            paramNouveau.setValeurEstime(paramOriginal.getValeurEstime());
-            paramNouveau.setValeurReelle(dto.getValeurReelle());
-            paramNouveau.setEtapeProduction(paramOriginal.getEtapeProduction());
-            paramNouveau.setExecutionProduction(execution);
+            execution.getValeursReelles().removeIf(v -> v.getParametreEtape() != null
+                    && dto.getParametreEtapeId().equals(v.getParametreEtape().getIdParametreEtape()));
 
-            parametreEtapeRepository.save(paramNouveau);
+            if (hasText(dto.getValeurReelle())) {
+                ValeurReelleParametre valeurReelle = new ValeurReelleParametre();
+                valeurReelle.setExecutionProduction(execution);
+                valeurReelle.setParametreEtape(paramOriginal);
+                valeurReelle.setValeurReelle(dto.getValeurReelle());
+                execution.getValeursReelles().add(valeurReelle);
+            }
         }
+
+        executionProductionRepository.save(execution);
     }
 }

@@ -35,8 +35,6 @@ public class ParametreEtape {
 
     private String valeurEstime;
 
-    private String valeurReelle;
-
     @ManyToOne
     @JoinColumn(name = "etape_production_id", nullable = false)
     private EtapeProduction etapeProduction;

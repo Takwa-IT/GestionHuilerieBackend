@@ -64,6 +64,9 @@ public class ExecutionProduction {
     @OneToMany(mappedBy = "executionProduction")
     private List<ParametreEtape> parametres = new ArrayList<>();
 
+    @OneToMany(mappedBy = "executionProduction", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ValeurReelleParametre> valeursReelles = new ArrayList<>();
+
     @OneToMany(mappedBy = "executionProduction", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private List<Prediction> predictions = new ArrayList<>();
 

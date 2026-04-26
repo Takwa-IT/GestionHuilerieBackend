@@ -114,13 +114,15 @@ public class LotOlivesService {
         savedLot.setReference(ReferenceUtils.format("LO", savedLot.getIdLot()));
         savedLot = lotOlivesRepository.save(savedLot);
         final LotOlives persistedLot = savedLot;
+        String varieteNormalisee = variete.trim().toLowerCase();
 
-        Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
+        Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndVariete(
                         effectiveHuilerieId,
-                        matierePremiere.getId())
+                        varieteNormalisee)
                 .orElseGet(() -> {
                     Stock newStock = new Stock();
                     newStock.setTypeStock(matierePremiere.getType());
+                    newStock.setVariete(varieteNormalisee);
                     newStock.setQuantiteDisponible(0d);
                     newStock.setLotOlives(persistedLot);
                     Stock savedStock = stockRepository.save(newStock);

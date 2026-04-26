@@ -42,14 +42,16 @@ public class StockMovementService {
             throw new RuntimeException("Le type ENTREE est reserve a la creation d'un nouveau lot");
         }
 
-        // Récupérer le lot et son stock via la matière première
+        // Récupérer le lot et son stock via la variété normalisée
         LotOlives lot = lotOlivesRepository.findById(dto.getLotId())
                 .orElseThrow(() -> new RuntimeException("Lot non trouve"));
 
-        Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
-                effectiveHuilerieId,
-                lot.getMatierePremiere().getId())
-                .orElseThrow(() -> new RuntimeException("Stock non trouve pour cette matière premiere et huilerie"));
+        String varieteNormalisee = lot.getVariete() != null
+            ? lot.getVariete().trim().toLowerCase() : "";
+        Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndVariete(
+            effectiveHuilerieId,
+            varieteNormalisee)
+            .orElseThrow(() -> new RuntimeException("Stock non trouve pour cette variété et huilerie"));
 
         applyWholeLotMovement(stock, lot, dto.getTypeMouvement());
         // Sauvegarder le lot après mise à jour

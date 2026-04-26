@@ -10,6 +10,7 @@ public class StockDTO {
     private Long huilerieId;
     private String huilerieNom;
     private String typeStock;
+    private String variete;
     private Long referenceId;
     private Double quantiteDisponible;
     private Long matierePremiereId;

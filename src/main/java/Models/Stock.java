@@ -12,6 +12,8 @@ public class Stock {
 
     private String reference;
     private String typeStock;
+    @Column(name = "variete")
+    private String variete;
     private Double quantiteDisponible;
 
     @ManyToOne
@@ -43,6 +45,14 @@ public class Stock {
 
     public void setTypeStock(String typeStock) {
         this.typeStock = typeStock;
+    }
+
+    public String getVariete() {
+        return variete;
+    }
+
+    public void setVariete(String variete) {
+        this.variete = variete;
     }
 
     public Double getQuantiteDisponible() {

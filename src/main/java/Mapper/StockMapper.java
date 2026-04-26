@@ -10,6 +10,7 @@ public interface StockMapper {
 
     @Mapping(target = "huilerieId", source = "lotOlives.huilerie.idHuilerie")
     @Mapping(target = "huilerieNom", source = "lotOlives.huilerie.nom")
+    @Mapping(target = "variete", source = "variete")
     @Mapping(target = "referenceId", source = "lotOlives.idLot")
     @Mapping(target = "matierePremiereId", ignore = true)
     @Mapping(target = "lotReferences", ignore = true)

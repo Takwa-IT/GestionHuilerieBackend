@@ -16,6 +16,16 @@ public class ExecutionProductionDTO {
     private Double rendement;
     private String observations;
     private Boolean controleTemperature;
+    private String region;
+    private String methodeRecolte;
+    private String typeSol;
+    private Double temperatureMalaxageC;
+    private Double dureeMalaxageMin;
+    private Double vitesseDecanteurTrMin;
+    private Double humiditePourcent;
+    private Double aciditeOlivesPourcent;
+    private Double tauxFeuillesPourcent;
+    private Double pressionExtractionBar;
     private Long huilerieId;
     private String huilerieNom;
     private Long guideProductionId;

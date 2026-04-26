@@ -1,8 +1,11 @@
 package Controllers;
 
 import Services.ExecutionProductionService;
+import Services.ExecutionPredictionService;
 import dto.ExecutionProductionCreateDTO;
 import dto.ExecutionProductionDTO;
+import dto.ExecutionPredictionStartDTO;
+import dto.PredictionDTO;
 import dto.ValeurReelleParametreDTO;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -25,6 +28,7 @@ import java.util.List;
 public class ExecutionProductionController {
 
     private final ExecutionProductionService executionProductionService;
+    private final ExecutionPredictionService executionPredictionService;
 
     @PostMapping
     public ResponseEntity<ExecutionProductionDTO> create(@Valid @RequestBody ExecutionProductionCreateDTO dto) {
@@ -46,14 +50,22 @@ public class ExecutionProductionController {
         return ResponseEntity.ok(executionProductionService.findAll(huilerieNom));
     }
 
-        @PostMapping("/{id}/valeurs-reelles")
-        public void saveValeursReelles(
-                @PathVariable Long id,
-                @RequestBody List<ValeurReelleParametreDTO> valeurs
-        ) {
-            executionProductionService.saveValeursReelles(id, valeurs);
-        }
+    @PostMapping("/{idExecutionProduction}/predict-on-start")
+    public ResponseEntity<PredictionDTO> predictOnStart(
+            @PathVariable Long idExecutionProduction,
+            @RequestBody(required = false) ExecutionPredictionStartDTO dto
+    ) {
+        return ResponseEntity.ok(executionPredictionService.predictOnStart(idExecutionProduction, dto));
     }
+
+    @PostMapping("/{id}/valeurs-reelles")
+    public void saveValeursReelles(
+            @PathVariable Long id,
+            @RequestBody List<ValeurReelleParametreDTO> valeurs
+    ) {
+        executionProductionService.saveValeursReelles(id, valeurs);
+    }
+}
 
 
 

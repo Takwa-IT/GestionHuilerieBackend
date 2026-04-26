@@ -70,6 +70,20 @@ public class ExecutionProductionService {
         executionProduction.setMachine(machine);
         executionProduction.setLot(lot);
 
+        // Copier les champs IA depuis le lot pour la prédiction
+        executionProduction.setRegion(firstNonBlank(dto.getRegion(), lot.getRegion()));
+        executionProduction.setMethodeRecolte(firstNonBlank(dto.getMethodeRecolte(), lot.getMethodeRecolte()));
+        executionProduction.setTypeSol(firstNonBlank(dto.getTypeSol(), lot.getTypeSol()));
+        executionProduction.setTemperatureMalaxageC(dto.getTemperatureMalaxageC());
+        executionProduction.setDureeMalaxageMin(dto.getDureeMalaxageMin());
+        executionProduction.setVitesseDecanteurTrMin(dto.getVitesseDecanteurTrMin());
+        executionProduction.setHumiditePourcent(firstNonNull(dto.getHumiditePourcent(), lot.getHumiditePourcent()));
+        executionProduction.setAciditeOlivesPourcent(firstNonNull(dto.getAciditeOlivesPourcent(),
+                lot.getAciditeOlivesPourcent()));
+        executionProduction.setTauxFeuillesPourcent(firstNonNull(dto.getTauxFeuillesPourcent(),
+                lot.getTauxFeuillesPourcent()));
+        executionProduction.setPressionExtractionBar(dto.getPressionExtractionBar());
+
         ExecutionProduction savedExecution = executionProductionRepository.save(executionProduction);
 
         StockMovementCreateDTO transferDto = new StockMovementCreateDTO();
@@ -166,6 +180,16 @@ public class ExecutionProductionService {
         dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
         dto.setControleTemperature(executionProduction.getControleTemperature());
+        dto.setRegion(executionProduction.getRegion());
+        dto.setMethodeRecolte(executionProduction.getMethodeRecolte());
+        dto.setTypeSol(executionProduction.getTypeSol());
+        dto.setTemperatureMalaxageC(executionProduction.getTemperatureMalaxageC());
+        dto.setDureeMalaxageMin(executionProduction.getDureeMalaxageMin());
+        dto.setVitesseDecanteurTrMin(executionProduction.getVitesseDecanteurTrMin());
+        dto.setHumiditePourcent(executionProduction.getHumiditePourcent());
+        dto.setAciditeOlivesPourcent(executionProduction.getAciditeOlivesPourcent());
+        dto.setTauxFeuillesPourcent(executionProduction.getTauxFeuillesPourcent());
+        dto.setPressionExtractionBar(executionProduction.getPressionExtractionBar());
         dto.setHuilerieId(resolveHuilerieId(executionProduction));
         dto.setHuilerieNom(resolveHuilerieNom(executionProduction));
 
@@ -219,11 +243,11 @@ public class ExecutionProductionService {
         }
 
         Map<Long, ValeurReelleParametre> valeursByParametreId = executionProduction.getValeursReelles() == null
-            ? Map.of()
-            : executionProduction.getValeursReelles().stream()
+                ? Map.of()
+                : executionProduction.getValeursReelles().stream()
                 .filter(v -> v.getParametreEtape() != null && v.getParametreEtape().getIdParametreEtape() != null)
                 .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
-                    (first, second) -> second));
+                        (first, second) -> second));
 
         if (executionProduction.getGuideProduction().getEtapes() == null) {
             return List.of();
@@ -298,6 +322,14 @@ public class ExecutionProductionService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return hasText(first) ? first.trim() : second;
+    }
+
+    private Double firstNonNull(Double first, Double second) {
+        return first != null ? first : second;
     }
 
     @Transactional

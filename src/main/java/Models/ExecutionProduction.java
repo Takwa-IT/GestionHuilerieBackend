@@ -46,6 +46,18 @@ public class ExecutionProduction {
 
     private Boolean controleTemperature;
 
+    // Champs IA pour la prédiction
+    private String region;
+    private String methodeRecolte;
+    private String typeSol;
+    private Double temperatureMalaxageC;
+    private Double dureeMalaxageMin;
+    private Double vitesseDecanteurTrMin;
+    private Double humiditePourcent;
+    private Double aciditeOlivesPourcent;
+    private Double tauxFeuillesPourcent;
+    private Double pressionExtractionBar;
+
     @ManyToOne
     @JoinColumn(name = "guide_production_id", nullable = false)
     private GuideProduction guideProduction;

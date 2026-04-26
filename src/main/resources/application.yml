@@ -33,7 +33,7 @@ spring:
             writetimeout: 5000
 
 server:
-  port: 8500
+  port: 8000
 
 security:
   jwt:
@@ -51,10 +51,14 @@ app:
   frontend:
     ashboard-url: "http://localhost:64412/pages/dashboard/production"
 
+ai:
+  prediction:
+    base-url: ${AI_PREDICTION_BASE_URL:http://localhost:7500}
+
 logging:
   level:
     org:
-       hibernate:
-         SQL: DEBUG
-         type.descriptor.sql: TRACE
+      hibernate:
+        SQL: DEBUG
+        type.descriptor.sql: TRACE
     org.example.gestionhuilerieback: DEBUG

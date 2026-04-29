@@ -21,8 +21,9 @@ public class GuideProductionCreateDTO {
     @NotNull
     private Long huilerieId;
 
+    @NotBlank
+    private String typeMachine;
+
     @Valid
     private List<EtapeProductionCreateDTO> etapes;
 }
-
-

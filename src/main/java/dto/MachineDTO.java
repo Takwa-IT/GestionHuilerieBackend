@@ -8,9 +8,8 @@ public class MachineDTO {
     private Long idMachine;
     private String nomMachine;
     private String typeMachine;
+    private String categorieMachine;
     private String etatMachine;
     private Integer capacite;
     private String huilerieNom;
 }
-
-

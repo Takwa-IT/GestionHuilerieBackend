@@ -12,8 +12,9 @@ public class MachineCreateDTO {
     private String nomMachine;
 
     @NotBlank
-    @Pattern(regexp = "^(2_phase|3_phase|presse)$", message = "typeMachine doit etre 2_phase, 3_phase ou presse")
     private String typeMachine;
+
+    private String categorieMachine;
 
     @NotBlank
     private String etatMachine;
@@ -24,5 +25,3 @@ public class MachineCreateDTO {
     @NotBlank
     private String huilerieNom;
 }
-
-

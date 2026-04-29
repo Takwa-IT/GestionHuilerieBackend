@@ -14,7 +14,6 @@ public class GuideProductionDTO {
     private String dateCreation;
     private Long huilerieId;
     private String huilerieNom;
+    private String typeMachine;
     private List<EtapeProductionDTO> etapes;
 }
-
-

@@ -11,7 +11,7 @@ public class EtapeProductionDTO {
     private String nom;
     private Integer ordre;
     private String description;
+    private String codeEtape;
+    private Long machineId;
     private List<ParametreEtapeDTO> parametres;
 }
-
-

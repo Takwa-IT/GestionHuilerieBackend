@@ -24,8 +24,6 @@ import java.util.List;
 @Transactional
 public class MachineService {
 
-    private static final Set<String> ALLOWED_MACHINE_TYPES = Set.of("2_phase", "3_phase", "presse");
-
     private final MachineRepository machineRepository;
     private final HuilerieRepository huilerieRepository;
     private final MatierePremiereService matierePremiereService;
@@ -35,6 +33,7 @@ public class MachineService {
     public MachineDTO create(MachineCreateDTO dto) {
         Machine machine = machineMapper.toEntity(dto);
         machine.setTypeMachine(normalizeMachineType(machine.getTypeMachine()));
+        machine.setCategorieMachine(normalizeOptionalField(machine.getCategorieMachine()));
         Huilerie huilerie = findHuilerieByNom(dto.getHuilerieNom());
         currentUserService.ensureCanAccessHuilerie(huilerie.getIdHuilerie());
         machine.setHuilerie(huilerie);
@@ -53,6 +52,10 @@ public class MachineService {
 
         if (dto.getTypeMachine() != null) {
             machine.setTypeMachine(normalizeMachineType(dto.getTypeMachine()));
+        }
+
+        if (dto.getCategorieMachine() != null) {
+            machine.setCategorieMachine(normalizeOptionalField(dto.getCategorieMachine()));
         }
 
         if (dto.getHuilerieNom() != null) {
@@ -95,7 +98,8 @@ public class MachineService {
         if (currentUserService.isAdmin(utilisateur)) {
             List<Machine> machines;
             if (hasText(huilerieNom) && normalizedType != null) {
-                machines = machineRepository.findByHuilerie_NomIgnoreCaseAndTypeMachineIgnoreCase(huilerieNom, normalizedType);
+                machines = machineRepository.findByHuilerie_NomIgnoreCaseAndTypeMachineIgnoreCase(huilerieNom,
+                        normalizedType);
             } else if (hasText(huilerieNom)) {
                 machines = machineRepository.findByHuilerie_NomIgnoreCase(huilerieNom);
             } else if (normalizedType != null) {
@@ -106,7 +110,7 @@ public class MachineService {
             return machines.stream()
                     .filter(machine -> machine.getHuilerie() != null
                             && currentUserService.getAccessibleHuilerieIds()
-                            .contains(machine.getHuilerie().getIdHuilerie()))
+                                    .contains(machine.getHuilerie().getIdHuilerie()))
                     .map(machineMapper::toDTO)
                     .toList();
         }
@@ -133,7 +137,7 @@ public class MachineService {
         return machineRepository.findByHuilerieNom(huilerieNom).stream()
                 .filter(machine -> machine.getHuilerie() != null
                         && currentUserService.getAccessibleHuilerieIds()
-                        .contains(machine.getHuilerie().getIdHuilerie()))
+                                .contains(machine.getHuilerie().getIdHuilerie()))
                 .map(machineMapper::toDTO)
                 .toList();
     }
@@ -159,12 +163,13 @@ public class MachineService {
         if (!hasText(value)) {
             throw new IllegalArgumentException("Le type de machine est obligatoire.");
         }
+        return value.trim().toLowerCase();
+    }
 
-        String normalized = value.trim().toLowerCase();
-        if (!ALLOWED_MACHINE_TYPES.contains(normalized)) {
-            throw new IllegalArgumentException("Type machine invalide. Valeurs autorisees: 2_phase, 3_phase, presse.");
+    private String normalizeOptionalField(String value) {
+        if (!hasText(value)) {
+            return null;
         }
-
-        return normalized;
+        return value.trim().toLowerCase();
     }
 }

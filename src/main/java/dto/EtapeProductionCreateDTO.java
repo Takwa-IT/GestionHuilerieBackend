@@ -18,8 +18,10 @@ public class EtapeProductionCreateDTO {
 
     private String description;
 
+    private String codeEtape;
+
     @Valid
     private List<ParametreEtapeCreateDTO> parametres;
+
+    private Long machineId;
 }
-
-

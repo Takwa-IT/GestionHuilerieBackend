@@ -52,7 +52,12 @@ public class Stock {
     }
 
     public void setVariete(String variete) {
-        this.variete = variete;
+        // Normalisé : trim, lowercase, suppression des espaces multiples
+        if (variete != null) {
+            this.variete = variete.trim().toLowerCase().replaceAll("\\s+", " ");
+        } else {
+            this.variete = null;
+        }
     }
 
     public Double getQuantiteDisponible() {

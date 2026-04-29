@@ -130,7 +130,11 @@ public class LotOlivesService {
                     return stockRepository.save(savedStock);
                 });
 
-        stock.setLotOlives(persistedLot);
+        // Ne pas écraser le lot existant : conserver la liaison avec le lot qui a créé le stock
+        // Les autres lots arrivent via StockMovements
+        if (stock.getLotOlives() == null) {
+            stock.setLotOlives(persistedLot);
+        }
 
         stockMovementService.createArrivalForStock(
                 stock,
@@ -154,7 +158,8 @@ public class LotOlivesService {
             throw new RuntimeException("La variété du lot est obligatoire");
         }
 
-        return variete.trim();
+        // Normaliser : trim, lowercase, suppression des espaces multiples
+        return variete.trim().toLowerCase().replaceAll("\\s+", " ");
     }
 
     public byte[] generateBonPeseePdf(String reference) {
@@ -236,7 +241,8 @@ public class LotOlivesService {
         LotOlives lot = findLot(idLot);
 
         if (dto.getVariete() != null && !dto.getVariete().trim().isEmpty()) {
-            lot.setVariete(dto.getVariete().trim());
+            // Normaliser : trim, lowercase, suppression des espaces multiples
+            lot.setVariete(dto.getVariete().trim().toLowerCase().replaceAll("\\s+", " "));
         }
         if (dto.getMaturite() != null) {
             lot.setMaturite(dto.getMaturite());

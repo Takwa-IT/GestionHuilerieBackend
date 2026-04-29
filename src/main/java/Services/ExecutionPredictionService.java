@@ -7,7 +7,6 @@ import Models.GuideProduction;
 import Models.LotOlives;
 import Models.Machine;
 import Models.ParametreEtape;
-import Models.ValeurReelleParametre;
 import Repositories.ExecutionProductionRepository;
 import dto.ExecutionPredictionStartDTO;
 import dto.PredictionCreateDTO;
@@ -19,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,15 +41,16 @@ public class ExecutionPredictionService {
         applyOverrides(execution, overrides);
 
         Map<String, Object> payload = buildAiPayload(execution);
-        Map<String, Object> aiResponse = callAiPredict(payload);
+        Map<String, Object> aiResponse = callAiPredictGuide(payload);
+        Map<String, Object> predictionBlock = extractPredictionBlock(aiResponse);
 
         PredictionCreateDTO dto = new PredictionCreateDTO();
         dto.setExecutionProductionId(executionId);
-        dto.setModePrediction(asString(aiResponse.get("mode_prediction")));
-        dto.setQualitePredite(asString(aiResponse.get("qualite_predite")));
-        dto.setProbabiliteQualite(asDouble(aiResponse.get("probabilite_qualite")));
-        dto.setRendementPreditPourcent(asDouble(aiResponse.get("rendement_predit_pourcent")));
-        dto.setQuantiteHuileRecalculeeLitres(asDouble(aiResponse.get("quantite_huile_recalculee_litres")));
+        dto.setModePrediction(asString(predictionBlock.get("mode_prediction")));
+        dto.setQualitePredite(asString(predictionBlock.get("qualite_predite")));
+        dto.setProbabiliteQualite(asDouble(predictionBlock.get("probabilite_qualite")));
+        dto.setRendementPreditPourcent(asDouble(predictionBlock.get("rendement_predit_pourcent")));
+        dto.setQuantiteHuileRecalculeeLitres(asDouble(predictionBlock.get("quantite_huile_recalculee_litres")));
 
         return predictionService.create(dto);
     }
@@ -112,12 +112,12 @@ public class ExecutionPredictionService {
         }
     }
 
-    private Map<String, Object> callAiPredict(Map<String, Object> payload) {
+    private Map<String, Object> callAiPredictGuide(Map<String, Object> payload) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.postForObject(
-                    normalizeBaseUrl(aiPredictionBaseUrl) + "/predict",
+                    normalizeBaseUrl(aiPredictionBaseUrl) + "/predict-guide",
                     payload,
                     Map.class);
 
@@ -128,6 +128,15 @@ public class ExecutionPredictionService {
         } catch (Exception ex) {
             throw new RuntimeException("Echec appel microservice IA: " + ex.getMessage(), ex);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractPredictionBlock(Map<String, Object> response) {
+        Object nested = response.get("prediction");
+        if (nested instanceof Map<?, ?> nestedMap) {
+            return (Map<String, Object>) nestedMap;
+        }
+        return response;
     }
 
     private Map<String, Object> buildAiPayload(ExecutionProduction execution) {
@@ -145,28 +154,25 @@ public class ExecutionPredictionService {
             throw new RuntimeException("Guide absent sur l'execution");
         }
 
-        Map<String, String> valeursParCode = extractProcessValues(guide, execution);
-
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("variete", normalizeText(lot.getVariete()));
-        // Utiliser les valeurs de l'execution si disponibles, sinon fallback au lot
         payload.put("region", normalizeText(execution.getRegion() != null ? execution.getRegion() : lot.getRegion()));
-        payload.put("methode_recolte", normalizeText(execution.getMethodeRecolte() != null ? execution.getMethodeRecolte() : lot.getMethodeRecolte()));
-        payload.put("type_sol", normalizeText(execution.getTypeSol() != null ? execution.getTypeSol() : lot.getTypeSol()));
+        payload.put("methode_recolte", normalizeText(
+                execution.getMethodeRecolte() != null ? execution.getMethodeRecolte() : lot.getMethodeRecolte()));
+        payload.put("type_sol",
+                normalizeText(execution.getTypeSol() != null ? execution.getTypeSol() : lot.getTypeSol()));
         payload.put("poids_olives_kg", firstNonNull(lot.getPesee(), lot.getQuantiteInitiale()));
         payload.put("maturite_niveau_1_5", parseMaturite(lot.getMaturite()));
         payload.put("duree_stockage_jours", defaultInt(lot.getDureeStockageAvantBroyage(), 0));
         payload.put("temps_depuis_recolte_heures", defaultInt(lot.getTempsDepuisRecolteHeures(), 0));
-        // Utiliser la valeur de l'execution en priorité, puis valeursParCode, puis valeur par défaut
         payload.put("temperature_malaxage_c",
-                execution.getTemperatureMalaxageC() != null ? execution.getTemperatureMalaxageC() :
-                        parseDoubleSafe(valeursParCode.get("temperature_malaxage_c")));
+                firstNonNull(execution.getTemperatureMalaxageC(),
+                        extractGuideValue(guide, "temperature_malaxage_c", 26.0)));
         payload.put("duree_malaxage_min",
-                execution.getDureeMalaxageMin() != null ? execution.getDureeMalaxageMin() :
-                        parseDoubleSafe(valeursParCode.get("duree_malaxage_min")));
+                firstNonNull(execution.getDureeMalaxageMin(), extractGuideValue(guide, "duree_malaxage_min", 30.0)));
         payload.put("vitesse_decanteur_tr_min",
-                execution.getVitesseDecanteurTrMin() != null ? execution.getVitesseDecanteurTrMin() :
-                        parseDoubleSafe(valeursParCode.get("vitesse_decanteur_tr_min")));
+                firstNonNull(execution.getVitesseDecanteurTrMin(),
+                        extractGuideValue(guide, "vitesse_decanteur_tr_min", 3200.0)));
         payload.put("humidite_pourcent",
                 firstNonNull(execution.getHumiditePourcent(), lot.getHumiditePourcent()));
         payload.put("acidite_olives_pourcent",
@@ -175,11 +181,9 @@ public class ExecutionPredictionService {
                 firstNonNull(execution.getTauxFeuillesPourcent(), lot.getTauxFeuillesPourcent()));
         payload.put("lavage_effectue", normalizeOuiNon(lot.getLavageEffectue()));
         payload.put("type_machine", normalizeText(machine.getTypeMachine()));
-        payload.put("pression_extraction_bar",
-                execution.getPressionExtractionBar() != null ? execution.getPressionExtractionBar() :
-                        parseDoubleSafe(valeursParCode.get("pression_extraction_bar")));
         payload.put("controle_temperature",
                 execution.getControleTemperature() != null && execution.getControleTemperature() ? "Oui" : "Non");
+        payload.put("etapes", buildGuideSteps(guide, execution));
 
         AnalyseLaboratoire analyseLaboratoire = lot.getAnalyseLaboratoire();
         if (analyseLaboratoire != null) {
@@ -194,37 +198,131 @@ public class ExecutionPredictionService {
         return payload;
     }
 
-    private Map<String, String> extractProcessValues(GuideProduction guide, ExecutionProduction execution) {
-        Map<String, String> values = new HashMap<>();
+    private List<Map<String, Object>> buildGuideSteps(GuideProduction guide, ExecutionProduction execution) {
+        List<Map<String, Object>> stepsPayload = new ArrayList<>();
 
-        if (guide.getEtapes() != null) {
-            for (EtapeProduction etape : guide.getEtapes()) {
-                if (etape.getParametres() == null) {
-                    continue;
-                }
-                for (ParametreEtape parametre : etape.getParametres()) {
-                    String code = normalizeKey(parametre.getCodeParametre());
-                    if (!code.isBlank() && parametre.getValeur() != null) {
-                        values.put(code, parametre.getValeur());
-                    }
-                }
+        List<EtapeProduction> steps = new ArrayList<>(guide.getEtapes() == null ? List.of() : guide.getEtapes());
+        steps.sort(Comparator.comparing(EtapeProduction::getOrdre, Comparator.nullsLast(Integer::compareTo)));
+
+        for (EtapeProduction step : steps) {
+            Double stepDuration = extractStepValue(step, "duree_malaxage_min");
+            if (stepDuration == null || stepDuration <= 0) {
+                stepDuration = 1.0;
+            }
+
+            Map<String, Object> aiStep = new LinkedHashMap<>();
+            aiStep.put("duree_etape_min", stepDuration);
+
+            Double temperature = extractStepValue(step, "temperature_malaxage_c");
+            if (temperature != null) {
+                aiStep.put("temperature_malaxage_c", temperature);
+            }
+
+            Double malaxage = extractStepValue(step, "duree_malaxage_min");
+            if (malaxage != null) {
+                aiStep.put("duree_malaxage_min", malaxage);
+            }
+
+            Double vitesse = extractStepValue(step, "vitesse_decanteur_tr_min");
+            if (vitesse != null) {
+                aiStep.put("vitesse_decanteur_tr_min", vitesse);
+            }
+
+            Double pression = extractStepValue(step, "pression_extraction_bar");
+            if (pression != null) {
+                aiStep.put("pression_extraction_bar", pression);
+            }
+
+            stepsPayload.add(aiStep);
+        }
+
+        boolean hasOverride = execution.getTemperatureMalaxageC() != null
+                || execution.getDureeMalaxageMin() != null
+                || execution.getVitesseDecanteurTrMin() != null
+                || execution.getPressionExtractionBar() != null;
+
+        if (hasOverride) {
+            Map<String, Object> overrideStep = new LinkedHashMap<>();
+            double overrideDuration = execution.getDureeMalaxageMin() != null && execution.getDureeMalaxageMin() > 0
+                    ? execution.getDureeMalaxageMin()
+                    : 1.0;
+            overrideStep.put("duree_etape_min", overrideDuration);
+
+            if (execution.getTemperatureMalaxageC() != null) {
+                overrideStep.put("temperature_malaxage_c", execution.getTemperatureMalaxageC());
+            }
+            if (execution.getDureeMalaxageMin() != null) {
+                overrideStep.put("duree_malaxage_min", execution.getDureeMalaxageMin());
+            }
+            if (execution.getVitesseDecanteurTrMin() != null) {
+                overrideStep.put("vitesse_decanteur_tr_min", execution.getVitesseDecanteurTrMin());
+            }
+            if (execution.getPressionExtractionBar() != null) {
+                overrideStep.put("pression_extraction_bar", execution.getPressionExtractionBar());
+            }
+
+            stepsPayload.add(overrideStep);
+        }
+
+        return stepsPayload;
+    }
+
+    private Double extractStepValue(EtapeProduction step, String code) {
+        if (step.getParametres() == null) {
+            return null;
+        }
+
+        for (ParametreEtape param : step.getParametres()) {
+            if (param == null || param.getCodeParametre() == null) {
+                continue;
+            }
+            if (!param.getCodeParametre().trim().equalsIgnoreCase(code)) {
+                continue;
+            }
+            return parseDoubleSafe(param.getValeur());
+        }
+        return null;
+    }
+
+    private Double extractGuideValue(GuideProduction guide, String code, Double fallback) {
+        if (guide == null || guide.getEtapes() == null) {
+            return fallback;
+        }
+
+        List<EtapeProduction> steps = new ArrayList<>(guide.getEtapes());
+        steps.sort(Comparator.comparing(EtapeProduction::getOrdre, Comparator.nullsLast(Integer::compareTo)));
+
+        for (EtapeProduction step : steps) {
+            Double value = extractStepValue(step, code);
+            if (value != null) {
+                return value;
             }
         }
 
-        if (execution.getValeursReelles() != null) {
-            for (ValeurReelleParametre valeurReelle : execution.getValeursReelles()) {
-                if (valeurReelle.getParametreEtape() == null) {
-                    continue;
-                }
-                String code = normalizeKey(valeurReelle.getParametreEtape().getCodeParametre());
-                if (!code.isBlank() && valeurReelle.getValeurReelle() != null
-                        && !valeurReelle.getValeurReelle().isBlank()) {
-                    values.put(code, valeurReelle.getValeurReelle());
-                }
-            }
-        }
+        return fallback;
+    }
 
-        return values;
+    /**
+     * Version publique de buildAiPayload pour l'analyse de transformation
+     * Retourne le payload sans validation stricte (pour debug/analysis)
+     */
+    public Map<String, Object> buildAiPayloadForAnalysis(ExecutionProduction execution) {
+        try {
+            return buildAiPayload(execution);
+        } catch (Exception e) {
+            // Retourner un payload partiel si validation échoue (pour analysis)
+            Map<String, Object> partialPayload = new LinkedHashMap<>();
+            LotOlives lot = execution.getLotOlives();
+            GuideProduction guide = execution.getGuideProduction();
+
+            if (lot != null) {
+                partialPayload.put("variete", lot.getVariete());
+            }
+            if (guide != null) {
+                partialPayload.put("etapes", buildGuideSteps(guide, execution));
+            }
+            return partialPayload;
+        }
     }
 
     private void validateRequiredPayload(Map<String, Object> payload) {
@@ -245,8 +343,8 @@ public class ExecutionPredictionService {
                 "taux_feuilles_pourcent",
                 "lavage_effectue",
                 "type_machine",
-                "pression_extraction_bar",
-                "controle_temperature"
+                "controle_temperature",
+                "etapes"
         };
 
         List<String> missing = new ArrayList<>();
@@ -272,10 +370,6 @@ public class ExecutionPredictionService {
             return trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;
-    }
-
-    private String normalizeKey(String value) {
-        return value == null ? "" : value.trim().toLowerCase();
     }
 
     private String normalizeText(String value) {

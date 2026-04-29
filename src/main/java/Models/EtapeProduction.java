@@ -35,12 +35,17 @@ public class EtapeProduction {
 
     private String description;
 
+    @Column(name = "code_etape")
+    private String codeEtape;
+
     @ManyToOne
     @JoinColumn(name = "guide_production_id", nullable = false)
     private GuideProduction guideProduction;
 
+    @ManyToOne
+    @JoinColumn(name = "machine_id")
+    private Machine machine;
+
     @OneToMany(mappedBy = "etapeProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ParametreEtape> parametres;
 }
-
-

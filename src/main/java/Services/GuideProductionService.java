@@ -4,10 +4,12 @@ import Config.ReferenceUtils;
 import Models.EtapeProduction;
 import Models.GuideProduction;
 import Models.Huilerie;
+import Models.Machine;
 import Models.ParametreEtape;
 import Models.Utilisateur;
 import Repositories.GuideProductionRepository;
 import Repositories.HuilerieRepository;
+import Repositories.MachineRepository;
 import dto.EtapeProductionCreateDTO;
 import dto.EtapeProductionDTO;
 import dto.GuideProductionCreateDTO;
@@ -28,6 +30,7 @@ public class GuideProductionService {
 
     private final GuideProductionRepository guideProductionRepository;
     private final HuilerieRepository huilerieRepository;
+    private final MachineRepository machineRepository;
     private final CurrentUserService currentUserService;
 
     public GuideProductionDTO create(GuideProductionCreateDTO dto) {
@@ -77,10 +80,12 @@ public class GuideProductionService {
                     : guideProductionRepository.findAll();
             guides = guides.stream()
                     .filter(guide -> guide.getHuilerie() != null
-                            && currentUserService.getAccessibleHuilerieIds().contains(guide.getHuilerie().getIdHuilerie()))
+                            && currentUserService.getAccessibleHuilerieIds()
+                                    .contains(guide.getHuilerie().getIdHuilerie()))
                     .toList();
         } else {
-            guides = guideProductionRepository.findByHuilerie_IdHuilerie(currentUserService.getCurrentHuilerieIdOrThrow());
+            guides = guideProductionRepository
+                    .findByHuilerie_IdHuilerie(currentUserService.getCurrentHuilerieIdOrThrow());
         }
 
         return guides.stream()
@@ -93,38 +98,17 @@ public class GuideProductionService {
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));
     }
 
-    private void applyRequestToGuide(GuideProduction guideProduction, GuideProductionCreateDTO dto, Huilerie huilerie, boolean replaceEtapesCollection) {
+    private void applyRequestToGuide(GuideProduction guideProduction, GuideProductionCreateDTO dto, Huilerie huilerie,
+            boolean replaceEtapesCollection) {
         guideProduction.setNom(dto.getNom());
         guideProduction.setDescription(dto.getDescription());
         guideProduction.setDateCreation(dto.getDateCreation());
         guideProduction.setHuilerie(huilerie);
+        guideProduction.setTypeMachine(normalizeTypeMachine(dto.getTypeMachine()));
 
-        List<EtapeProduction> etapes = new ArrayList<>();
-        if (dto.getEtapes() != null) {
-            for (EtapeProductionCreateDTO etapeDTO : dto.getEtapes()) {
-                EtapeProduction etape = new EtapeProduction();
-                etape.setNom(etapeDTO.getNom());
-                etape.setOrdre(etapeDTO.getOrdre());
-                etape.setDescription(etapeDTO.getDescription());
-                etape.setGuideProduction(guideProduction);
-
-                List<ParametreEtape> parametres = new ArrayList<>();
-                if (etapeDTO.getParametres() != null) {
-                    for (ParametreEtapeCreateDTO parametreDTO : etapeDTO.getParametres()) {
-                        ParametreEtape parametre = new ParametreEtape();
-                        parametre.setNom(parametreDTO.getNom());
-                        parametre.setCodeParametre(parametreDTO.getCodeParametre());
-                        parametre.setUniteMesure(parametreDTO.getUniteMesure());
-                        parametre.setDescription(parametreDTO.getDescription());
-                        parametre.setValeur(parametreDTO.getValeur());
-                        parametre.setEtapeProduction(etape);
-                        parametres.add(parametre);
-                    }
-                }
-                etape.setParametres(parametres);
-                etapes.add(etape);
-            }
-        }
+        List<EtapeProduction> etapes = dto.getEtapes() != null && !dto.getEtapes().isEmpty()
+                ? buildManualEtapes(guideProduction, dto.getEtapes())
+                : buildTemplateEtapes(guideProduction, dto.getTypeMachine());
 
         if (replaceEtapesCollection || guideProduction.getEtapes() == null) {
             guideProduction.setEtapes(etapes);
@@ -142,6 +126,7 @@ public class GuideProductionService {
         dto.setNom(guideProduction.getNom());
         dto.setDescription(guideProduction.getDescription());
         dto.setDateCreation(guideProduction.getDateCreation());
+        dto.setTypeMachine(guideProduction.getTypeMachine());
         if (guideProduction.getHuilerie() != null) {
             dto.setHuilerieId(guideProduction.getHuilerie().getIdHuilerie());
             dto.setHuilerieNom(guideProduction.getHuilerie().getNom());
@@ -158,6 +143,8 @@ public class GuideProductionService {
         dto.setNom(etapeProduction.getNom());
         dto.setOrdre(etapeProduction.getOrdre());
         dto.setDescription(etapeProduction.getDescription());
+        dto.setCodeEtape(etapeProduction.getCodeEtape());
+        dto.setMachineId(etapeProduction.getMachine() != null ? etapeProduction.getMachine().getIdMachine() : null);
         if (etapeProduction.getParametres() != null) {
             dto.setParametres(etapeProduction.getParametres().stream().map(this::toDTO).toList());
         }
@@ -176,9 +163,94 @@ public class GuideProductionService {
         return dto;
     }
 
+    private List<EtapeProduction> buildTemplateEtapes(GuideProduction guideProduction, String typeMachine) {
+        List<EtapeProduction> etapes = new ArrayList<>();
+        for (EtapeProductionCreateDTO etapeDTO : GuideProductionTemplateFactory.buildDefaultEtapes(typeMachine)) {
+            etapes.add(mapEtapeToEntity(guideProduction, etapeDTO));
+        }
+        return etapes;
+    }
+
+    private List<EtapeProduction> buildManualEtapes(GuideProduction guideProduction,
+            List<EtapeProductionCreateDTO> etapeDTOs) {
+        List<EtapeProduction> etapes = new ArrayList<>();
+        if (etapeDTOs == null) {
+            return etapes;
+        }
+
+        for (EtapeProductionCreateDTO etapeDTO : etapeDTOs) {
+            etapes.add(mapEtapeToEntity(guideProduction, etapeDTO));
+        }
+        return etapes;
+    }
+
+    private EtapeProduction mapEtapeToEntity(GuideProduction guideProduction, EtapeProductionCreateDTO etapeDTO) {
+        EtapeProduction etape = new EtapeProduction();
+        etape.setNom(etapeDTO.getNom());
+        etape.setOrdre(etapeDTO.getOrdre());
+        etape.setDescription(etapeDTO.getDescription());
+        etape.setCodeEtape(hasText(etapeDTO.getCodeEtape())
+                ? normalizeCodeEtapeValue(etapeDTO.getCodeEtape())
+                : normalizeCodeEtape(etapeDTO.getNom(), etapeDTO.getOrdre()));
+        etape.setGuideProduction(guideProduction);
+
+        if (etapeDTO.getMachineId() != null) {
+            Machine machine = machineRepository.findById(etapeDTO.getMachineId())
+                    .orElseThrow(() -> new RuntimeException("Machine non trouvee: " + etapeDTO.getMachineId()));
+
+            if (machine.getHuilerie() == null || guideProduction.getHuilerie() == null
+                    || !machine.getHuilerie().getIdHuilerie().equals(guideProduction.getHuilerie().getIdHuilerie())) {
+                throw new IllegalArgumentException(
+                        "La machine selectionnee n'appartient pas a la meme huilerie que le guide.");
+            }
+
+            etape.setMachine(machine);
+        }
+
+        List<ParametreEtape> parametres = new ArrayList<>();
+        if (etapeDTO.getParametres() != null) {
+            for (ParametreEtapeCreateDTO parametreDTO : etapeDTO.getParametres()) {
+                ParametreEtape parametre = new ParametreEtape();
+                parametre.setNom(parametreDTO.getNom());
+                parametre.setCodeParametre(parametreDTO.getCodeParametre());
+                parametre.setUniteMesure(parametreDTO.getUniteMesure());
+                parametre.setDescription(parametreDTO.getDescription());
+                parametre.setValeur(parametreDTO.getValeur());
+                parametre.setEtapeProduction(etape);
+                parametres.add(parametre);
+            }
+        }
+        etape.setParametres(parametres);
+        return etape;
+    }
+
+    private String normalizeCodeEtapeValue(String codeEtape) {
+        String normalized = codeEtape.trim().toLowerCase();
+        normalized = normalized.replaceAll("[^a-z0-9_]+", "_").replaceAll("_+", "_").replaceAll("^_+|_+$", "");
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("Le codeEtape est invalide");
+        }
+        return normalized;
+    }
+
+    private String normalizeTypeMachine(String value) {
+        String normalized = GuideProductionTemplateFactory.normalizeTypeMachine(value);
+        if (!hasText(normalized)) {
+            throw new IllegalArgumentException("Le type de machine est obligatoire pour le guide de production.");
+        }
+        return normalized;
+    }
+
+    private String normalizeCodeEtape(String nom, Integer ordre) {
+        String normalized = nom == null ? "" : nom.trim().toLowerCase();
+        normalized = normalized.replaceAll("[^a-z0-9]+", "_").replaceAll("^_+|_+$", "");
+        if (normalized.isBlank()) {
+            return ordre == null ? "etape" : "etape_" + ordre;
+        }
+        return normalized;
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
 }
-
-

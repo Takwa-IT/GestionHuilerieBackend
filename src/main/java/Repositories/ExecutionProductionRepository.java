@@ -22,16 +22,16 @@ public interface ExecutionProductionRepository extends JpaRepository<ExecutionPr
 	@Query("""
 			select e
 			from ExecutionProduction e
-			join e.guideProduction gp
-			where gp.huilerie.idHuilerie = :huilerieId
+			left join e.guideProduction gp
+			where gp.huilerie.idHuilerie = :huilerieId or gp is null
 			""")
 	List<ExecutionProduction> findAllByHuilerieId(@Param("huilerieId") Long huilerieId);
 
 	@Query("""
 			select e
 			from ExecutionProduction e
-			join e.guideProduction gp
-			where lower(gp.huilerie.nom) = lower(:huilerieNom)
+			left join e.guideProduction gp
+			where lower(gp.huilerie.nom) = lower(:huilerieNom) or gp is null
 			""")
 	List<ExecutionProduction> findAllByHuilerieNom(@Param("huilerieNom") String huilerieNom);
 }

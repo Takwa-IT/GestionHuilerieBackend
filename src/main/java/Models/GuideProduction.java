@@ -34,6 +34,9 @@ public class GuideProduction {
     @Column(nullable = false)
     private String nom;
 
+    @Column(name = "type_machine", nullable = false)
+    private String typeMachine;
+
     private String description;
 
     private String dateCreation;
@@ -62,5 +65,3 @@ public class GuideProduction {
         }
     }
 }
-
-

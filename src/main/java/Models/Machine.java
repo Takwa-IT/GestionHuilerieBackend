@@ -22,6 +22,7 @@ public class Machine {
 
     private String nomMachine;
     private String typeMachine;
+    private String categorieMachine;
     private String etatMachine;
     private Integer capacite;
 
@@ -73,6 +74,14 @@ public class Machine {
 
     public String getEtatMachine() {
         return etatMachine;
+    }
+
+    public String getCategorieMachine() {
+        return categorieMachine;
+    }
+
+    public void setCategorieMachine(String categorieMachine) {
+        this.categorieMachine = categorieMachine;
     }
 
     public void setEtatMachine(String etatMachine) {

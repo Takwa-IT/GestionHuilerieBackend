@@ -14,7 +14,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -28,35 +33,49 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:4200", "http://localhost:3000", "http://127.0.0.1:4200"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(false);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(cors -> {})
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
-                    .authenticationEntryPoint((request, response, authException) -> {
-                        log.warn("[SECURITY] authenticationEntryPoint {} {} -> {}", request.getMethod(), request.getRequestURI(), authException.getMessage());
-                        String path = request.getRequestURI();
-                        String message = "/api/auth/me".equals(path)
-                            ? "Token JWT manquant ou invalide pour /api/auth/me"
-                            : "Authentification requise";
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.warn("[SECURITY] authenticationEntryPoint {} {} -> {}", request.getMethod(), request.getRequestURI(), authException.getMessage());
+                            String path = request.getRequestURI();
+                            String message = "/api/auth/me".equals(path)
+                                    ? "Token JWT manquant ou invalide pour /api/auth/me"
+                                    : "Authentification requise";
 
-                        String escaped = message.replace("\\", "\\\\").replace("\"", "\\\"");
-                        String body = "{\"success\":false,\"message\":\"" + escaped + "\",\"errors\":[\"" + escaped + "\"]}";
-                        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.getWriter().write(body);
-                    })
+                            String escaped = message.replace("\\", "\\\\").replace("\"", "\\\"");
+                            String body = "{\"success\":false,\"message\":\"" + escaped + "\",\"errors\":[\"" + escaped + "\"]}";
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write(body);
+                        })
                 )
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .requestMatchers("/api/execution-productions/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/execution-productions/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/guide-productions/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/guide-productions/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/guide-productions/**").permitAll()
-                    .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/refresh").permitAll()
-                    .requestMatchers("/api/auth/me").authenticated()
-                    .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

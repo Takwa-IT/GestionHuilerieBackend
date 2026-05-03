@@ -46,5 +46,12 @@ public class LotTraceabilityDTO {
         private String etape;
         private String description;
         private String reference;
+        // Structured prediction fields (optional, may be null for non-prediction events)
+        private Long predictionId;
+        private String predictionMode;
+        private String qualitePredite;
+        private Double probabiliteQualite;
+        private Double rendementPreditPourcent;
+        private Double quantiteHuileRecalculeeLitres;
     }
 }

@@ -3,7 +3,6 @@ package Services;
 import Models.ExecutionProduction;
 import Models.GuideProduction;
 import Models.LotOlives;
-import Models.Machine;
 import Models.ParametreEtape;
 import Models.Prediction;
 import Models.TypeMouvement;
@@ -15,7 +14,6 @@ import Models.Utilisateur;
 import Repositories.ExecutionProductionRepository;
 import Repositories.GuideProductionRepository;
 import Repositories.LotOlivesRepository;
-import Repositories.MachineRepository;
 import dto.ExecutionProductionCreateDTO;
 import dto.ExecutionProductionDTO;
 import dto.StockMovementCreateDTO;
@@ -27,8 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Slf4j
@@ -36,10 +36,25 @@ import java.util.stream.Collectors;
 @Transactional
 public class ExecutionProductionService {
 
+    private static final String QUALITY_EXTRA_VIERGE = "Extra Vierge";
+    private static final String QUALITY_VIERGE = "Vierge";
+    private static final String QUALITY_LAMPANTE = "Lampante";
+
+    private static final Set<String> ALLOWED_PARAM_KEYS = Set.of(
+            "temperature_malaxage_c",
+            "duree_malaxage_min",
+            "vitesse_decanteur_tr_min",
+            "vitesse_decanteur",
+            "vitesse",
+            "pression_extraction_bar",
+            "presence_presse",
+            "presence_ajout_eau");
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
     private final ParametreEtapeRepository parametreEtapeRepository;
     private final ExecutionProductionRepository executionProductionRepository;
     private final GuideProductionRepository guideProductionRepository;
-    private final MachineRepository machineRepository;
     private final LotOlivesRepository lotOlivesRepository;
     private final StockMovementService stockMovementService;
     private final CurrentUserService currentUserService;
@@ -47,12 +62,10 @@ public class ExecutionProductionService {
     public ExecutionProductionDTO create(ExecutionProductionCreateDTO dto) {
         GuideProduction guideProduction = guideProductionRepository.findById(dto.getGuideProductionId())
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));
-        Machine machine = machineRepository.findById(dto.getMachineId())
-                .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
         LotOlives lot = lotOlivesRepository.findById(dto.getLotId())
                 .orElseThrow(() -> new RuntimeException("Lot d'olives non trouve"));
 
-        Long huilerieId = resolveHuilerieId(guideProduction, machine, lot);
+        Long huilerieId = resolveHuilerieId(guideProduction, lot);
         currentUserService.ensureCanAccessHuilerie(huilerieId);
 
         String referenceUnique = buildUniqueCodeLot(dto.getReference(), lot.getIdLot());
@@ -67,7 +80,6 @@ public class ExecutionProductionService {
         executionProduction.setObservations(dto.getObservations());
         executionProduction.setControleTemperature(dto.getControleTemperature());
         executionProduction.setGuideProduction(guideProduction);
-        executionProduction.setMachine(machine);
         executionProduction.setLot(lot);
 
         // Copier les champs IA depuis le lot pour la prédiction
@@ -97,14 +109,13 @@ public class ExecutionProductionService {
         return toDTO(savedExecution);
     }
 
-    private Long resolveHuilerieId(GuideProduction guideProduction, Machine machine, LotOlives lot) {
+    private Long resolveHuilerieId(GuideProduction guideProduction, LotOlives lot) {
         Long guideHuilerieId = resolveHuilerieId(guideProduction != null ? guideProduction.getHuilerie() : null,
                 "guide de production");
-        Long machineHuilerieId = resolveHuilerieId(machine != null ? machine.getHuilerie() : null, "machine");
         Long lotHuilerieId = resolveHuilerieId(lot != null ? lot.getHuilerie() : null, "lot d'olives");
 
-        if (!guideHuilerieId.equals(machineHuilerieId) || !guideHuilerieId.equals(lotHuilerieId)) {
-            throw new RuntimeException("Le guide, la machine et le lot doivent appartenir a la meme huilerie");
+        if (!guideHuilerieId.equals(lotHuilerieId)) {
+            throw new RuntimeException("Le guide et le lot doivent appartenir a la meme huilerie");
         }
 
         return guideHuilerieId;
@@ -197,10 +208,6 @@ public class ExecutionProductionService {
             dto.setGuideProductionId(executionProduction.getGuideProduction().getIdGuideProduction());
             dto.setGuideProductionReference(executionProduction.getGuideProduction().getReference());
         }
-        if (executionProduction.getMachine() != null) {
-            dto.setMachineId(executionProduction.getMachine().getIdMachine());
-            dto.setMachineNom(executionProduction.getMachine().getNomMachine());
-        }
         if (executionProduction.getLot() != null) {
             dto.setLotId(executionProduction.getLot().getIdLot());
             dto.setLotVariete(executionProduction.getLot().getVarieteOlive());
@@ -209,6 +216,8 @@ public class ExecutionProductionService {
             dto.setProduitFinalId(executionProduction.getProduitFinal().getIdProduit());
             dto.setProduitFinalReference(executionProduction.getProduitFinal().getReference());
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
+            dto.setProduitFinalQualite(normalizeQualityLabel(executionProduction.getProduitFinal().getQualite()));
+            dto.setProduitFinalQuantiteProduite(executionProduction.getProduitFinal().getQuantiteProduite());
         }
 
         dto.setValeursReelles(loadValeursReelles(executionProduction));
@@ -226,7 +235,7 @@ public class ExecutionProductionService {
         dto.PredictionDTO dto = new dto.PredictionDTO();
         dto.setIdPrediction(prediction.getIdPrediction());
         dto.setModePrediction(prediction.getModePrediction());
-        dto.setQualitePredite(prediction.getQualitePredite());
+        dto.setQualitePredite(normalizeQualityLabel(prediction.getQualitePredite()));
         dto.setProbabiliteQualite(prediction.getProbabiliteQualite());
         dto.setRendementPreditPourcent(prediction.getRendementPreditPourcent());
         dto.setQuantiteHuileRecalculeeLitres(prediction.getQuantiteHuileRecalculeeLitres());
@@ -245,7 +254,8 @@ public class ExecutionProductionService {
         Map<Long, ValeurReelleParametre> valeursByParametreId = executionProduction.getValeursReelles() == null
                 ? Map.of()
                 : executionProduction.getValeursReelles().stream()
-                .filter(v -> v.getParametreEtape() != null && v.getParametreEtape().getIdParametreEtape() != null)
+                .filter(v -> v.getParametreEtape() != null
+                        && v.getParametreEtape().getIdParametreEtape() != null)
                 .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
                         (first, second) -> second));
 
@@ -258,7 +268,7 @@ public class ExecutionProductionService {
                         .comparing(etape -> etape.getOrdre() == null ? Integer.MAX_VALUE : etape.getOrdre()))
                 .flatMap(etape -> (etape.getParametres() == null ? List.<ParametreEtape>of() : etape.getParametres())
                         .stream()
-                        .filter(parametre -> parametre.getExecutionProduction() == null))
+                        .filter(this::isParametreAutorise))
                 .map(parametre -> toDTO(parametre, valeursByParametreId.get(parametre.getIdParametreEtape())))
                 .toList();
     }
@@ -266,10 +276,34 @@ public class ExecutionProductionService {
     private ValeurReelleParametreDTO toDTO(ParametreEtape parametre, ValeurReelleParametre valeurReelle) {
         ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
         dto.setParametreEtapeId(parametre.getIdParametreEtape());
-        dto.setParametreEtapeNom(parametre.getNom());
-        dto.setValeurEstime(parametre.getValeur());
-        dto.setValeurReelle(valeurReelle != null ? valeurReelle.getValeurReelle() : null);
+        dto.setNomParametre(parametre.getNomParametre());
+        dto.setUniteMesure(parametre.getUniteMesure());
+        dto.setValeurEstimee(parseDoubleSafely(parametre.getValeur()));
+
+        if (valeurReelle != null) {
+            dto.setIdValeurReelleParametre(valeurReelle.getIdValeurReelleParametre());
+            dto.setExecutionProductionId(valeurReelle.getExecutionProduction() != null
+                    ? valeurReelle.getExecutionProduction().getIdExecutionProduction()
+                    : null);
+            dto.setValeurReelle(valeurReelle.getValeurReelle());
+            dto.setDeviation(valeurReelle.getDeviation());
+            dto.setQualiteDeviation(valeurReelle.getQualiteDeviation());
+            dto.setDateCreation(formatDateTime(valeurReelle.getDateCreation()));
+            dto.setDateModification(formatDateTime(valeurReelle.getDateModification()));
+        }
+
         return dto;
+    }
+
+    private Double parseDoubleSafely(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Double.valueOf(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private Optional<ExecutionProductionDTO> safeToDTO(ExecutionProduction executionProduction) {
@@ -280,6 +314,19 @@ public class ExecutionProductionService {
             log.warn("Execution ignoree lors du mapping (id={}): {}", executionId, ex.getMessage());
             return Optional.empty();
         }
+    }
+
+    private String normalizeQualityLabel(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        return switch (value.trim()) {
+            case "Excellente", "Extra Vierge" -> QUALITY_EXTRA_VIERGE;
+            case "Bonne", "Vierge" -> QUALITY_VIERGE;
+            case "Moyenne", "Lampante" -> QUALITY_LAMPANTE;
+            default -> value.trim();
+        };
     }
 
     private Long resolveHuilerieId(ExecutionProduction executionProduction) {
@@ -303,12 +350,6 @@ public class ExecutionProductionService {
             return executionProduction.getGuideProduction().getHuilerie();
         }
 
-        if (executionProduction.getMachine() != null
-                && executionProduction.getMachine().getHuilerie() != null
-                && executionProduction.getMachine().getHuilerie().getIdHuilerie() != null) {
-            return executionProduction.getMachine().getHuilerie();
-        }
-
         if (executionProduction.getLot() == null || executionProduction.getLot().getStocks() == null) {
             return null;
         }
@@ -330,6 +371,28 @@ public class ExecutionProductionService {
 
     private Double firstNonNull(Double first, Double second) {
         return first != null ? first : second;
+    }
+
+    private boolean isParametreAutorise(ParametreEtape parametre) {
+        String codeParam = parametre.getCodeParametre() != null && !parametre.getCodeParametre().isBlank()
+                ? parametre.getCodeParametre()
+                : parametre.getNomParametre();
+        String normalizedKey = normalizeParamKey(codeParam);
+        return ALLOWED_PARAM_KEYS.contains(normalizedKey);
+    }
+
+    private String normalizeParamKey(String key) {
+        if (key == null || key.isBlank()) {
+            return "";
+        }
+        return key.trim().toLowerCase().replaceAll("[\\s_]+", "_");
+    }
+
+    private String formatDateTime(java.time.LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return null;
+        }
+        return dateTime.format(DATE_FORMATTER);
     }
 
     @Transactional
@@ -358,7 +421,7 @@ public class ExecutionProductionService {
             execution.getValeursReelles().removeIf(v -> v.getParametreEtape() != null
                     && dto.getParametreEtapeId().equals(v.getParametreEtape().getIdParametreEtape()));
 
-            if (hasText(dto.getValeurReelle())) {
+            if (dto.getValeurReelle() != null) {
                 ValeurReelleParametre valeurReelle = new ValeurReelleParametre();
                 valeurReelle.setExecutionProduction(execution);
                 valeurReelle.setParametreEtape(paramOriginal);

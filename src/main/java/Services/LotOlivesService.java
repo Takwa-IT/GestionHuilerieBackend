@@ -67,6 +67,8 @@ public class LotOlivesService {
     public LotOlivesDTO createArrivage(LotArrivageCreateDTO dto) {
         Long effectiveHuilerieId = resolveEffectiveHuilerieId(dto.getHuilerieId());
         String variete = resolveVariete(dto);
+        String fournisseurNom = normalizeSupplierValue(dto.getFournisseurNom());
+        String fournisseurCIN = normalizeSupplierValue(dto.getFournisseurCIN());
 
         String matiereReference = dto.getMatierePremiereReference() == null
                 ? ""
@@ -83,6 +85,7 @@ public class LotOlivesService {
         CampagneOlives campagne = resolveCampagne(campagneReference);
 
         ensureRelationsMatchHuilerie(effectiveHuilerieId, matierePremiere, campagne);
+        validateSupplierIdentity(fournisseurNom, fournisseurCIN, null);
 
         LotOlives lot = new LotOlives();
         lot.setReference("TMP-LO-" + java.util.UUID.randomUUID());
@@ -99,8 +102,8 @@ public class LotOlivesService {
         lot.setLavageEffectue(normalizeLavageEffectue(dto.getLavageEffectue()));
         lot.setDateRecolte(dto.getDateRecolte());
         lot.setDateReception(dto.getDateReception());
-        lot.setFournisseurNom(dto.getFournisseurNom());
-        lot.setFournisseurCIN(dto.getFournisseurCIN());
+        lot.setFournisseurNom(fournisseurNom);
+        lot.setFournisseurCIN(fournisseurCIN);
         lot.setDureeStockageAvantBroyage(dto.getDureeStockageAvantBroyage());
         lot.setPesee(dto.getPesee());
         lot.setQuantiteInitiale(dto.getPesee());
@@ -130,11 +133,7 @@ public class LotOlivesService {
                     return stockRepository.save(savedStock);
                 });
 
-        // Ne pas écraser le lot existant : conserver la liaison avec le lot qui a créé le stock
-        // Les autres lots arrivent via StockMovements
-        if (stock.getLotOlives() == null) {
-            stock.setLotOlives(persistedLot);
-        }
+        stock.setLotOlives(persistedLot);
 
         stockMovementService.createArrivalForStock(
                 stock,
@@ -158,8 +157,7 @@ public class LotOlivesService {
             throw new RuntimeException("La variété du lot est obligatoire");
         }
 
-        // Normaliser : trim, lowercase, suppression des espaces multiples
-        return variete.trim().toLowerCase().replaceAll("\\s+", " ");
+        return variete.trim();
     }
 
     public byte[] generateBonPeseePdf(String reference) {
@@ -239,10 +237,11 @@ public class LotOlivesService {
     @Transactional
     public LotOlivesDTO update(Long idLot, LotOlivesUpdateDTO dto) {
         LotOlives lot = findLot(idLot);
+        String supplierNom = dto.getFournisseurNom() != null ? normalizeSupplierValue(dto.getFournisseurNom()) : lot.getFournisseurNom();
+        String supplierCIN = dto.getFournisseurCIN() != null ? normalizeSupplierValue(dto.getFournisseurCIN()) : lot.getFournisseurCIN();
 
         if (dto.getVariete() != null && !dto.getVariete().trim().isEmpty()) {
-            // Normaliser : trim, lowercase, suppression des espaces multiples
-            lot.setVariete(dto.getVariete().trim().toLowerCase().replaceAll("\\s+", " "));
+            lot.setVariete(dto.getVariete().trim());
         }
         if (dto.getMaturite() != null) {
             lot.setMaturite(dto.getMaturite());
@@ -280,12 +279,6 @@ public class LotOlivesService {
         if (dto.getDateReception() != null) {
             lot.setDateReception(dto.getDateReception());
         }
-        if (dto.getFournisseurNom() != null) {
-            lot.setFournisseurNom(dto.getFournisseurNom());
-        }
-        if (dto.getFournisseurCIN() != null) {
-            lot.setFournisseurCIN(dto.getFournisseurCIN());
-        }
         if (dto.getDureeStockageAvantBroyage() != null) {
             lot.setDureeStockageAvantBroyage(dto.getDureeStockageAvantBroyage());
         }
@@ -310,8 +303,16 @@ public class LotOlivesService {
             lot.setCampagne(campagne);
         }
 
+        if (dto.getFournisseurNom() != null) {
+            lot.setFournisseurNom(supplierNom);
+        }
+        if (dto.getFournisseurCIN() != null) {
+            lot.setFournisseurCIN(supplierCIN);
+        }
+
         Long huilerieId = lot.getHuilerie() != null ? lot.getHuilerie().getIdHuilerie() : null;
         ensureRelationsMatchHuilerie(huilerieId, lot.getMatierePremiere(), lot.getCampagne());
+        validateSupplierIdentity(lot.getFournisseurNom(), lot.getFournisseurCIN(), lot.getIdLot());
 
         LotOlives saved = lotOlivesRepository.save(lot);
         return lotOlivesMapper.toDTO(saved);
@@ -323,6 +324,51 @@ public class LotOlivesService {
         }
 
         return value.trim();
+    }
+
+    private String normalizeSupplierValue(String value) {
+        if (!hasText(value)) {
+            return null;
+        }
+
+        return value.trim();
+    }
+
+    private void validateSupplierIdentity(String fournisseurNom, String fournisseurCIN, Long currentLotId) {
+        String normalizedNom = normalizeSupplierValue(fournisseurNom);
+        String normalizedCIN = normalizeSupplierValue(fournisseurCIN);
+
+        if (!hasText(normalizedNom) && !hasText(normalizedCIN)) {
+            return;
+        }
+
+        if (!hasText(normalizedNom) || !hasText(normalizedCIN)) {
+            throw new RuntimeException("Le fournisseur doit avoir un nom et un CIN renseignés.");
+        }
+
+        List<LotOlives> lotsByCin = lotOlivesRepository.findByFournisseurCINIgnoreCase(normalizedCIN);
+        for (LotOlives existing : lotsByCin) {
+            if (currentLotId != null && currentLotId.equals(existing.getIdLot())) {
+                continue;
+            }
+
+            String existingNom = normalizeSupplierValue(existing.getFournisseurNom());
+            if (!hasText(existingNom) || !existingNom.equalsIgnoreCase(normalizedNom)) {
+                throw new RuntimeException("Ce CIN fournisseur est déjà associé à un autre fournisseur.");
+            }
+        }
+
+        List<LotOlives> lotsByNom = lotOlivesRepository.findByFournisseurNomIgnoreCase(normalizedNom);
+        for (LotOlives existing : lotsByNom) {
+            if (currentLotId != null && currentLotId.equals(existing.getIdLot())) {
+                continue;
+            }
+
+            String existingCIN = normalizeSupplierValue(existing.getFournisseurCIN());
+            if (!hasText(existingCIN) || !existingCIN.equalsIgnoreCase(normalizedCIN)) {
+                throw new RuntimeException("Ce fournisseur est déjà associé à un autre CIN.");
+            }
+        }
     }
 
     @Transactional

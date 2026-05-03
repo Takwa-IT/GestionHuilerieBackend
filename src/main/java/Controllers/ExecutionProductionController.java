@@ -1,7 +1,7 @@
 package Controllers;
 
 import Services.ExecutionProductionService;
-import Services.ExecutionPredictionService;
+import Services.PredictionService;
 import dto.ExecutionProductionCreateDTO;
 import dto.ExecutionProductionDTO;
 import dto.ExecutionPredictionStartDTO;
@@ -28,7 +28,7 @@ import java.util.List;
 public class ExecutionProductionController {
 
     private final ExecutionProductionService executionProductionService;
-    private final ExecutionPredictionService executionPredictionService;
+    private final PredictionService predictionService;
 
     @PostMapping
     public ResponseEntity<ExecutionProductionDTO> create(@Valid @RequestBody ExecutionProductionCreateDTO dto) {
@@ -55,7 +55,7 @@ public class ExecutionProductionController {
             @PathVariable Long idExecutionProduction,
             @RequestBody(required = false) ExecutionPredictionStartDTO dto
     ) {
-        return ResponseEntity.ok(executionPredictionService.predictOnStart(idExecutionProduction, dto));
+        return ResponseEntity.ok(predictionService.predictOnStart(idExecutionProduction, dto));
     }
 
     @PostMapping("/{id}/valeurs-reelles")

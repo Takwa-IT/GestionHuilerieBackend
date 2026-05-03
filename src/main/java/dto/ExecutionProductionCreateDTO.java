@@ -51,9 +51,6 @@ public class ExecutionProductionCreateDTO {
     private Long guideProductionId;
 
     @NotNull
-    private Long machineId;
-
-    @NotNull
     private Long lotId;
 }
 

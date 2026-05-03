@@ -30,12 +30,8 @@ public class Machine {
     @JoinColumn(name = "huilerie_id")
     private Huilerie huilerie;
 
-    @ManyToOne
-    @JoinColumn(name = "matiere_premiere_id")
-    private MatierePremiere matierePremiere;
-
     @OneToMany(mappedBy = "machine")
-    private List<ExecutionProduction> executionsProduction;
+    private List<EtapeProduction> etapesProduction;
 
     public Long getIdMachine() {
         return idMachine;
@@ -104,20 +100,12 @@ public class Machine {
         this.huilerie = huilerie;
     }
 
-    public MatierePremiere getMatierePremiere() {
-        return matierePremiere;
+    public List<EtapeProduction> getEtapesProduction() {
+        return etapesProduction;
     }
 
-    public void setMatierePremiere(MatierePremiere matierePremiere) {
-        this.matierePremiere = matierePremiere;
-    }
-
-    public List<ExecutionProduction> getExecutionsProduction() {
-        return executionsProduction;
-    }
-
-    public void setExecutionsProduction(List<ExecutionProduction> executionsProduction) {
-        this.executionsProduction = executionsProduction;
+    public void setEtapesProduction(List<EtapeProduction> etapesProduction) {
+        this.etapesProduction = etapesProduction;
     }
 
     @PostPersist

@@ -47,6 +47,20 @@ public class CampagneOlivesService {
     public CampagneOlivesDTO update(Long idCampagne, CampagneOlivesUpdateDTO dto) {
         CampagneOlives entity = findById(idCampagne);
         campagneOlivesMapper.updateFromDTO(dto, entity);
+
+        // Apply updatable fields not handled by the mapper
+        if (dto.getAnnee() != null) {
+            entity.setAnnee(dto.getAnnee());
+        }
+        if (dto.getHuilerieId() != null) {
+            Long newHuilerieId = dto.getHuilerieId();
+            Huilerie huilerie = huilerieRepository.findById(newHuilerieId)
+                    .orElseThrow(() -> new RuntimeException("Huilerie non trouvée"));
+            // Ensure the current user can access the target huilerie
+            currentUserService.ensureCanAccessHuilerie(newHuilerieId);
+            entity.setHuilerie(huilerie);
+        }
+
         CampagneOlives saved = campagneOlivesRepository.save(entity);
         return campagneOlivesMapper.toDTO(saved);
     }

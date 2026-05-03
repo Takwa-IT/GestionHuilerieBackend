@@ -15,7 +15,6 @@ public interface MatierePremiereMapper {
     @Mapping(target = "reference", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "lots", ignore = true)
-    @Mapping(target = "machinesAffectees", ignore = true)
     MatierePremiere toEntity(MatierePremiereCreateDTO dto);
 
     @Mapping(target = "huilerieId", source = "huilerie.idHuilerie")
@@ -25,7 +24,6 @@ public interface MatierePremiereMapper {
     @Mapping(target = "reference", ignore = true)
     @Mapping(target = "huilerie", ignore = true)
     @Mapping(target = "lots", ignore = true)
-    @Mapping(target = "machinesAffectees", ignore = true)
     void updateFromDTO(MatierePremiereUpdateDTO dto, @MappingTarget MatierePremiere entity);
 }
 

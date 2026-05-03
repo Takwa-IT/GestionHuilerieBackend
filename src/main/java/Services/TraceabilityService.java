@@ -5,6 +5,7 @@ import Models.AnalyseLaboratoire;
 import Models.ExecutionProduction;
 import Models.LotOlives;
 import Models.ProduitFinal;
+import Models.Prediction;
 import Models.Stock;
 import Models.StockMovement;
 import Models.Utilisateur;
@@ -44,10 +45,8 @@ public class TraceabilityService {
         // l'huilerie
         List<Stock> lotStocks = lot.getHuilerie() != null && lot.getMatierePremiere() != null
                 ? stockRepository.findByLotOlives_Huilerie_IdHuilerieAndLotOlives_MatierePremiere_Id(
-                        lot.getHuilerie().getIdHuilerie(),
-                        lot.getMatierePremiere().getId())
-                .map(java.util.List::of)
-                .orElse(java.util.List.of())
+                lot.getHuilerie().getIdHuilerie(),
+                lot.getMatierePremiere().getId())
                 : java.util.List.of();
 
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
@@ -106,10 +105,33 @@ public class TraceabilityService {
                 LotTraceabilityDTO.LifecycleItem produitEvent = new LotTraceabilityDTO.LifecycleItem();
                 produitEvent.setDate(produitFinal.getDateProduction());
                 produitEvent.setEtape("ProduitFinal");
+                String qual = produitFinal.getQualite();
                 produitEvent.setDescription(
-                        produitFinal.getNomProduit() + " produit, quantite = " + produitFinal.getQuantiteProduite());
+                        produitFinal.getNomProduit()
+                                + " produit, quantite = " + produitFinal.getQuantiteProduite()
+                                + (qual != null && !qual.isBlank() ? ", qualite = " + normalizeQualityLabel(qual) : ""));
                 produitEvent.setReference(produitFinal.getReference());
                 events.add(produitEvent);
+            }
+
+            // Ajouter les prédictions liées à cette exécution dans la traçabilité
+            if (executionProduction.getPredictions() != null) {
+                for (Prediction prediction : executionProduction.getPredictions()) {
+                    LotTraceabilityDTO.LifecycleItem predEvent = new LotTraceabilityDTO.LifecycleItem();
+                    predEvent.setDate(prediction.getDateCreation());
+                    predEvent.setEtape("Prediction");
+                    // structured fields
+                    predEvent.setPredictionId(prediction.getIdPrediction());
+                    predEvent.setPredictionMode(prediction.getModePrediction());
+                    predEvent.setQualitePredite(normalizeQualityLabel(prediction.getQualitePredite()));
+                    predEvent.setProbabiliteQualite(prediction.getProbabiliteQualite());
+                    predEvent.setRendementPreditPourcent(prediction.getRendementPreditPourcent());
+                    predEvent.setQuantiteHuileRecalculeeLitres(prediction.getQuantiteHuileRecalculeeLitres());
+                    // keep a short human-readable description for backward compatibility
+                    predEvent.setDescription("Prédiction enregistrée");
+                    predEvent.setReference(ReferenceUtils.format("PR", prediction.getIdPrediction()));
+                    events.add(predEvent);
+                }
             }
         }
 
@@ -142,4 +164,18 @@ public class TraceabilityService {
         dto.setCycleVie(events);
         return dto;
     }
+
+    private String normalizeQualityLabel(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        return switch (value.trim()) {
+            case "Excellente", "Extra Vierge" -> "Extra Vierge";
+            case "Bonne", "Vierge" -> "Vierge";
+            case "Moyenne", "Lampante" -> "Lampante";
+            default -> value.trim();
+        };
+    }
+
 }

@@ -30,13 +30,13 @@ public class ExecutionProductionDTO {
     private String huilerieNom;
     private Long guideProductionId;
     private String guideProductionReference;
-    private Long machineId;
-    private String machineNom;
     private Long lotId;
     private String lotVariete;
     private Long produitFinalId;
     private String produitFinalReference;
     private String produitFinalNomProduit;
+    private String produitFinalQualite;
+    private Double produitFinalQuantiteProduite;
     private List<ValeurReelleParametreDTO> valeursReelles;
     private List<PredictionDTO> predictions;
 }

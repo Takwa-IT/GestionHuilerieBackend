@@ -48,11 +48,17 @@ public class CampagneOlivesMapper {
             return;
         }
 
+        if (dto.getAnnee() != null) {
+            entity.setAnnee(dto.getAnnee());
+        }
+
         if (dto.getDateDebut() != null) {
             entity.setDateDebut(dto.getDateDebut());
         }
         if (dto.getDateFin() != null) {
             entity.setDateFin(dto.getDateFin());
         }
+
+        // Note: mapping for huilerieId is handled in service because it requires repository lookup
     }
 }

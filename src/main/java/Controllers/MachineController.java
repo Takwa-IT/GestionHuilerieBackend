@@ -5,7 +5,6 @@ import Config.RequirePermission;
 import Services.MachineService;
 import dto.MachineCreateDTO;
 import dto.MachineDTO;
-import dto.MachineRawMaterialAssignmentDTO;
 import dto.MachineUpdateDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -64,13 +63,6 @@ public class MachineController {
     @GetMapping("/huilerie/{huilerieNom}")
     public ResponseEntity<List<MachineDTO>> findByHuilerie(@PathVariable String huilerieNom) {
         return ResponseEntity.ok(machineService.findByHuilerie(huilerieNom));
-    }
-
-    @PatchMapping("/{idMachine}/matiere-premiere")
-    public ResponseEntity<MachineDTO> assignMatierePremiere(
-            @PathVariable Long idMachine,
-            @Valid @RequestBody MachineRawMaterialAssignmentDTO dto) {
-        return ResponseEntity.ok(machineService.assignMatierePremiere(idMachine, dto));
     }
 }
 

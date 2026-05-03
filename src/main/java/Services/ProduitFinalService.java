@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
 @Transactional
 public class ProduitFinalService {
 
+    private static final String QUALITY_EXTRA_VIERGE = "Extra Vierge";
+    private static final String QUALITY_VIERGE = "Vierge";
+    private static final String QUALITY_LAMPANTE = "Lampante";
+
     private final ProduitFinalRepository produitFinalRepository;
     private final ExecutionProductionRepository executionProductionRepository;
     private final ProduitFinalMapper produitFinalMapper;
@@ -96,10 +100,6 @@ public class ProduitFinalService {
             dto.setGuideProductionId(executionProduction.getGuideProduction().getIdGuideProduction());
             dto.setGuideProductionReference(executionProduction.getGuideProduction().getReference());
         }
-        if (executionProduction.getMachine() != null) {
-            dto.setMachineId(executionProduction.getMachine().getIdMachine());
-            dto.setMachineNom(executionProduction.getMachine().getNomMachine());
-        }
         if (executionProduction.getLotOlives() != null) {
             dto.setLotId(executionProduction.getLotOlives().getIdLot());
             dto.setLotVariete(executionProduction.getLotOlives().getVarieteOlive());
@@ -109,8 +109,23 @@ public class ProduitFinalService {
             dto.setProduitFinalId(executionProduction.getProduitFinal().getIdProduit());
             dto.setProduitFinalReference(executionProduction.getProduitFinal().getReference());
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
+            dto.setProduitFinalQualite(normalizeQualityLabel(executionProduction.getProduitFinal().getQualite()));
+            dto.setProduitFinalQuantiteProduite(executionProduction.getProduitFinal().getQuantiteProduite());
         }
         return dto;
+    }
+
+    private String normalizeQualityLabel(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        return switch (value.trim()) {
+            case "Excellente", "Extra Vierge" -> QUALITY_EXTRA_VIERGE;
+            case "Bonne", "Vierge" -> QUALITY_VIERGE;
+            case "Moyenne", "Lampante" -> QUALITY_LAMPANTE;
+            default -> value.trim();
+        };
     }
 
     private java.util.List<ValeurReelleParametreDTO> loadValeursReelles(ExecutionProduction executionProduction) {
@@ -119,20 +134,22 @@ public class ProduitFinalService {
         }
 
         Map<Long, ValeurReelleParametre> valeursByParametreId = executionProduction.getValeursReelles() == null
-            ? java.util.Map.of()
-            : executionProduction.getValeursReelles().stream()
-                .filter(v -> v.getParametreEtape() != null && v.getParametreEtape().getIdParametreEtape() != null)
+                ? java.util.Map.of()
+                : executionProduction.getValeursReelles().stream()
+                .filter(v -> v.getParametreEtape() != null
+                        && v.getParametreEtape().getIdParametreEtape() != null)
                 .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
-                    (first, second) -> second));
+                        (first, second) -> second));
 
         if (executionProduction.getGuideProduction().getEtapes() == null) {
             return java.util.List.of();
         }
 
         return executionProduction.getGuideProduction().getEtapes().stream()
-                .sorted(java.util.Comparator.comparing(etape -> etape.getOrdre() == null ? Integer.MAX_VALUE : etape.getOrdre()))
-                .flatMap(etape -> (etape.getParametres() == null ? java.util.List.<ParametreEtape>of() : etape.getParametres()).stream()
-                        .filter(parametre -> parametre.getExecutionProduction() == null))
+                .sorted(java.util.Comparator
+                        .comparing(etape -> etape.getOrdre() == null ? Integer.MAX_VALUE : etape.getOrdre()))
+                .flatMap(etape -> (etape.getParametres() == null ? java.util.List.<ParametreEtape>of()
+                        : etape.getParametres()).stream())
                 .map(parametre -> toDTO(parametre, valeursByParametreId.get(parametre.getIdParametreEtape())))
                 .toList();
     }
@@ -140,9 +157,20 @@ public class ProduitFinalService {
     private ValeurReelleParametreDTO toDTO(ParametreEtape parametre, ValeurReelleParametre valeurReelle) {
         ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
         dto.setParametreEtapeId(parametre.getIdParametreEtape());
-        dto.setParametreEtapeNom(parametre.getNom());
-        dto.setValeurEstime(parametre.getValeur());
+        dto.setNomParametre(parametre.getNomParametre());
+        dto.setValeurEstimee(parseDoubleSafely(parametre.getValeur()));
         dto.setValeurReelle(valeurReelle != null ? valeurReelle.getValeurReelle() : null);
         return dto;
+    }
+
+    private Double parseDoubleSafely(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Double.valueOf(value.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }

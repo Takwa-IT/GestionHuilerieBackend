@@ -174,9 +174,28 @@ public class AdminUtilisateurService {
         dto.setProfilId(utilisateur.getProfil() != null ? utilisateur.getProfil().getIdProfil() : null);
         dto.setProfilNom(utilisateur.getProfil() != null ? utilisateur.getProfil().getNom() : null);
         dto.setEntrepriseId(utilisateur.getEntreprise() != null ? utilisateur.getEntreprise().getIdEntreprise() : null);
-        dto.setHuilerieId(utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getIdHuilerie() : null);
-        dto.setHuilerieNom(utilisateur.getHuilerie() != null ? utilisateur.getHuilerie().getNom() : null);
+
+        // Resolve huilerie based on user type
+        Huilerie huilerie = resolveUserHuilerie(utilisateur);
+        dto.setHuilerieId(huilerie != null ? huilerie.getIdHuilerie() : null);
+        dto.setHuilerieNom(huilerie != null ? huilerie.getNom() : null);
+
         return dto;
+    }
+
+    private Huilerie resolveUserHuilerie(Utilisateur utilisateur) {
+        // For Employe: check huilerieEmp
+        if (utilisateur instanceof Employe employe) {
+            return employe.getHuilerieEmp();
+        }
+
+        // For Administrateur: no huilerie
+        if (utilisateur instanceof Administrateur) {
+            return null;
+        }
+
+        // Base Utilisateur: no huilerie field
+        return null;
     }
 
     private ResolvedUserScope resolveUserScope(UtilisateurAdminRequestDTO request, Profil profil) {

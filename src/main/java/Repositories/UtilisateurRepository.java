@@ -20,8 +20,9 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 	List<Utilisateur> findAllByOrderByIdUtilisateurAsc();
 
 	@Query("""
-		select u
+		select distinct u
 		from Utilisateur u
+		left join fetch u.profil
 		where (type(u) = Administrateur and treat(u as Administrateur).entrepriseAdmin is not null
 		       and treat(u as Administrateur).entrepriseAdmin.idEntreprise = :entrepriseId)
 		   or (type(u) = Employe and treat(u as Employe).huilerieEmp is not null

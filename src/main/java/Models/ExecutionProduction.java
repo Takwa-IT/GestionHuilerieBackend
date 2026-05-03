@@ -63,18 +63,11 @@ public class ExecutionProduction {
     private GuideProduction guideProduction;
 
     @ManyToOne
-    @JoinColumn(name = "machine_id", nullable = false)
-    private Machine machine;
-
-    @ManyToOne
     @JoinColumn(name = "lot_olives_id", nullable = false)
     private LotOlives lot;
 
     @OneToMany(mappedBy = "executionProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProduitFinal> produitsFinaux = new ArrayList<>();
-
-    @OneToMany(mappedBy = "executionProduction")
-    private List<ParametreEtape> parametres = new ArrayList<>();
 
     @OneToMany(mappedBy = "executionProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ValeurReelleParametre> valeursReelles = new ArrayList<>();

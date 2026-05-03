@@ -156,10 +156,10 @@ public class FeatureAggregator {
             }
 
             String code = normalizeKey(valeur.getParametreEtape().getCodeParametre());
-            if (!code.isBlank() && !valeur.getValeurReelle().isBlank()) {
+            if (!code.isBlank() && valeur.getValeurReelle() != null) {
                 // Ajouter le suffixe _override pour indiquer que c'est une valeur réelle saisie
                 String keyWithOverride = code + "_override";
-                result.put(keyWithOverride, valeur.getValeurReelle());
+                result.put(keyWithOverride, String.valueOf(valeur.getValeurReelle()));
             }
         }
 

@@ -81,7 +81,7 @@ public class GuideProductionService {
             guides = guides.stream()
                     .filter(guide -> guide.getHuilerie() != null
                             && currentUserService.getAccessibleHuilerieIds()
-                                    .contains(guide.getHuilerie().getIdHuilerie()))
+                            .contains(guide.getHuilerie().getIdHuilerie()))
                     .toList();
         } else {
             guides = guideProductionRepository
@@ -99,7 +99,7 @@ public class GuideProductionService {
     }
 
     private void applyRequestToGuide(GuideProduction guideProduction, GuideProductionCreateDTO dto, Huilerie huilerie,
-            boolean replaceEtapesCollection) {
+                                     boolean replaceEtapesCollection) {
         guideProduction.setNom(dto.getNom());
         guideProduction.setDescription(dto.getDescription());
         guideProduction.setDateCreation(dto.getDateCreation());
@@ -172,7 +172,7 @@ public class GuideProductionService {
     }
 
     private List<EtapeProduction> buildManualEtapes(GuideProduction guideProduction,
-            List<EtapeProductionCreateDTO> etapeDTOs) {
+                                                    List<EtapeProductionCreateDTO> etapeDTOs) {
         List<EtapeProduction> etapes = new ArrayList<>();
         if (etapeDTOs == null) {
             return etapes;
@@ -210,6 +210,10 @@ public class GuideProductionService {
         List<ParametreEtape> parametres = new ArrayList<>();
         if (etapeDTO.getParametres() != null) {
             for (ParametreEtapeCreateDTO parametreDTO : etapeDTO.getParametres()) {
+                if (!hasText(parametreDTO.getValeur())) {
+                    throw new IllegalArgumentException(
+                            "Chaque parametre doit contenir une valeur estimee (valeur) lors de la creation du guide.");
+                }
                 ParametreEtape parametre = new ParametreEtape();
                 parametre.setNom(parametreDTO.getNom());
                 parametre.setCodeParametre(parametreDTO.getCodeParametre());

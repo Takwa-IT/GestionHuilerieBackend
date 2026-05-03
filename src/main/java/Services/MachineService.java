@@ -7,7 +7,6 @@ import Models.Machine;
 import Models.Utilisateur;
 import Repositories.HuilerieRepository;
 import Repositories.MachineRepository;
-import dto.MachineRawMaterialAssignmentDTO;
 import dto.MachineCreateDTO;
 import dto.MachineDTO;
 import dto.MachineUpdateDTO;
@@ -26,7 +25,6 @@ public class MachineService {
 
     private final MachineRepository machineRepository;
     private final HuilerieRepository huilerieRepository;
-    private final MatierePremiereService matierePremiereService;
     private final MachineMapper machineMapper;
     private final CurrentUserService currentUserService;
 
@@ -110,7 +108,7 @@ public class MachineService {
             return machines.stream()
                     .filter(machine -> machine.getHuilerie() != null
                             && currentUserService.getAccessibleHuilerieIds()
-                                    .contains(machine.getHuilerie().getIdHuilerie()))
+                            .contains(machine.getHuilerie().getIdHuilerie()))
                     .map(machineMapper::toDTO)
                     .toList();
         }
@@ -137,17 +135,9 @@ public class MachineService {
         return machineRepository.findByHuilerieNom(huilerieNom).stream()
                 .filter(machine -> machine.getHuilerie() != null
                         && currentUserService.getAccessibleHuilerieIds()
-                                .contains(machine.getHuilerie().getIdHuilerie()))
+                        .contains(machine.getHuilerie().getIdHuilerie()))
                 .map(machineMapper::toDTO)
                 .toList();
-    }
-
-    // affectation du matiere premiere a une machine
-    public MachineDTO assignMatierePremiere(Long machineId, MachineRawMaterialAssignmentDTO dto) {
-        Machine machine = machineRepository.findById(machineId)
-                .orElseThrow(() -> new RuntimeException("Machine non trouvee"));
-        machine.setMatierePremiere(matierePremiereService.findMatiere(dto.getMatierePremiereId()));
-        return machineMapper.toDTO(machineRepository.save(machine));
     }
 
     private Huilerie findHuilerieByNom(String huilerieNom) {

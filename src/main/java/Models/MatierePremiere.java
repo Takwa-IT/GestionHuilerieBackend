@@ -30,9 +30,6 @@ public class MatierePremiere {
     @OneToMany(mappedBy = "matierePremiere")
     private List<LotOlives> lots;
 
-    @OneToMany(mappedBy = "matierePremiere")
-    private List<Machine> machinesAffectees;
-
     public Long getId() {
         return id;
     }
@@ -98,14 +95,6 @@ public class MatierePremiere {
 
     public void setLots(List<LotOlives> lots) {
         this.lots = lots;
-    }
-
-    public List<Machine> getMachinesAffectees() {
-        return machinesAffectees;
-    }
-
-    public void setMachinesAffectees(List<Machine> machinesAffectees) {
-        this.machinesAffectees = machinesAffectees;
     }
 
     @PostPersist

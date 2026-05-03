@@ -39,15 +39,19 @@ public class ParametreEtape {
     @JoinColumn(name = "etape_production_id", nullable = false)
     private EtapeProduction etapeProduction;
 
-    @ManyToOne
-    @JoinColumn(name = "execution_production_id")
-    private ExecutionProduction executionProduction;
-
     public String getValeur() {
         return valeurEstime;
     }
 
     public void setValeur(String valeur) {
         this.valeurEstime = valeur;
+    }
+
+    public String getNomParametre() {
+        return codeParametre != null && !codeParametre.isBlank() ? codeParametre : nom;
+    }
+
+    public void setNomParametre(String nomParametre) {
+        this.codeParametre = nomParametre;
     }
 }

@@ -114,7 +114,7 @@ public class PredictionService {
 
         if (dto.getExecutionProductionId() != null
                 && !dto.getExecutionProductionId()
-                .equals(prediction.getExecutionProduction().getIdExecutionProduction())) {
+                        .equals(prediction.getExecutionProduction().getIdExecutionProduction())) {
             ExecutionProduction execution = executionProductionRepository.findById(dto.getExecutionProductionId())
                     .orElseThrow(() -> new RuntimeException("Execution de production non trouvée"));
             prediction.setExecutionProduction(execution);
@@ -176,6 +176,14 @@ public class PredictionService {
         }
         if (overrides.getPressionExtractionBar() != null) {
             execution.setPressionExtractionBar(overrides.getPressionExtractionBar());
+            changed = true;
+        }
+        if (overrides.getPresenceSeparateur() != null) {
+            execution.setPresenceSeparateur(overrides.getPresenceSeparateur());
+            changed = true;
+        }
+        if (overrides.getPresenceAjoutEau() != null) {
+            execution.setPresenceAjoutEau(overrides.getPresenceAjoutEau());
             changed = true;
         }
 
@@ -251,6 +259,10 @@ public class PredictionService {
         payload.put("type_machine", extractGuideTypeMachine(guide));
         payload.put("controle_temperature",
                 execution.getControleTemperature() != null && execution.getControleTemperature() ? "Oui" : "Non");
+        payload.put("presence_separateur",
+                execution.getPresenceSeparateur() != null && execution.getPresenceSeparateur() ? 1 : 0);
+        payload.put("presence_ajout_eau",
+                execution.getPresenceAjoutEau() != null && execution.getPresenceAjoutEau() ? 1 : 0);
         payload.put("etapes", buildGuideSteps(guide, execution));
 
         AnalyseLaboratoire analyseLaboratoire = lot.getAnalyseLaboratoire();

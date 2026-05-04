@@ -43,7 +43,7 @@ public class EtapeProduction {
     private GuideProduction guideProduction;
 
     @ManyToOne
-    @JoinColumn(name = "machine_id", nullable = false)
+    @JoinColumn(name = "machine_id", nullable = true)
     private Machine machine;
 
     @OneToMany(mappedBy = "etapeProduction", cascade = CascadeType.ALL, orphanRemoval = true)

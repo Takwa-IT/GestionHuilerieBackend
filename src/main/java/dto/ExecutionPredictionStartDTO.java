@@ -15,4 +15,6 @@ public class ExecutionPredictionStartDTO {
     private Double aciditeOlivesPourcent;
     private Double tauxFeuillesPourcent;
     private Double pressionExtractionBar;
+    private Boolean presenceSeparateur;
+    private Boolean presenceAjoutEau;
 }

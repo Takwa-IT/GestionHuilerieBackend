@@ -57,6 +57,8 @@ public class ExecutionProduction {
     private Double aciditeOlivesPourcent;
     private Double tauxFeuillesPourcent;
     private Double pressionExtractionBar;
+    private Boolean presenceSeparateur;
+    private Boolean presenceAjoutEau;
 
     @ManyToOne
     @JoinColumn(name = "guide_production_id", nullable = false)

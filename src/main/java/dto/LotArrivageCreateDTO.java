@@ -1,6 +1,7 @@
 package dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -44,7 +45,17 @@ public class LotArrivageCreateDTO {
     private String lavageEffectue;
 
     private String dateRecolte;
+
+    @JsonAlias({ "fournisseur_id" })
+    @JsonProperty("fournisseurId")
+    private Long fournisseurId;
+
+    @JsonAlias({ "fournisseurNom", "fournisseur_nom" })
+    @JsonProperty("fournisseurNom")
     private String fournisseurNom;
+
+    @JsonAlias({ "fournisseurCIN", "fournisseur_cin", "fournisseurCin" })
+    @JsonProperty("fournisseurCIN")
     private String fournisseurCIN;
 
     @NotBlank

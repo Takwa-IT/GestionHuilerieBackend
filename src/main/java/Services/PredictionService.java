@@ -1,5 +1,7 @@
 package Services;
 
+import Config.PredictionEnumConstants;
+import Config.PredictionValueMapper;
 import Models.AnalyseLaboratoire;
 import Models.EtapeProduction;
 import Models.ExecutionProduction;
@@ -47,9 +49,11 @@ public class PredictionService {
         ExecutionProduction execution = executionProductionRepository.findById(executionId)
                 .orElseThrow(() -> new RuntimeException("Execution de production non trouvee"));
 
-        applyOverrides(execution, overrides);
+        // Créer les données de prédiction dans un DTO intermédiaire (ne pas modifier
+        // ExecutionProduction)
+        dto.PredictionInputDTO predictionData = buildPredictionInputData(execution, overrides);
 
-        Map<String, Object> payload = buildAiPayload(execution);
+        Map<String, Object> payload = buildAiPayload(execution, predictionData);
         Map<String, Object> aiResponse = callAiPredictGuide(payload);
         Map<String, Object> predictionBlock = extractPredictionBlock(aiResponse);
 
@@ -62,6 +66,44 @@ public class PredictionService {
         dto.setQuantiteHuileRecalculeeLitres(asDouble(predictionBlock.get("quantite_huile_recalculee_litres")));
 
         return create(dto);
+    }
+
+    private dto.PredictionInputDTO buildPredictionInputData(ExecutionProduction execution,
+                                                            ExecutionPredictionStartDTO overrides) {
+        LotOlives lot = execution.getLotOlives();
+
+        dto.PredictionInputDTO data = new dto.PredictionInputDTO();
+
+        // Fusionner les overrides avec les données du lot
+        if (overrides != null) {
+            data.setRegion(hasText(overrides.getRegion()) ? overrides.getRegion().trim()
+                    : lot.getRegion());
+            data.setMethodeRecolte(hasText(overrides.getMethodeRecolte()) ? overrides.getMethodeRecolte().trim()
+                    : lot.getMethodeRecolte());
+            data.setTypeSol(hasText(overrides.getTypeSol()) ? overrides.getTypeSol().trim()
+                    : lot.getTypeSol());
+            data.setTemperatureMalaxageC(overrides.getTemperatureMalaxageC());
+            data.setDureeMalaxageMin(overrides.getDureeMalaxageMin());
+            data.setVitesseDecanteurTrMin(overrides.getVitesseDecanteurTrMin());
+            data.setHumiditePourcent(firstNonNull(overrides.getHumiditePourcent(), lot.getHumiditePourcent()));
+            data.setAciditeOlivesPourcent(
+                    firstNonNull(overrides.getAciditeOlivesPourcent(), lot.getAciditeOlivesPourcent()));
+            data.setTauxFeuillesPourcent(
+                    firstNonNull(overrides.getTauxFeuillesPourcent(), lot.getTauxFeuillesPourcent()));
+            data.setPressionExtractionBar(overrides.getPressionExtractionBar());
+            data.setPresenceSeparateur(overrides.getPresenceSeparateur());
+            data.setPresenceAjoutEau(overrides.getPresenceAjoutEau());
+        } else {
+            // Remplir avec les données du lot par défaut
+            data.setRegion(lot.getRegion());
+            data.setMethodeRecolte(lot.getMethodeRecolte());
+            data.setTypeSol(lot.getTypeSol());
+            data.setHumiditePourcent(lot.getHumiditePourcent());
+            data.setAciditeOlivesPourcent(lot.getAciditeOlivesPourcent());
+            data.setTauxFeuillesPourcent(lot.getTauxFeuillesPourcent());
+        }
+
+        return data;
     }
 
     public PredictionDTO create(PredictionCreateDTO dto) {
@@ -114,7 +156,7 @@ public class PredictionService {
 
         if (dto.getExecutionProductionId() != null
                 && !dto.getExecutionProductionId()
-                        .equals(prediction.getExecutionProduction().getIdExecutionProduction())) {
+                .equals(prediction.getExecutionProduction().getIdExecutionProduction())) {
             ExecutionProduction execution = executionProductionRepository.findById(dto.getExecutionProductionId())
                     .orElseThrow(() -> new RuntimeException("Execution de production non trouvée"));
             prediction.setExecutionProduction(execution);
@@ -125,71 +167,6 @@ public class PredictionService {
 
     public void delete(Long id) {
         predictionRepository.deleteById(id);
-    }
-
-    private void applyOverrides(ExecutionProduction execution, ExecutionPredictionStartDTO overrides) {
-        if (overrides == null) {
-            return;
-        }
-
-        boolean changed = false;
-
-        if (hasText(overrides.getRegion())) {
-            execution.setRegion(overrides.getRegion().trim());
-            changed = true;
-        }
-        if (hasText(overrides.getMethodeRecolte())) {
-            execution.setMethodeRecolte(overrides.getMethodeRecolte().trim());
-            changed = true;
-        }
-        if (hasText(overrides.getTypeSol())) {
-            execution.setTypeSol(overrides.getTypeSol().trim());
-            changed = true;
-        }
-        if (overrides.getControleTemperature() != null) {
-            execution.setControleTemperature(overrides.getControleTemperature());
-            changed = true;
-        }
-        if (overrides.getTemperatureMalaxageC() != null) {
-            execution.setTemperatureMalaxageC(overrides.getTemperatureMalaxageC());
-            changed = true;
-        }
-        if (overrides.getDureeMalaxageMin() != null) {
-            execution.setDureeMalaxageMin(overrides.getDureeMalaxageMin());
-            changed = true;
-        }
-        if (overrides.getVitesseDecanteurTrMin() != null) {
-            execution.setVitesseDecanteurTrMin(overrides.getVitesseDecanteurTrMin());
-            changed = true;
-        }
-        if (overrides.getHumiditePourcent() != null) {
-            execution.setHumiditePourcent(overrides.getHumiditePourcent());
-            changed = true;
-        }
-        if (overrides.getAciditeOlivesPourcent() != null) {
-            execution.setAciditeOlivesPourcent(overrides.getAciditeOlivesPourcent());
-            changed = true;
-        }
-        if (overrides.getTauxFeuillesPourcent() != null) {
-            execution.setTauxFeuillesPourcent(overrides.getTauxFeuillesPourcent());
-            changed = true;
-        }
-        if (overrides.getPressionExtractionBar() != null) {
-            execution.setPressionExtractionBar(overrides.getPressionExtractionBar());
-            changed = true;
-        }
-        if (overrides.getPresenceSeparateur() != null) {
-            execution.setPresenceSeparateur(overrides.getPresenceSeparateur());
-            changed = true;
-        }
-        if (overrides.getPresenceAjoutEau() != null) {
-            execution.setPresenceAjoutEau(overrides.getPresenceAjoutEau());
-            changed = true;
-        }
-
-        if (changed) {
-            executionProductionRepository.save(execution);
-        }
     }
 
     private Map<String, Object> callAiPredictGuide(Map<String, Object> payload) {
@@ -219,7 +196,7 @@ public class PredictionService {
         return response;
     }
 
-    private Map<String, Object> buildAiPayload(ExecutionProduction execution) {
+    private Map<String, Object> buildAiPayload(ExecutionProduction execution, dto.PredictionInputDTO predictionData) {
         LotOlives lot = execution.getLotOlives();
         GuideProduction guide = execution.getGuideProduction();
 
@@ -232,38 +209,41 @@ public class PredictionService {
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("variete", normalizeText(lot.getVariete()));
-        payload.put("region", normalizeText(execution.getRegion() != null ? execution.getRegion() : lot.getRegion()));
+        payload.put("region",
+                normalizeText(predictionData.getRegion() != null ? predictionData.getRegion() : lot.getRegion()));
         payload.put("methode_recolte", normalizeText(
-                execution.getMethodeRecolte() != null ? execution.getMethodeRecolte() : lot.getMethodeRecolte()));
+                predictionData.getMethodeRecolte() != null ? predictionData.getMethodeRecolte()
+                        : lot.getMethodeRecolte()));
         payload.put("type_sol",
-                normalizeText(execution.getTypeSol() != null ? execution.getTypeSol() : lot.getTypeSol()));
+                normalizeText(predictionData.getTypeSol() != null ? predictionData.getTypeSol() : lot.getTypeSol()));
         payload.put("poids_olives_kg", firstNonNull(lot.getPesee(), lot.getQuantiteInitiale()));
         payload.put("maturite_niveau_1_5", parseMaturite(lot.getMaturite()));
         payload.put("duree_stockage_jours", defaultInt(lot.getDureeStockageAvantBroyage(), 0));
         payload.put("temps_depuis_recolte_heures", defaultInt(lot.getTempsDepuisRecolteHeures(), 0));
         payload.put("temperature_malaxage_c",
-                firstNonNull(execution.getTemperatureMalaxageC(),
+                firstNonNull(predictionData.getTemperatureMalaxageC(),
                         extractGuideValue(guide, "temperature_malaxage_c", 26.0)));
         payload.put("duree_malaxage_min",
-                firstNonNull(execution.getDureeMalaxageMin(), extractGuideValue(guide, "duree_malaxage_min", 30.0)));
+                firstNonNull(predictionData.getDureeMalaxageMin(),
+                        extractGuideValue(guide, "duree_malaxage_min", 30.0)));
         payload.put("vitesse_decanteur_tr_min",
-                firstNonNull(execution.getVitesseDecanteurTrMin(),
+                firstNonNull(predictionData.getVitesseDecanteurTrMin(),
                         extractGuideValue(guide, "vitesse_decanteur_tr_min", 3200.0)));
         payload.put("humidite_pourcent",
-                firstNonNull(execution.getHumiditePourcent(), lot.getHumiditePourcent()));
+                firstNonNull(predictionData.getHumiditePourcent(), lot.getHumiditePourcent()));
         payload.put("acidite_olives_pourcent",
-                firstNonNull(execution.getAciditeOlivesPourcent(), lot.getAciditeOlivesPourcent()));
+                firstNonNull(predictionData.getAciditeOlivesPourcent(), lot.getAciditeOlivesPourcent()));
         payload.put("taux_feuilles_pourcent",
-                firstNonNull(execution.getTauxFeuillesPourcent(), lot.getTauxFeuillesPourcent()));
+                firstNonNull(predictionData.getTauxFeuillesPourcent(), lot.getTauxFeuillesPourcent()));
         payload.put("lavage_effectue", normalizeOuiNon(lot.getLavageEffectue()));
-        payload.put("type_machine", extractGuideTypeMachine(guide));
+        payload.put("type_machine", extractGuideTypeMachine(guide, predictionData));
         payload.put("controle_temperature",
                 execution.getControleTemperature() != null && execution.getControleTemperature() ? "Oui" : "Non");
         payload.put("presence_separateur",
-                execution.getPresenceSeparateur() != null && execution.getPresenceSeparateur() ? 1 : 0);
+                predictionData.getPresenceSeparateur() != null && predictionData.getPresenceSeparateur() ? 1 : 0);
         payload.put("presence_ajout_eau",
-                execution.getPresenceAjoutEau() != null && execution.getPresenceAjoutEau() ? 1 : 0);
-        payload.put("etapes", buildGuideSteps(guide, execution));
+                predictionData.getPresenceAjoutEau() != null && predictionData.getPresenceAjoutEau() ? 1 : 0);
+        payload.put("etapes", buildGuideSteps(guide, predictionData));
 
         AnalyseLaboratoire analyseLaboratoire = lot.getAnalyseLaboratoire();
         if (analyseLaboratoire != null) {
@@ -278,7 +258,7 @@ public class PredictionService {
         return payload;
     }
 
-    private List<Map<String, Object>> buildGuideSteps(GuideProduction guide, ExecutionProduction execution) {
+    private List<Map<String, Object>> buildGuideSteps(GuideProduction guide, dto.PredictionInputDTO predictionData) {
         List<Map<String, Object>> stepsPayload = new ArrayList<>();
 
         List<EtapeProduction> steps = new ArrayList<>(guide.getEtapes() == null ? List.of() : guide.getEtapes());
@@ -316,29 +296,30 @@ public class PredictionService {
             stepsPayload.add(aiStep);
         }
 
-        boolean hasOverride = execution.getTemperatureMalaxageC() != null
-                || execution.getDureeMalaxageMin() != null
-                || execution.getVitesseDecanteurTrMin() != null
-                || execution.getPressionExtractionBar() != null;
+        boolean hasOverride = predictionData.getTemperatureMalaxageC() != null
+                || predictionData.getDureeMalaxageMin() != null
+                || predictionData.getVitesseDecanteurTrMin() != null
+                || predictionData.getPressionExtractionBar() != null;
 
         if (hasOverride) {
             Map<String, Object> overrideStep = new LinkedHashMap<>();
-            double overrideDuration = execution.getDureeMalaxageMin() != null && execution.getDureeMalaxageMin() > 0
-                    ? execution.getDureeMalaxageMin()
+            double overrideDuration = predictionData.getDureeMalaxageMin() != null
+                    && predictionData.getDureeMalaxageMin() > 0
+                    ? predictionData.getDureeMalaxageMin()
                     : 1.0;
             overrideStep.put("duree_etape_min", overrideDuration);
 
-            if (execution.getTemperatureMalaxageC() != null) {
-                overrideStep.put("temperature_malaxage_c", execution.getTemperatureMalaxageC());
+            if (predictionData.getTemperatureMalaxageC() != null) {
+                overrideStep.put("temperature_malaxage_c", predictionData.getTemperatureMalaxageC());
             }
-            if (execution.getDureeMalaxageMin() != null) {
-                overrideStep.put("duree_malaxage_min", execution.getDureeMalaxageMin());
+            if (predictionData.getDureeMalaxageMin() != null) {
+                overrideStep.put("duree_malaxage_min", predictionData.getDureeMalaxageMin());
             }
-            if (execution.getVitesseDecanteurTrMin() != null) {
-                overrideStep.put("vitesse_decanteur_tr_min", execution.getVitesseDecanteurTrMin());
+            if (predictionData.getVitesseDecanteurTrMin() != null) {
+                overrideStep.put("vitesse_decanteur_tr_min", predictionData.getVitesseDecanteurTrMin());
             }
-            if (execution.getPressionExtractionBar() != null) {
-                overrideStep.put("pression_extraction_bar", execution.getPressionExtractionBar());
+            if (predictionData.getPressionExtractionBar() != null) {
+                overrideStep.put("pression_extraction_bar", predictionData.getPressionExtractionBar());
             }
 
             stepsPayload.add(overrideStep);
@@ -508,17 +489,51 @@ public class PredictionService {
         return first != null ? first : second;
     }
 
-    private String extractGuideTypeMachine(GuideProduction guide) {
-        if (guide == null || guide.getEtapes() == null || guide.getEtapes().isEmpty()) {
-            return "Inconnue";
+    private String extractGuideTypeMachine(GuideProduction guide, dto.PredictionInputDTO predictionData) {
+        String dtoTypeMachine = normalizeText(predictionData != null ? predictionData.getTypeMachine() : null);
+        String normalizedDtoTypeMachine = PredictionValueMapper.mapValue("typeMachine", dtoTypeMachine);
+        if (isValidTypeMachine(normalizedDtoTypeMachine)) {
+            return normalizedDtoTypeMachine;
         }
-        return guide.getEtapes().stream()
-                .map(EtapeProduction::getMachine)
-                .filter(machine -> machine != null && machine.getTypeMachine() != null)
-                .map(machine -> machine.getTypeMachine().trim())
-                .filter(type -> !type.isEmpty())
-                .findFirst()
-                .orElse("Inconnue");
+
+        String guideRawTypeMachine = null;
+        if (guide != null && guide.getEtapes() != null && !guide.getEtapes().isEmpty()) {
+            guideRawTypeMachine = guide.getEtapes().stream()
+                    .map(EtapeProduction::getMachine)
+                    .filter(machine -> machine != null && machine.getTypeMachine() != null)
+                    .map(machine -> machine.getTypeMachine().trim())
+                    .filter(type -> !type.isEmpty())
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        String normalizedGuideTypeMachine = PredictionValueMapper.mapValue("typeMachine", guideRawTypeMachine);
+        if (isValidTypeMachine(normalizedGuideTypeMachine)) {
+            return normalizedGuideTypeMachine;
+        }
+
+        // Heuristique défensive pour valeurs mal classées en base (ex: "soufflerie")
+        // afin de toujours envoyer une valeur valide au microservice IA.
+        String raw = normalizeText(guideRawTypeMachine);
+        if (raw != null) {
+            String lower = raw.toLowerCase();
+            if (lower.contains("3")) {
+                return "3_phase";
+            }
+            if (lower.contains("presse") || lower.contains("press")) {
+                return "presse";
+            }
+            if (lower.contains("2") || lower.contains("decant") || lower.contains("souffler")
+                    || lower.contains("separat")) {
+                return "2_phase";
+            }
+        }
+
+        return "2_phase";
+    }
+
+    private boolean isValidTypeMachine(String value) {
+        return value != null && PredictionEnumConstants.TYPE_MACHINE_VALUES.contains(value);
     }
 
     private PredictionDTO toDTO(Prediction prediction) {

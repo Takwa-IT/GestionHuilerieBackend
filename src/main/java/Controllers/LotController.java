@@ -34,8 +34,14 @@ public class LotController {
 
     @PostMapping("/arrivages")
     @RequirePermission(module = "RECEPTION", action = PermissionAction.CREATE)
-    public ResponseEntity<LotOlivesDTO> createArrivage(@Valid @RequestBody LotArrivageCreateDTO dto) {
-        return new ResponseEntity<>(lotService.createArrivage(dto), HttpStatus.CREATED);
+    public ResponseEntity<Object> createArrivage(@Valid @RequestBody LotArrivageCreateDTO dto) {
+        try {
+            LotOlivesDTO created = lotService.createArrivage(dto);
+            return new ResponseEntity<>(created, HttpStatus.CREATED);
+        } catch (RuntimeException ex) {
+            java.util.Map<String, String> body = java.util.Map.of("message", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        }
     }
 
     @GetMapping("/arrivages")

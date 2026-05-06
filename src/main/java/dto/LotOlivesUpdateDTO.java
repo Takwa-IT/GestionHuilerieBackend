@@ -45,8 +45,9 @@ public class LotOlivesUpdateDTO {
 
     private String dateRecolte;
     private String dateReception;
-    private String fournisseurNom;
-    private String fournisseurCIN;
+
+    @JsonAlias({ "fournisseur_id" })
+    private Long fournisseurId;
 
     @JsonAlias({ "duree_stockage_jours" })
     private Integer dureeStockageAvantBroyage;

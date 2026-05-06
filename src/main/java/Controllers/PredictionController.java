@@ -1,8 +1,12 @@
 package Controllers;
 
+import Config.PredictionInputValidator;
+import Config.PredictionValueMapper;
+import Config.ValidationErrorResponse;
 import Services.PredictionService;
 import dto.PredictionCreateDTO;
 import dto.PredictionDTO;
+import dto.PredictionInputDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -10,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/predictions")
@@ -21,6 +26,24 @@ public class PredictionController {
     @PostMapping
     public ResponseEntity<PredictionDTO> create(@Valid @RequestBody PredictionCreateDTO dto) {
         return new ResponseEntity<>(predictionService.create(dto), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/validate-input")
+    public ResponseEntity<?> validateInput(@RequestBody PredictionInputDTO dto) {
+        PredictionValueMapper.normalizeEnumFields(dto);
+        List<String> errors = PredictionInputValidator.validate(dto);
+
+        if (!errors.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ValidationErrorResponse(
+                    "Données de prédiction invalides",
+                    errors
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Données de prédiction valides"
+        ));
     }
 
     @GetMapping("/{id}")

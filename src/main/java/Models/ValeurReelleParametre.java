@@ -30,12 +30,6 @@ public class ValeurReelleParametre {
     @Column(name = "valeur_reelle", nullable = false)
     private Double valeurReelle;
 
-    @Column(name = "unite_mesure")
-    private String uniteMesure;
-
-    @Column(name = "valeur_estimee")
-    private Double valeurEstimee;
-
     @Column(name = "deviation")
     private Double deviation;
 
@@ -61,18 +55,20 @@ public class ValeurReelleParametre {
         LocalDateTime now = LocalDateTime.now();
         this.dateCreation = now;
         this.dateModification = now;
+        computeDeviationAndQuality();
     }
 
     @PreUpdate
     public void onUpdate() {
         this.dateModification = LocalDateTime.now();
+        computeDeviationAndQuality();
     }
 
-    public Double calculerDeviation() {
-        if (valeurEstimee == null || valeurEstimee == 0.0 || valeurReelle == null) {
+    public Double calculerDeviation(Double valeurReference) {
+        if (valeurReference == null || valeurReference == 0.0 || valeurReelle == null) {
             return null;
         }
-        return ((valeurReelle - valeurEstimee) / valeurEstimee) * 100.0;
+        return ((valeurReelle - valeurReference) / valeurReference) * 100.0;
     }
 
     public String determinerQualiteDeviation(double toleranceDefault) {
@@ -87,5 +83,43 @@ public class ValeurReelleParametre {
             return "MODÉRÉE";
         }
         return "IMPORTANTE";
+    }
+
+    private void computeDeviationAndQuality() {
+        if (deviation != null && qualiteDeviation != null) {
+            return;
+        }
+
+        if (parametreEtape == null || valeurReelle == null) {
+            return;
+        }
+
+        Double valeurReference = null;
+        String referenceText = parametreEtape.getValeur();
+        if (referenceText != null && !referenceText.isBlank()) {
+            try {
+                valeurReference = Double.valueOf(referenceText.trim().replace(',', '.'));
+            } catch (NumberFormatException ignored) {
+                valeurReference = null;
+            }
+        }
+
+        if (valeurReference == null || valeurReference == 0.0) {
+            return;
+        }
+
+        this.deviation = calculerDeviation(valeurReference);
+        if (this.deviation == null) {
+            return;
+        }
+
+        double valeurAbsolue = Math.abs(this.deviation);
+        if (valeurAbsolue <= 10.0) {
+            this.qualiteDeviation = "FAIBLE";
+        } else if (valeurAbsolue <= 15.0) {
+            this.qualiteDeviation = "MODÉRÉE";
+        } else {
+            this.qualiteDeviation = "IMPORTANTE";
+        }
     }
 }

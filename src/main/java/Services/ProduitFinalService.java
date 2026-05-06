@@ -93,7 +93,6 @@ public class ProduitFinalService {
         dto.setDateFinPrevue(executionProduction.getDateFinPrevue());
         dto.setDateFinReelle(executionProduction.getDateFinReelle());
         dto.setStatut(executionProduction.getStatut());
-        dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
 
         if (executionProduction.getGuideProduction() != null) {
@@ -158,7 +157,6 @@ public class ProduitFinalService {
         ValeurReelleParametreDTO dto = new ValeurReelleParametreDTO();
         dto.setParametreEtapeId(parametre.getIdParametreEtape());
         dto.setNomParametre(parametre.getNomParametre());
-        dto.setValeurEstimee(parseDoubleSafely(parametre.getValeur()));
         dto.setValeurReelle(valeurReelle != null ? valeurReelle.getValeurReelle() : null);
         return dto;
     }

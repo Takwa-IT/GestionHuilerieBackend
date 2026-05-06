@@ -76,17 +76,15 @@ public class ValeurReelleService {
                                 "Le parametre '" + normalizedKey + "' n'accepte pas de valeur reelle.");
                     }
 
-                    Double valeurEstimee = extractEstimatedValue(execution, parametre);
+                    Double valeurGuide = extractGuideValue(parametre);
 
                     ValeurReelleParametre valeur = new ValeurReelleParametre();
                     valeur.setExecutionProduction(execution);
                     valeur.setParametreEtape(parametre);
                     valeur.setValeurReelle(input.getValeurReelle());
-                    valeur.setUniteMesure(input.getUniteMesure());
-                    valeur.setValeurEstimee(valeurEstimee);
 
                     // Calculer déviation
-                    Double deviation = valeur.calculerDeviation();
+                    Double deviation = valeur.calculerDeviation(valeurGuide);
                     valeur.setDeviation(deviation);
                     valeur.setQualiteDeviation(valeur.determinerQualiteDeviation(TOLERANCE_DEFAULT));
 
@@ -141,44 +139,15 @@ public class ValeurReelleService {
     }
 
     /**
-     * Extrait la valeur estimée de l'exécution selon le paramètre
+     * Extrait la valeur de référence depuis le paramètre du guide.
      */
-    private Double extractEstimatedValue(ExecutionProduction execution, ParametreEtape parametre) {
-        Double byCode = extractFromExecutionByKey(execution, parametre.getCodeParametre());
+    private Double extractGuideValue(ParametreEtape parametre) {
+        Double byCode = parseDoubleSafely(parametre.getValeur());
         if (byCode != null) {
             return byCode;
         }
 
-        Double byNomParametre = extractFromExecutionByKey(execution, parametre.getNomParametre());
-        if (byNomParametre != null) {
-            return byNomParametre;
-        }
-
-        Double byNom = extractFromExecutionByKey(execution, parametre.getNom());
-        if (byNom != null) {
-            return byNom;
-        }
-
-        return parseDoubleSafely(parametre.getValeur());
-    }
-
-    private Double extractFromExecutionByKey(ExecutionProduction execution, String rawKey) {
-        String key = normalizeParamKey(rawKey);
-        return switch (key) {
-            case "temperature_malaxage_c" -> execution.getTemperatureMalaxageC();
-            case "temperature_malaxage" -> execution.getTemperatureMalaxageC();
-            case "temperature" -> execution.getTemperatureMalaxageC();
-            case "duree_malaxage_min" -> execution.getDureeMalaxageMin();
-            case "duree_malaxage" -> execution.getDureeMalaxageMin();
-            case "duree" -> execution.getDureeMalaxageMin();
-            case "vitesse_decanteur_tr_min" -> execution.getVitesseDecanteurTrMin();
-            case "vitesse_decanteur" -> execution.getVitesseDecanteurTrMin();
-            case "vitesse" -> execution.getVitesseDecanteurTrMin();
-            case "pression_extraction_bar" -> execution.getPressionExtractionBar();
-            case "pression_extraction" -> execution.getPressionExtractionBar();
-            case "pression" -> execution.getPressionExtractionBar();
-            default -> null;
-        };
+        return null;
     }
 
     private String normalizeParamKey(String value) {
@@ -215,18 +184,13 @@ public class ValeurReelleService {
 
     /**
      * Met à jour les champs d'exécution avec les valeurs réelles
+     * NOTE: Les attributs de prédiction sont maintenant dans PredictionInputDTO,
+     * pas dans ExecutionProduction
      */
     private void updateExecutionWithRealValues(ExecutionProduction execution, List<ValeurReelleParametre> valeurs) {
-        for (ValeurReelleParametre valeur : valeurs) {
-            String paramName = normalizeParamKey(valeur.getParametreEtape().getNomParametre());
-
-            switch (paramName) {
-                case "temperature_malaxage_c" -> execution.setTemperatureMalaxageC(valeur.getValeurReelle());
-                case "duree_malaxage_min" -> execution.setDureeMalaxageMin(valeur.getValeurReelle());
-                case "vitesse_decanteur_tr_min" -> execution.setVitesseDecanteurTrMin(valeur.getValeurReelle());
-                case "pression_extraction_bar" -> execution.setPressionExtractionBar(valeur.getValeurReelle());
-            }
-        }
+        // Les valeurs réelles sont stockées dans ValeurReelleParametre, pas dans
+        // ExecutionProduction
+        // Cette méthode est maintenant un no-op
     }
 
     /**
@@ -238,8 +202,6 @@ public class ValeurReelleService {
         dto.setExecutionProductionId(entity.getExecutionProduction().getIdExecutionProduction());
         dto.setParametreEtapeId(entity.getParametreEtape().getIdParametreEtape());
         dto.setNomParametre(entity.getParametreEtape().getNomParametre());
-        dto.setUniteMesure(entity.getUniteMesure());
-        dto.setValeurEstimee(entity.getValeurEstimee());
         dto.setValeurReelle(entity.getValeurReelle());
         dto.setDeviation(entity.getDeviation());
         dto.setQualiteDeviation(entity.getQualiteDeviation());

@@ -40,6 +40,7 @@ public class LotOlivesDTO {
 
     private String dateRecolte;
     private String dateReception;
+    private Long fournisseurId;
     private String fournisseurNom;
     private String fournisseurCIN;
 

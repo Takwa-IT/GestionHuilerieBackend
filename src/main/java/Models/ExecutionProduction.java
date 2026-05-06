@@ -40,25 +40,9 @@ public class ExecutionProduction {
     @Column(nullable = false)
     private String statut;
 
-    private Double rendement;
-
     private String observations;
 
     private Boolean controleTemperature;
-
-    // Champs IA pour la prédiction
-    private String region;
-    private String methodeRecolte;
-    private String typeSol;
-    private Double temperatureMalaxageC;
-    private Double dureeMalaxageMin;
-    private Double vitesseDecanteurTrMin;
-    private Double humiditePourcent;
-    private Double aciditeOlivesPourcent;
-    private Double tauxFeuillesPourcent;
-    private Double pressionExtractionBar;
-    private Boolean presenceSeparateur;
-    private Boolean presenceAjoutEau;
 
     @ManyToOne
     @JoinColumn(name = "guide_production_id", nullable = false)

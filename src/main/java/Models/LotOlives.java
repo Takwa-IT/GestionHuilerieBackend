@@ -29,8 +29,10 @@ public class LotOlives {
     private String lavageEffectue;
     private String dateRecolte;
     private String dateReception;
-    private String fournisseurNom;
-    private String fournisseurCIN;
+
+    @ManyToOne
+    @JoinColumn(name = "fournisseur_id")
+    private Fournisseur fournisseur;
     private Integer dureeStockageAvantBroyage;
     private Double pesee;
     private Double quantiteInitiale;
@@ -194,20 +196,12 @@ public class LotOlives {
         this.dateReception = dateReception;
     }
 
-    public String getFournisseurNom() {
-        return fournisseurNom;
+    public Fournisseur getFournisseur() {
+        return fournisseur;
     }
 
-    public void setFournisseurNom(String fournisseurNom) {
-        this.fournisseurNom = fournisseurNom;
-    }
-
-    public String getFournisseurCIN() {
-        return fournisseurCIN;
-    }
-
-    public void setFournisseurCIN(String fournisseurCIN) {
-        this.fournisseurCIN = fournisseurCIN;
+    public void setFournisseur(Fournisseur fournisseur) {
+        this.fournisseur = fournisseur;
     }
 
     public Integer getDureeStockageAvantBroyage() {

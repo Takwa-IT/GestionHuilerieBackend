@@ -33,13 +33,14 @@ public class LotOlivesMapper {
         dto.setLavageEffectue(entity.getLavageEffectue());
         dto.setDateRecolte(entity.getDateRecolte());
         dto.setDateReception(entity.getDateReception());
-        dto.setFournisseurNom(entity.getFournisseurNom());
-        dto.setFournisseurCIN(entity.getFournisseurCIN());
+        dto.setFournisseurNom(entity.getFournisseur() != null ? entity.getFournisseur().getNom() : null);
+        dto.setFournisseurCIN(entity.getFournisseur() != null ? entity.getFournisseur().getCin() : null);
         dto.setDureeStockageAvantBroyage(entity.getDureeStockageAvantBroyage());
         dto.setPesee(entity.getPesee());
         dto.setQuantiteInitiale(entity.getQuantiteInitiale());
         dto.setQuantiteRestante(entity.getQuantiteRestante());
         dto.setBonPeseePdfPath(entity.getBonPeseePdfPath());
+        dto.setFournisseurId(entity.getFournisseur() != null ? entity.getFournisseur().getIdFournisseur() : null);
         dto.setMatierePremiereId(entity.getMatierePremiere() != null ? entity.getMatierePremiere().getId() : null);
         dto.setMatierePremiereReference(
                 entity.getMatierePremiere() != null ? entity.getMatierePremiere().getReference() : null);

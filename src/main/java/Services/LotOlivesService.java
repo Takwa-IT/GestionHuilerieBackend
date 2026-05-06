@@ -4,10 +4,12 @@ import Config.ReferenceUtils;
 import Config.LotDeletionException;
 import Mapper.LotOlivesMapper;
 import Models.CampagneOlives;
+import Models.Fournisseur;
 import Models.LotOlives;
 import Models.MatierePremiere;
 import Models.Stock;
 import Models.Utilisateur;
+import Repositories.FournisseurRepository;
 import Repositories.CampagneOlivesRepository;
 import Repositories.HuilerieRepository;
 import Repositories.LotOlivesRepository;
@@ -48,6 +50,7 @@ import java.util.List;
 public class LotOlivesService {
     private final LotOlivesRepository lotOlivesRepository;
     private final CampagneOlivesRepository campagneOlivesRepository;
+    private final FournisseurRepository fournisseurRepository;
     private final HuilerieRepository huilerieRepository;
     private final StockRepository stockRepository;
     private final AnalyseLaboratoireRepository analyseLaboratoireRepository;
@@ -67,8 +70,21 @@ public class LotOlivesService {
     public LotOlivesDTO createArrivage(LotArrivageCreateDTO dto) {
         Long effectiveHuilerieId = resolveEffectiveHuilerieId(dto.getHuilerieId());
         String variete = resolveVariete(dto);
-        String fournisseurNom = normalizeSupplierValue(dto.getFournisseurNom());
-        String fournisseurCIN = normalizeSupplierValue(dto.getFournisseurCIN());
+
+        System.out.println("[DEBUG] createArrivage payload: fournisseurId=" + dto.getFournisseurId()
+                + " fournisseurNom='" + dto.getFournisseurNom() + "' fournisseurCIN='" + dto.getFournisseurCIN() + "'");
+
+        Fournisseur fournisseur;
+        try {
+            fournisseur = resolveOrCreateFournisseur(dto.getFournisseurId(), dto.getFournisseurNom(),
+                    dto.getFournisseurCIN());
+        } catch (RuntimeException ex) {
+            System.out.println("[ERROR] failed to resolve or create fournisseur for payload: fournisseurId="
+                    + dto.getFournisseurId()
+                    + " fournisseurNom='" + dto.getFournisseurNom() + "' fournisseurCIN='" + dto.getFournisseurCIN()
+                    + "' -> " + ex.getMessage());
+            throw ex;
+        }
 
         String matiereReference = dto.getMatierePremiereReference() == null
                 ? ""
@@ -85,7 +101,6 @@ public class LotOlivesService {
         CampagneOlives campagne = resolveCampagne(campagneReference);
 
         ensureRelationsMatchHuilerie(effectiveHuilerieId, matierePremiere, campagne);
-        validateSupplierIdentity(fournisseurNom, fournisseurCIN, null);
 
         LotOlives lot = new LotOlives();
         lot.setReference("TMP-LO-" + java.util.UUID.randomUUID());
@@ -102,8 +117,7 @@ public class LotOlivesService {
         lot.setLavageEffectue(normalizeLavageEffectue(dto.getLavageEffectue()));
         lot.setDateRecolte(dto.getDateRecolte());
         lot.setDateReception(dto.getDateReception());
-        lot.setFournisseurNom(fournisseurNom);
-        lot.setFournisseurCIN(fournisseurCIN);
+        lot.setFournisseur(fournisseur);
         lot.setDureeStockageAvantBroyage(dto.getDureeStockageAvantBroyage());
         lot.setPesee(dto.getPesee());
         lot.setQuantiteInitiale(dto.getPesee());
@@ -120,8 +134,8 @@ public class LotOlivesService {
         String varieteNormalisee = variete.trim().toLowerCase();
 
         Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndVariete(
-                        effectiveHuilerieId,
-                        varieteNormalisee)
+                effectiveHuilerieId,
+                varieteNormalisee)
                 .orElseGet(() -> {
                     Stock newStock = new Stock();
                     newStock.setTypeStock(matierePremiere.getType());
@@ -237,8 +251,6 @@ public class LotOlivesService {
     @Transactional
     public LotOlivesDTO update(Long idLot, LotOlivesUpdateDTO dto) {
         LotOlives lot = findLot(idLot);
-        String supplierNom = dto.getFournisseurNom() != null ? normalizeSupplierValue(dto.getFournisseurNom()) : lot.getFournisseurNom();
-        String supplierCIN = dto.getFournisseurCIN() != null ? normalizeSupplierValue(dto.getFournisseurCIN()) : lot.getFournisseurCIN();
 
         if (dto.getVariete() != null && !dto.getVariete().trim().isEmpty()) {
             lot.setVariete(dto.getVariete().trim());
@@ -303,16 +315,12 @@ public class LotOlivesService {
             lot.setCampagne(campagne);
         }
 
-        if (dto.getFournisseurNom() != null) {
-            lot.setFournisseurNom(supplierNom);
-        }
-        if (dto.getFournisseurCIN() != null) {
-            lot.setFournisseurCIN(supplierCIN);
+        if (dto.getFournisseurId() != null) {
+            lot.setFournisseur(resolveFournisseur(dto.getFournisseurId()));
         }
 
         Long huilerieId = lot.getHuilerie() != null ? lot.getHuilerie().getIdHuilerie() : null;
         ensureRelationsMatchHuilerie(huilerieId, lot.getMatierePremiere(), lot.getCampagne());
-        validateSupplierIdentity(lot.getFournisseurNom(), lot.getFournisseurCIN(), lot.getIdLot());
 
         LotOlives saved = lotOlivesRepository.save(lot);
         return lotOlivesMapper.toDTO(saved);
@@ -326,49 +334,44 @@ public class LotOlivesService {
         return value.trim();
     }
 
-    private String normalizeSupplierValue(String value) {
-        if (!hasText(value)) {
-            return null;
+    private Fournisseur resolveFournisseur(Long fournisseurId) {
+        if (fournisseurId == null) {
+            throw new RuntimeException("Le fournisseur est obligatoire.");
         }
 
-        return value.trim();
+        return fournisseurRepository.findById(fournisseurId)
+                .orElseThrow(() -> new RuntimeException("Fournisseur non trouve"));
     }
 
-    private void validateSupplierIdentity(String fournisseurNom, String fournisseurCIN, Long currentLotId) {
-        String normalizedNom = normalizeSupplierValue(fournisseurNom);
-        String normalizedCIN = normalizeSupplierValue(fournisseurCIN);
-
-        if (!hasText(normalizedNom) && !hasText(normalizedCIN)) {
-            return;
+    private Fournisseur resolveOrCreateFournisseur(Long fournisseurId, String fournisseurNom, String fournisseurCIN) {
+        if (fournisseurId != null) {
+            return resolveFournisseur(fournisseurId);
         }
 
-        if (!hasText(normalizedNom) || !hasText(normalizedCIN)) {
-            throw new RuntimeException("Le fournisseur doit avoir un nom et un CIN renseignés.");
+        String cin = fournisseurCIN == null ? null : fournisseurCIN.trim();
+        String nom = fournisseurNom == null ? null : fournisseurNom.trim();
+
+        if (cin != null && !cin.isEmpty()) {
+            java.util.Optional<Fournisseur> existing = fournisseurRepository.findByCin(cin);
+            if (existing.isPresent()) {
+                Fournisseur f = existing.get();
+                if (nom != null && !nom.isEmpty() && (f.getNom() == null || !f.getNom().equals(nom))) {
+                    throw new RuntimeException("CIN existe avec un autre nom de fournisseur");
+                }
+                return f;
+            }
+
+            if (nom == null || nom.isEmpty()) {
+                throw new RuntimeException("Nom du fournisseur obligatoire pour creation");
+            }
+
+            Fournisseur created = new Fournisseur();
+            created.setNom(nom);
+            created.setCin(cin);
+            return fournisseurRepository.save(created);
         }
 
-        List<LotOlives> lotsByCin = lotOlivesRepository.findByFournisseurCINIgnoreCase(normalizedCIN);
-        for (LotOlives existing : lotsByCin) {
-            if (currentLotId != null && currentLotId.equals(existing.getIdLot())) {
-                continue;
-            }
-
-            String existingNom = normalizeSupplierValue(existing.getFournisseurNom());
-            if (!hasText(existingNom) || !existingNom.equalsIgnoreCase(normalizedNom)) {
-                throw new RuntimeException("Ce CIN fournisseur est déjà associé à un autre fournisseur.");
-            }
-        }
-
-        List<LotOlives> lotsByNom = lotOlivesRepository.findByFournisseurNomIgnoreCase(normalizedNom);
-        for (LotOlives existing : lotsByNom) {
-            if (currentLotId != null && currentLotId.equals(existing.getIdLot())) {
-                continue;
-            }
-
-            String existingCIN = normalizeSupplierValue(existing.getFournisseurCIN());
-            if (!hasText(existingCIN) || !existingCIN.equalsIgnoreCase(normalizedCIN)) {
-                throw new RuntimeException("Ce fournisseur est déjà associé à un autre CIN.");
-            }
-        }
+        throw new RuntimeException("Le fournisseur est obligatoire.");
     }
 
     @Transactional
@@ -437,7 +440,7 @@ public class LotOlivesService {
     }
 
     private void ensureRelationsMatchHuilerie(Long huilerieId, MatierePremiere matierePremiere,
-                                              CampagneOlives campagne) {
+            CampagneOlives campagne) {
         Long matiereHuilerieId = matierePremiere != null && matierePremiere.getHuilerie() != null
                 ? matierePremiere.getHuilerie().getIdHuilerie()
                 : null;
@@ -628,7 +631,7 @@ public class LotOlivesService {
             addLabeledCell(lotTable, "Date recolte", nullSafe(lot.getDateRecolte()), label, value,
                     labelBackground, valueBackground, border);
             addLabeledCell(lotTable, "Duree avant broyage", (lot.getDureeStockageAvantBroyage() == null ? "-"
-                            : lot.getDureeStockageAvantBroyage() + " jour(s)"), label, value,
+                    : lot.getDureeStockageAvantBroyage() + " jour(s)"), label, value,
                     labelBackground, valueBackground, border);
             addLabeledCell(lotTable, "Pesee nette",
                     String.format(java.util.Locale.US, "%.2f kg", lot.getPesee() == null ? 0d : lot.getPesee()), label,
@@ -640,9 +643,11 @@ public class LotOlivesService {
             PdfPTable supplierTable = new PdfPTable(2);
             supplierTable.setWidthPercentage(100);
             supplierTable.setWidths(new float[] { 1.3f, 2.7f });
-            addLabeledCell(supplierTable, "Nom", nullSafe(lot.getFournisseurNom()), label, value,
+            addLabeledCell(supplierTable, "Nom",
+                    lot.getFournisseur() != null ? nullSafe(lot.getFournisseur().getNom()) : "-", label, value,
                     labelBackground, valueBackground, border);
-            addLabeledCell(supplierTable, "CIN", nullSafe(lot.getFournisseurCIN()), label, value,
+            addLabeledCell(supplierTable, "CIN",
+                    lot.getFournisseur() != null ? nullSafe(lot.getFournisseur().getCin()) : "-", label, value,
                     labelBackground, valueBackground, border);
             document.add(supplierTable);
 
@@ -677,7 +682,7 @@ public class LotOlivesService {
     }
 
     private void addLabeledCell(PdfPTable table, String fieldLabel, String fieldValue, Font labelFont, Font valueFont,
-                                Color labelBackground, Color valueBackground, Color borderColor) {
+            Color labelBackground, Color valueBackground, Color borderColor) {
         PdfPCell labelCell = new PdfPCell(new Phrase(fieldLabel, labelFont));
         labelCell.setBackgroundColor(labelBackground);
         labelCell.setPadding(8f);

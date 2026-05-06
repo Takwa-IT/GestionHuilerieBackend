@@ -15,7 +15,6 @@ public class ValeurReelleParametreDTO {
     private Long parametreEtapeId;
     private String nomParametre;
     private String uniteMesure;
-    private Double valeurEstimee;
     private Double valeurReelle;
     private Double deviation;
     private String qualiteDeviation;

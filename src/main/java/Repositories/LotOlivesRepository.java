@@ -13,10 +13,6 @@ import java.util.Optional;
 public interface LotOlivesRepository extends JpaRepository<LotOlives, Long> {
     Optional<LotOlives> findByReference(String reference);
 
-    List<LotOlives> findByFournisseurCINIgnoreCase(String fournisseurCIN);
-
-    List<LotOlives> findByFournisseurNomIgnoreCase(String fournisseurNom);
-
     boolean existsByCampagne_IdCampagne(Long idCampagne);
 
     @Query("select l from LotOlives l where lower(l.huilerie.nom) = lower(:huilerieNom)")

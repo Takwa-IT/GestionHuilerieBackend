@@ -22,13 +22,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.time.format.DateTimeFormatter;
 
 @Service
 @Slf4j
@@ -83,6 +85,12 @@ public class ExecutionProductionService {
 
         ExecutionProduction savedExecution = executionProductionRepository.save(executionProduction);
 
+        Integer storageDurationDays = computeStorageDurationDays(lot.getDateReception(), savedExecution.getDateDebut());
+        if (storageDurationDays != null) {
+            lot.setDureeStockageAvantBroyage(storageDurationDays);
+            lotOlivesRepository.save(lot);
+        }
+
         StockMovementCreateDTO transferDto = new StockMovementCreateDTO();
         transferDto.setLotId(lot.getIdLot());
         transferDto.setHuilerieId(huilerieId);
@@ -92,6 +100,22 @@ public class ExecutionProductionService {
         stockMovementService.create(transferDto);
 
         return toDTO(savedExecution);
+    }
+
+    private Integer computeStorageDurationDays(String dateReception, String dateDebut) {
+        if (dateReception == null || dateReception.isBlank() || dateDebut == null || dateDebut.isBlank()) {
+            return null;
+        }
+
+        try {
+            LocalDate reception = LocalDate.parse(dateReception.trim().substring(0, 10));
+            LocalDate debut = LocalDate.parse(dateDebut.trim().substring(0, 10));
+            long duration = ChronoUnit.DAYS.between(reception, debut);
+            return (int) Math.max(0, duration);
+        } catch (Exception ex) {
+            log.warn("Impossible de calculer la durée de stockage pour dateReception={} dateDebut={}", dateReception, dateDebut);
+            return null;
+        }
     }
 
     private Long resolveHuilerieId(GuideProduction guideProduction, LotOlives lot) {
@@ -150,8 +174,8 @@ public class ExecutionProductionService {
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         List<ExecutionProduction> executions = currentUserService.isAdmin(utilisateur)
                 ? (hasText(huilerieNom)
-                        ? executionProductionRepository.findAllByHuilerieNom(huilerieNom)
-                        : executionProductionRepository.findAll())
+                ? executionProductionRepository.findAllByHuilerieNom(huilerieNom)
+                : executionProductionRepository.findAll())
                 : executionProductionRepository.findAllByHuilerieId(currentUserService.getCurrentHuilerieIdOrThrow());
 
         return executions.stream()
@@ -228,10 +252,10 @@ public class ExecutionProductionService {
         Map<Long, ValeurReelleParametre> valeursByParametreId = executionProduction.getValeursReelles() == null
                 ? Map.of()
                 : executionProduction.getValeursReelles().stream()
-                        .filter(v -> v.getParametreEtape() != null
-                                && v.getParametreEtape().getIdParametreEtape() != null)
-                        .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
-                                (first, second) -> second));
+                .filter(v -> v.getParametreEtape() != null
+                        && v.getParametreEtape().getIdParametreEtape() != null)
+                .collect(Collectors.toMap(v -> v.getParametreEtape().getIdParametreEtape(), Function.identity(),
+                        (first, second) -> second));
 
         if (executionProduction.getGuideProduction().getEtapes() == null) {
             return List.of();
@@ -385,8 +409,8 @@ public class ExecutionProductionService {
                     : null;
             Long paramGuideId = paramOriginal.getEtapeProduction() != null
                     && paramOriginal.getEtapeProduction().getGuideProduction() != null
-                            ? paramOriginal.getEtapeProduction().getGuideProduction().getIdGuideProduction()
-                            : null;
+                    ? paramOriginal.getEtapeProduction().getGuideProduction().getIdGuideProduction()
+                    : null;
             if (guideId == null || !guideId.equals(paramGuideId)) {
                 throw new RuntimeException("Le paramètre ne correspond pas au guide de cette exécution");
             }

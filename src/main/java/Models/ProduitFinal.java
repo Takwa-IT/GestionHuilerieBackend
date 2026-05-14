@@ -15,6 +15,7 @@ public class ProduitFinal {
     private String nomProduit;
     private Double quantiteProduite;
     private String qualite;
+    private Double rendement;
     private String dateProduction;
 
     @ManyToOne
@@ -32,6 +33,9 @@ public class ProduitFinal {
 
     public Double getQuantiteProduite() { return quantiteProduite; }
     public void setQuantiteProduite(Double quantiteProduite) { this.quantiteProduite = quantiteProduite; }
+
+    public Double getRendement() { return rendement; }
+    public void setRendement(Double rendement) { this.rendement = rendement; }
 
     public String getDateProduction() { return dateProduction; }
     public void setDateProduction(String dateProduction) { this.dateProduction = dateProduction; }

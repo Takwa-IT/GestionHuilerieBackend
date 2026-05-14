@@ -17,6 +17,8 @@ public class ProduitFinalCreateDTO {
 
     private String qualite;
 
+    private Double rendement;
+
     @NotBlank
     private String dateProduction;
 }

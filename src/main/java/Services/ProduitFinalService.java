@@ -47,6 +47,11 @@ public class ProduitFinalService {
         entity.setReference("TMP-PF-" + UUID.randomUUID());
         entity.setExecutionProduction(executionProduction);
 
+        // Keep DB value aligned with frontend-calculated rendement.
+        if (dto.getRendement() != null && Double.isFinite(dto.getRendement()) && dto.getRendement() >= 0) {
+            entity.setRendement(Math.round(dto.getRendement() * 100.0) / 100.0);
+        }
+
         ProduitFinal savedProduitFinal = produitFinalRepository.save(entity);
         savedProduitFinal.setReference(ReferenceUtils.format("PF", savedProduitFinal.getIdProduit()));
         savedProduitFinal = produitFinalRepository.save(savedProduitFinal);
@@ -110,6 +115,7 @@ public class ProduitFinalService {
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
             dto.setProduitFinalQualite(normalizeQualityLabel(executionProduction.getProduitFinal().getQualite()));
             dto.setProduitFinalQuantiteProduite(executionProduction.getProduitFinal().getQuantiteProduite());
+            dto.setProduitFinalRendement(executionProduction.getProduitFinal().getRendement());
         }
         return dto;
     }

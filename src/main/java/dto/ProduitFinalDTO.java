@@ -9,6 +9,7 @@ public class ProduitFinalDTO {
     private String nomProduit;
     private Double quantiteProduite;
     private String qualite;
+    private Double rendement;
     private String dateProduction;
     private Long executionProductionId;
 }

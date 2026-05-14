@@ -27,6 +27,7 @@ public class ExecutionProductionDTO {
     private String produitFinalNomProduit;
     private String produitFinalQualite;
     private Double produitFinalQuantiteProduite;
+    private Double produitFinalRendement;
     private List<ValeurReelleParametreDTO> valeursReelles;
     private List<PredictionDTO> predictions;
 }

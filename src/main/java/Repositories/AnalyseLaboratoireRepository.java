@@ -13,6 +13,8 @@ public interface AnalyseLaboratoireRepository extends JpaRepository<AnalyseLabor
     List<AnalyseLaboratoire> findByLot_IdLotOrderByDateAnalyseAsc(Long lotId);
 
     Optional<AnalyseLaboratoire> findFirstByLot_IdLot(Long lotId);
+
+    List<AnalyseLaboratoire> findByLot_Huilerie_IdHuilerie(Long huilerieId);
 }
 
 

@@ -58,52 +58,109 @@ public class ProductionDashboardService {
     private final AnalyseLaboratoireRepository analyseLaboratoireRepository;
 
     public ProductionDashboardDTO buildDashboard(LocalDate dateFrom, LocalDate dateTo) {
+        return buildDashboard(dateFrom, dateTo, null);
+    }
+
+    public ProductionDashboardDTO buildDashboard(LocalDate dateFrom, LocalDate dateTo, Long huilerieId) {
         LocalDate effectiveTo = dateTo != null ? dateTo : LocalDate.now();
         LocalDate effectiveFrom = dateFrom != null ? dateFrom : effectiveTo.minusDays(30);
 
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
-        Long huilerieId = currentUserService.getCurrentHuilerieIdOrThrow();
         Long utilisateurId = utilisateur.getIdUtilisateur();
+        List<Long> huilerieIds = resolveHuilerieIds(huilerieId);
 
-        List<ExecutionProduction> executions = executionProductionRepository.findAllByHuilerieId(huilerieId);
-        List<LotOlives> lots = lotOlivesRepository.findAllByHuilerieId(huilerieId);
-        List<StockMovement> movements = stockMovementRepository
-                .findByStock_LotOlives_Huilerie_IdHuilerieOrderByDateMouvementDesc(huilerieId);
-        List<Machine> machines = machineRepository.findByHuilerie_IdHuilerie(huilerieId);
-        List<AnalyseLaboratoire> analyses = analyseLaboratoireRepository.findByLot_Huilerie_IdHuilerie(huilerieId);
+        if (huilerieIds.isEmpty()) {
+            throw new IllegalStateException("Aucune huilerie accessible pour l'utilisateur courant");
+        }
+
+        List<ExecutionProduction> executions = loadExecutions(huilerieIds);
+        List<LotOlives> lots = loadLots(huilerieIds);
+        List<StockMovement> movements = loadMovements(huilerieIds);
+        List<Machine> machines = loadMachines(huilerieIds);
+        List<AnalyseLaboratoire> analyses = loadAnalyses(huilerieIds);
 
         ProductionDashboardDTO dto = new ProductionDashboardDTO();
 
-        if (canRead(utilisateurId, Set.of(MODULE_DASHBOARD))
-                && canRead(utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
+        if (canRead(utilisateur, utilisateurId, Set.of(MODULE_DASHBOARD))
+                && canRead(utilisateur, utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
             dto.setGlobalIndicators(buildGlobalIndicators(executions, effectiveFrom, effectiveTo));
         }
 
-        if (canRead(utilisateurId, Set.of(MODULE_RECEPTION, MODULE_LOTS))) {
+        if (canRead(utilisateur, utilisateurId, Set.of(MODULE_RECEPTION, MODULE_LOTS))) {
             dto.setReceptionLots(buildReceptionLots(lots));
         }
 
-        if (canRead(utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
+        if (canRead(utilisateur, utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
             dto.setProductionProcess(buildProductionProcess(executions, effectiveFrom, effectiveTo));
         }
 
-        if (canRead(utilisateurId, Set.of(MODULE_MACHINES))) {
+        if (canRead(utilisateur, utilisateurId, Set.of(MODULE_MACHINES))) {
             dto.setMachines(buildMachines(executions, machines, effectiveFrom, effectiveTo));
         }
 
-        if (canRead(utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
+        if (canRead(utilisateur, utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
             dto.setQuality(buildQuality(executions, analyses));
         }
 
-        if (canRead(utilisateurId, Set.of(MODULE_STOCK, MODULE_STOCK_MOUVEMENT))) {
+        if (canRead(utilisateur, utilisateurId, Set.of(MODULE_STOCK, MODULE_STOCK_MOUVEMENT))) {
             dto.setStockMovements(buildStockMovements(movements, effectiveTo));
         }
 
         return dto;
     }
 
-    private boolean canRead(Long utilisateurId, Set<String> modules) {
+    private List<Long> resolveHuilerieIds(Long huilerieId) {
+        List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
+        if (huilerieId == null) {
+            return accessibleHuilerieIds;
+        }
+
+        currentUserService.ensureCanAccessHuilerie(huilerieId);
+        if (!accessibleHuilerieIds.contains(huilerieId)) {
+            throw new IllegalStateException("Aucune huilerie accessible pour l'utilisateur courant");
+        }
+
+        return List.of(huilerieId);
+    }
+
+    private boolean canRead(Utilisateur utilisateur, Long utilisateurId, Set<String> modules) {
+        if (currentUserService.isAdmin(utilisateur)) {
+            return true;
+        }
+
         return modules.stream().anyMatch(module -> permissionService.hasPermission(utilisateurId, module, "READ"));
+    }
+
+    private List<ExecutionProduction> loadExecutions(List<Long> huilerieIds) {
+        return huilerieIds.stream()
+                .flatMap(huilerieId -> executionProductionRepository.findAllByHuilerieId(huilerieId).stream())
+                .toList();
+    }
+
+    private List<LotOlives> loadLots(List<Long> huilerieIds) {
+        return huilerieIds.stream()
+                .flatMap(huilerieId -> lotOlivesRepository.findAllByHuilerieId(huilerieId).stream())
+                .toList();
+    }
+
+    private List<StockMovement> loadMovements(List<Long> huilerieIds) {
+        return huilerieIds.stream()
+                .flatMap(huilerieId -> stockMovementRepository
+                        .findByStock_LotOlives_Huilerie_IdHuilerieOrderByDateMouvementDesc(huilerieId)
+                        .stream())
+                .toList();
+    }
+
+    private List<Machine> loadMachines(List<Long> huilerieIds) {
+        return huilerieIds.stream()
+                .flatMap(huilerieId -> machineRepository.findByHuilerie_IdHuilerie(huilerieId).stream())
+                .toList();
+    }
+
+    private List<AnalyseLaboratoire> loadAnalyses(List<Long> huilerieIds) {
+        return huilerieIds.stream()
+                .flatMap(huilerieId -> analyseLaboratoireRepository.findByLot_Huilerie_IdHuilerie(huilerieId).stream())
+                .toList();
     }
 
     private ProductionDashboardDTO.GlobalIndicatorsDTO buildGlobalIndicators(
@@ -313,7 +370,7 @@ public class ProductionDashboardService {
             LocalDate to) {
         ProductionDashboardDTO.MachinesDTO dto = new ProductionDashboardDTO.MachinesDTO();
 
-        long active = machines.stream().filter(machine -> isActiveMachine(machine.getEtatMachine())).count();
+        long active = machines.stream().filter(machine -> isServiceMachine(machine.getEtatMachine())).count();
         dto.setMachinesActives(active);
         dto.setMachinesInactives(Math.max(0, machines.size() - active));
 
@@ -358,7 +415,7 @@ public class ProductionDashboardService {
                     item.setQuantite((double) categoryToMachines.getOrDefault(category, List.of()).size());
                     item.setUnite("machine(s)");
                     item.setActive(categoryToMachines.getOrDefault(category, List.of()).stream()
-                            .anyMatch(machine -> isActiveMachine(machine.getEtatMachine())));
+                            .anyMatch(machine -> isServiceMachine(machine.getEtatMachine())));
                     return item;
                 })
                 .sorted(Comparator.comparing(ProductionDashboardDTO.MachineLoadDTO::getQuantite).reversed())
@@ -531,13 +588,12 @@ public class ProductionDashboardService {
         return normalized.contains("TERMINE") || normalized.contains("COMPLETED") || normalized.contains("FINI");
     }
 
-    private boolean isActiveMachine(String etat) {
+    private boolean isServiceMachine(String etat) {
         String normalized = normalize(etat);
         if (normalized.isBlank()) {
             return false;
         }
-        return normalized.contains("ACTIF") || normalized.contains("ACTIVE") || normalized.contains("EN_MARCHE")
-                || normalized.contains("OPERATION");
+        return normalized.equals("EN_SERVICE") || normalized.equals("EN SERVICE");
     }
 
     private String resolveExecutionMachineName(ExecutionProduction execution) {

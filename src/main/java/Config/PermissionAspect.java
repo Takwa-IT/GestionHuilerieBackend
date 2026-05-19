@@ -36,8 +36,14 @@ public class PermissionAspect {
         String module = requirePermission.module();
         String action = requirePermission.action().name();
 
+        // Admin profiles can access every annotated endpoint without being blocked by
+        // legacy module/action permission records.
+        if (isAdminUser(utilisateur)) {
+            return;
+        }
+
         // Allow regular users (non-admin) to READ from LOTS_TRAÇABILITE module
-        if ("LOTS_TRAÇABILITE".equalsIgnoreCase(module) && "READ".equalsIgnoreCase(action) && !isAdminUser(utilisateur)) {
+        if ("LOTS_TRAÇABILITE".equalsIgnoreCase(module) && "READ".equalsIgnoreCase(action)) {
             return;
         }
 
@@ -56,7 +62,14 @@ public class PermissionAspect {
     }
 
     private boolean isAdminUser(Utilisateur utilisateur) {
-        return utilisateur.getProfil() != null && "ADMIN".equalsIgnoreCase(utilisateur.getProfil().getNom());
+        if (utilisateur == null || utilisateur.getProfil() == null || utilisateur.getProfil().getNom() == null) {
+            return false;
+        }
+
+        String profilNom = utilisateur.getProfil().getNom().trim().toUpperCase();
+        return "ADMIN".equals(profilNom)
+                || "ADMINISTRATEUR".equals(profilNom)
+                || profilNom.contains("ADMIN");
     }
 }
 

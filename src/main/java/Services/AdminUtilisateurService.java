@@ -23,8 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +44,26 @@ public class AdminUtilisateurService {
     @Transactional(readOnly = true)
     public List<UtilisateurAdminDTO> findAll() {
         Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
-        return utilisateurRepository.findAllByEntreprise_IdEntrepriseOrderByIdUtilisateurAsc(entrepriseId).stream()
+
+        // Primary: try canonical repository query
+        List<Utilisateur> entrepriseUsers = utilisateurRepository.findAllByEntreprise_IdEntrepriseOrderByIdUtilisateurAsc(entrepriseId);
+
+        // Ensure enterprise-level administrators are included (some persisted records may not be returned by the primary query)
+        List<Utilisateur> admins = utilisateurRepository.findAdministrateursByEntrepriseId(entrepriseId);
+
+        // Merge by id to avoid duplicates
+        Map<Long, Utilisateur> byId = entrepriseUsers.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(Utilisateur::getIdUtilisateur, u -> u));
+
+        for (Utilisateur admin : admins) {
+            if (admin != null && admin.getIdUtilisateur() != null && !byId.containsKey(admin.getIdUtilisateur())) {
+                byId.put(admin.getIdUtilisateur(), admin);
+            }
+        }
+
+        return byId.values().stream()
+                .sorted(Comparator.comparing(Utilisateur::getIdUtilisateur))
                 .map(this::toDTO)
                 .toList();
     }
@@ -57,20 +76,15 @@ public class AdminUtilisateurService {
                 .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
         ResolvedUserScope scope = resolveUserScope(request, profil);
 
-        Utilisateur utilisateur = new Utilisateur();
-        utilisateur.setNom(request.getNom());
-        utilisateur.setPrenom(request.getPrenom());
-        utilisateur.setEmail(request.getEmail());
-        utilisateur.setTelephone(request.getTelephone());
-        utilisateur.setProfil(profil);
-        utilisateur.setEntreprise(scope.entreprise());
-        utilisateur.setHuilerie(scope.huilerie());
-        utilisateur.setMotDePasse(passwordEncoder.encode(UUID.randomUUID().toString()));
-        utilisateur.setEmailVerified(false);
-        utilisateur.setVerificationToken(UUID.randomUUID().toString());
-        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+        Utilisateur utilisateur = buildPersistedUtilisateur(request, profil, scope);
+        Utilisateur saved = utilisateurRepository.save(utilisateur);
 
-        return toDTO(utilisateurRepository.save(utilisateur));
+        if (saved instanceof Employe employe) {
+            employe.setIdEmploye(employe.getIdUtilisateur());
+            saved = utilisateurRepository.save(employe);
+        }
+
+        return toDTO(saved);
     }
 
     public UtilisateurAdminDTO update(Long id, UtilisateurAdminRequestDTO request) {
@@ -161,6 +175,37 @@ public class AdminUtilisateurService {
         if (utilisateur instanceof Administrateur administrateur) {
             administrateur.setEntrepriseAdmin(scope.entreprise());
         }
+    }
+
+    private Utilisateur buildPersistedUtilisateur(UtilisateurAdminRequestDTO request, Profil profil, ResolvedUserScope scope) {
+        Utilisateur utilisateur = buildUserEntity(profil, scope);
+        utilisateur.setNom(request.getNom());
+        utilisateur.setPrenom(request.getPrenom());
+        utilisateur.setEmail(request.getEmail());
+        utilisateur.setTelephone(request.getTelephone());
+        utilisateur.setProfil(profil);
+        utilisateur.setMotDePasse(passwordEncoder.encode(UUID.randomUUID().toString()));
+        utilisateur.setEmailVerified(false);
+        utilisateur.setVerificationToken(UUID.randomUUID().toString());
+        utilisateur.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+        return utilisateur;
+    }
+
+    private Utilisateur buildUserEntity(Profil profil, ResolvedUserScope scope) {
+        String profilNom = profil.getNom() != null ? profil.getNom().trim().toUpperCase() : "";
+        boolean isAdminProfile = "ADMIN".equals(profilNom)
+                || "ADMINISTRATEUR".equals(profilNom)
+                || profilNom.contains("ADMIN");
+
+        if (isAdminProfile) {
+            Administrateur administrateur = new Administrateur();
+            administrateur.setEntrepriseAdmin(scope.entreprise());
+            return administrateur;
+        }
+
+        Employe employe = new Employe();
+        employe.setHuilerieEmp(scope.huilerie());
+        return employe;
     }
 
     private UtilisateurAdminDTO toDTO(Utilisateur utilisateur) {

@@ -65,6 +65,15 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 	List<Profil> findDistinctProfilsByHuilerieIds(@Param("huilerieIds") List<Long> huilerieIds);
 
 	@Query("""
+		select a
+		from Administrateur a
+		where a.entrepriseAdmin is not null
+		  and a.entrepriseAdmin.idEntreprise = :entrepriseId
+		order by a.idUtilisateur asc
+		""")
+	List<Utilisateur> findAdministrateursByEntrepriseId(@Param("entrepriseId") Long entrepriseId);
+
+	@Query("""
 		select distinct e.profil
 		from Employe e
 		where e.huilerieEmp is not null

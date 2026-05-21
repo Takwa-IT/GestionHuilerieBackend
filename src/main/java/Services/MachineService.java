@@ -90,12 +90,19 @@ public class MachineService {
         return machineMapper.toDTO(machine);
     }
 
-    public List<MachineDTO> findAll(String huilerieNom, String typeMachine) {
+    public List<MachineDTO> findAll(String huilerieNom, String typeMachine, Long huilerieId) {
         String normalizedType = hasText(typeMachine) ? normalizeMachineType(typeMachine) : null;
         Utilisateur utilisateur = currentUserService.getAuthenticatedUtilisateur();
         if (currentUserService.isAdmin(utilisateur)) {
             List<Machine> machines;
-            if (hasText(huilerieNom) && normalizedType != null) {
+            if (huilerieId != null) {
+                currentUserService.ensureCanAccessHuilerie(huilerieId);
+                if (normalizedType != null) {
+                    machines = machineRepository.findByHuilerie_IdHuilerieAndTypeMachineIgnoreCase(huilerieId, normalizedType);
+                } else {
+                    machines = machineRepository.findByHuilerie_IdHuilerie(huilerieId);
+                }
+            } else if (hasText(huilerieNom) && normalizedType != null) {
                 machines = machineRepository.findByHuilerie_NomIgnoreCaseAndTypeMachineIgnoreCase(huilerieNom,
                         normalizedType);
             } else if (hasText(huilerieNom)) {

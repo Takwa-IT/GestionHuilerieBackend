@@ -24,11 +24,12 @@ public class ProductionDashboardController {
     @RequirePermission(module = "DASHBOARD", action = PermissionAction.READ)
     public ResponseEntity<ProductionDashboardDTO> getSummary(
             @RequestParam(required = false) String dateFrom,
-            @RequestParam(required = false) String dateTo
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Long huilerieId
     ) {
         LocalDate from = parseDate(dateFrom);
         LocalDate to = parseDate(dateTo);
-        return ResponseEntity.ok(productionDashboardService.buildDashboard(from, to));
+        return ResponseEntity.ok(productionDashboardService.buildDashboard(from, to, huilerieId));
     }
 
     private LocalDate parseDate(String value) {

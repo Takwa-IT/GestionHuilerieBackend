@@ -87,7 +87,7 @@ public class ProductionDashboardService {
         }
 
         if (canRead(utilisateur, utilisateurId, Set.of(MODULE_RECEPTION, MODULE_LOTS))) {
-            dto.setReceptionLots(buildReceptionLots(lots));
+            dto.setReceptionLots(buildReceptionLots(lots, effectiveFrom, effectiveTo));
         }
 
         if (canRead(utilisateur, utilisateurId, Set.of(MODULE_GUIDE_PRODUCTION))) {
@@ -103,7 +103,7 @@ public class ProductionDashboardService {
         }
 
         if (canRead(utilisateur, utilisateurId, Set.of(MODULE_STOCK, MODULE_STOCK_MOUVEMENT))) {
-            dto.setStockMovements(buildStockMovements(movements, effectiveTo));
+            dto.setStockMovements(buildStockMovements(movements, effectiveFrom, effectiveTo));
         }
 
         return dto;
@@ -259,8 +259,11 @@ public class ProductionDashboardService {
         return dto;
     }
 
-    private ProductionDashboardDTO.ReceptionLotsDTO buildReceptionLots(List<LotOlives> lots) {
+    private ProductionDashboardDTO.ReceptionLotsDTO buildReceptionLots(List<LotOlives> lots, LocalDate from, LocalDate to) {
         ProductionDashboardDTO.ReceptionLotsDTO dto = new ProductionDashboardDTO.ReceptionLotsDTO();
+        // NOTE (FR): Par demande — changer le KPI pour n'afficher que les lots
+        // dont la date d'enregistrement (`dateReception`) est la date du jour.
+        // Les paramètres `from` / `to` sont ignorés pour ces indicateurs.
 
         LocalDate today = LocalDate.now();
 
@@ -500,21 +503,26 @@ public class ProductionDashboardService {
         return dto;
     }
 
-    private ProductionDashboardDTO.StockMovementsDTO buildStockMovements(List<StockMovement> movements, LocalDate day) {
+    private ProductionDashboardDTO.StockMovementsDTO buildStockMovements(List<StockMovement> movements, LocalDate from, LocalDate to) {
         ProductionDashboardDTO.StockMovementsDTO dto = new ProductionDashboardDTO.StockMovementsDTO();
 
+        // NOTE (FR): Par demande — compter uniquement les mouvements dont
+        // la date d'enregistrement (`dateMouvement`) est la date du jour.
+        // Les paramètres `from` / `to` sont ignorés pour ces indicateurs.
+        LocalDate today = LocalDate.now();
+
         long entrees = movements.stream()
-                .filter(movement -> isSameDay(movement.getDateMouvement(), day))
+                .filter(movement -> isSameDay(movement.getDateMouvement(), today))
                 .filter(movement -> movement.getTypeMouvement() == TypeMouvement.ENTREE)
                 .count();
 
         long transferts = movements.stream()
-                .filter(movement -> isSameDay(movement.getDateMouvement(), day))
+                .filter(movement -> isSameDay(movement.getDateMouvement(), today))
                 .filter(movement -> movement.getTypeMouvement() == TypeMouvement.TRANSFERT)
                 .count();
 
         long sorties = movements.stream()
-                .filter(movement -> isSameDay(movement.getDateMouvement(), day))
+                .filter(movement -> isSameDay(movement.getDateMouvement(), today))
                 .filter(movement -> movement.getTypeMouvement() == TypeMouvement.AJUSTEMENT)
                 .count();
 
@@ -560,6 +568,16 @@ public class ProductionDashboardService {
     private boolean isSameDay(String value, LocalDate day) {
         return parseDateTime(value)
                 .map(date -> date.toLocalDate().isEqual(day))
+                .orElse(false);
+    }
+
+    private boolean isWithinPeriod(String value, LocalDate from, LocalDate to) {
+        return parseDateTime(value)
+                .map(date -> {
+                    LocalDate localDate = date.toLocalDate();
+                    return (localDate.isEqual(from) || localDate.isAfter(from))
+                            && (localDate.isEqual(to) || localDate.isBefore(to));
+                })
                 .orElse(false);
     }
 

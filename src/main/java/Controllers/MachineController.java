@@ -56,8 +56,9 @@ public class MachineController {
     @GetMapping
     public ResponseEntity<List<MachineDTO>> findAll(
             @RequestParam(required = false) String huilerieNom,
-            @RequestParam(required = false) String typeMachine) {
-        return ResponseEntity.ok(machineService.findAll(huilerieNom, typeMachine));
+            @RequestParam(required = false) String typeMachine,
+            @RequestParam(required = false) Long huilerieId) {
+        return ResponseEntity.ok(machineService.findAll(huilerieNom, typeMachine, huilerieId));
     }
 
     @GetMapping("/huilerie/{huilerieNom}")

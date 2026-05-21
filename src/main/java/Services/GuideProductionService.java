@@ -10,6 +10,7 @@ import Models.Utilisateur;
 import Repositories.GuideProductionRepository;
 import Repositories.HuilerieRepository;
 import Repositories.MachineRepository;
+import Repositories.ValeurReelleParametreRepository;
 import dto.EtapeProductionCreateDTO;
 import dto.EtapeProductionDTO;
 import dto.GuideProductionCreateDTO;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class GuideProductionService {
     private final GuideProductionRepository guideProductionRepository;
     private final HuilerieRepository huilerieRepository;
     private final MachineRepository machineRepository;
+    private final ValeurReelleParametreRepository valeurReelleParametreRepository;
     private final CurrentUserService currentUserService;
 
     public GuideProductionDTO create(GuideProductionCreateDTO dto) {
@@ -115,8 +118,28 @@ public class GuideProductionService {
             return;
         }
 
+        purgeExecutionValuesLinkedToGuideParameters(guideProduction);
         guideProduction.getEtapes().clear();
         guideProduction.getEtapes().addAll(etapes);
+    }
+
+    private void purgeExecutionValuesLinkedToGuideParameters(GuideProduction guideProduction) {
+        if (guideProduction == null || guideProduction.getEtapes() == null || guideProduction.getEtapes().isEmpty()) {
+            return;
+        }
+
+        List<Long> parametreEtapeIds = guideProduction.getEtapes().stream()
+                .filter(etape -> etape.getParametres() != null)
+                .flatMap(etape -> etape.getParametres().stream())
+                .map(ParametreEtape::getIdParametreEtape)
+                .filter(id -> id != null)
+                .collect(Collectors.toList());
+
+        if (parametreEtapeIds.isEmpty()) {
+            return;
+        }
+
+        valeurReelleParametreRepository.deleteByParametreEtape_IdParametreEtapeIn(parametreEtapeIds);
     }
 
     private GuideProductionDTO toDTO(GuideProduction guideProduction) {

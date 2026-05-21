@@ -59,4 +59,6 @@ public interface ValeurReelleParametreRepository extends JpaRepository<ValeurRee
                 AND v.dateCreation >= :depuis
             """)
     List<ValeurReelleParametre> findMainParametersSince(@Param("depuis") LocalDateTime depuis);
+
+    void deleteByParametreEtape_IdParametreEtapeIn(List<Long> parametreEtapeIds);
 }

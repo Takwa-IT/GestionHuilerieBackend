@@ -13,6 +13,8 @@ public interface ExecutionProductionRepository extends JpaRepository<ExecutionPr
 	@Query("select e from ExecutionProduction e where e.lot.idLot = :lotId")
 	List<ExecutionProduction> findByLotOlives_IdLot(@Param("lotId") Long lotId);
 
+	boolean existsByGuideProduction_IdGuideProduction(Long idGuideProduction);
+
 	boolean existsByReference(String reference);
 
 	default boolean existsByCodeLot(String codeLot) {

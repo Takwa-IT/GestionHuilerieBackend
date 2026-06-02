@@ -21,6 +21,8 @@ import dto.ProfileUpdateRequestDTO;
 import dto.SignupRequestDTO;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -37,6 +39,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UtilisateurRepository utilisateurRepository;
     private final PermissionRepository permissionRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -332,43 +336,53 @@ public class AuthService {
     }
 
     private void sendVerificationEmail(Utilisateur utilisateur) {
-        javaMailSender.ifPresent(sender -> {
-            try {
-                String verificationLink = frontendBaseUrl + "/verify-email?token=" + utilisateur.getVerificationToken();
-                String html = buildVerificationEmailHtml(utilisateur, verificationLink);
+        if (javaMailSender.isEmpty()) {
+            log.error("[MAIL] JavaMailSender indisponible. Aucun email de verification ne sera envoye pour {}", utilisateur.getEmail());
+            return;
+        }
 
-                MimeMessage message = sender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom(mailFrom);
-                helper.setTo(utilisateur.getEmail());
-                helper.setSubject("Verifiez votre adresse email - Gestion Huilerie");
-                helper.setText(html, true);
+        try {
+            String verificationLink = frontendBaseUrl + "/verify-email?token=" + utilisateur.getVerificationToken();
+            String html = buildVerificationEmailHtml(utilisateur, verificationLink);
 
-                sender.send(message);
-            } catch (Exception ignored) {
-                // Le signup reste reussi meme si l'email ne part pas.
-            }
-        });
+            MimeMessage message = javaMailSender.get().createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailFrom);
+            helper.setTo(utilisateur.getEmail());
+            helper.setSubject("Verifiez votre adresse email - Gestion Huilerie");
+            helper.setText(html, true);
+
+            javaMailSender.get().send(message);
+            log.info("[MAIL] Email de verification envoye a {}", utilisateur.getEmail());
+        } catch (Exception ex) {
+            // Le signup reste reussi meme si l'email ne part pas.
+            log.error("[MAIL] Echec d'envoi email de verification vers {}: {}", utilisateur.getEmail(), ex.getMessage(), ex);
+        }
     }
 
     private void sendResetPasswordEmail(Utilisateur utilisateur, String resetToken) {
-        javaMailSender.ifPresent(sender -> {
-            try {
-                String resetLink = frontendBaseUrl + "/reset-password/confirm?token=" + resetToken;
-                String html = buildResetPasswordEmailHtml(utilisateur, resetLink);
+        if (javaMailSender.isEmpty()) {
+            log.error("[MAIL] JavaMailSender indisponible. Aucun email de reinitialisation ne sera envoye pour {}", utilisateur.getEmail());
+            return;
+        }
 
-                MimeMessage message = sender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom(mailFrom);
-                helper.setTo(utilisateur.getEmail());
-                helper.setSubject("Reinitialisation mot de passe - Huileria");
-                helper.setText(html, true);
+        try {
+            String resetLink = frontendBaseUrl + "/reset-password/confirm?token=" + resetToken;
+            String html = buildResetPasswordEmailHtml(utilisateur, resetLink);
 
-                sender.send(message);
-            } catch (Exception ignored) {
-                // La demande reste valide meme si l'email ne part pas.
-            }
-        });
+            MimeMessage message = javaMailSender.get().createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailFrom);
+            helper.setTo(utilisateur.getEmail());
+            helper.setSubject("Reinitialisation mot de passe - Huileria");
+            helper.setText(html, true);
+
+            javaMailSender.get().send(message);
+            log.info("[MAIL] Email de reinitialisation envoye a {}", utilisateur.getEmail());
+        } catch (Exception ex) {
+            // La demande reste valide meme si l'email ne part pas.
+            log.error("[MAIL] Echec d'envoi email de reinitialisation vers {}: {}", utilisateur.getEmail(), ex.getMessage(), ex);
+        }
     }
 
     private String buildVerificationEmailHtml(Utilisateur utilisateur, String verificationLink) {

@@ -19,8 +19,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: Huileriaa@gmail.com
-    password: "ujhw bqcp fuia xewt"
+    username: Huileria
+    password: "crwa aody lsyd tacp"
     properties:
       mail:
         smtp:
@@ -47,7 +47,7 @@ security:
 
 app:
   mail:
-    from: "Huileriaa@gmail.com"
+    from: "huileria1@gmail.com"
   frontend:
     ashboard-url: "http://localhost:64412/pages/dashboard/production"
 

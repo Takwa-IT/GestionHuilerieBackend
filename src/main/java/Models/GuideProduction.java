@@ -48,7 +48,7 @@ public class GuideProduction {
     @OneToMany(mappedBy = "guideProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EtapeProduction> etapes;
 
-    @OneToMany(mappedBy = "guideProduction")
+    @OneToMany(mappedBy = "guideProduction", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ExecutionProduction> executions;
 
     public String getReference() {

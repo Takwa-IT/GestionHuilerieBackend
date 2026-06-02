@@ -177,7 +177,7 @@ public class ProductionDashboardService {
 
         long termineesAujourdhui = executions.stream()
                 .filter(execution -> isFinishedStatus(execution.getStatut()))
-                .filter(execution -> isSameDay(execution.getDateFinReelle(), today))
+                .filter(execution -> isSameDay(execution.getDateFinPrevue(), today))
                 .count();
 
         List<Double> rendements = executions.stream()
@@ -190,7 +190,7 @@ public class ProductionDashboardService {
         double rendementMoyen = rendements.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
 
         double quantiteProduitePeriode = executions.stream()
-                .filter(execution -> isWithinPeriod(execution.getDateFinReelle(), execution.getDateDebut(), from, to))
+                .filter(execution -> isWithinPeriod(execution.getDateFinPrevue(), execution.getDateDebut(), from, to))
                 .map(ExecutionProduction::getProduitFinal)
                 .filter(Objects::nonNull)
                 .map(produit -> produit.getQuantiteProduite())
@@ -199,7 +199,7 @@ public class ProductionDashboardService {
                 .sum();
 
         double quantiteProduiteAujourdhui = executions.stream()
-                .filter(execution -> isSameDay(execution.getDateFinReelle(), today))
+                .filter(execution -> isSameDay(execution.getDateFinPrevue(), today))
                 .map(ExecutionProduction::getProduitFinal)
                 .filter(Objects::nonNull)
                 .map(produit -> produit.getQuantiteProduite())
@@ -208,7 +208,7 @@ public class ProductionDashboardService {
                 .sum();
 
         double rendementMoyenAujourdhui = executions.stream()
-                .filter(execution -> isSameDay(execution.getDateFinReelle(), today))
+                .filter(execution -> isSameDay(execution.getDateFinPrevue(), today))
                 .map(ExecutionProduction::getProduitFinal)
                 .filter(Objects::nonNull)
                 .map(produit -> produit.getRendement())
@@ -231,7 +231,7 @@ public class ProductionDashboardService {
             if (r == null)
                 continue;
 
-            Optional<LocalDateTime> dt = parseDateTime(execution.getDateFinReelle());
+            Optional<LocalDateTime> dt = parseDateTime(execution.getDateFinPrevue());
             if (dt.isEmpty())
                 continue;
             LocalDate d = dt.get().toLocalDate();
@@ -320,9 +320,9 @@ public class ProductionDashboardService {
 
         // Aggregate produced quantity (litres) by hour over the requested range.
         executions.stream()
-                .filter(execution -> isWithinPeriod(execution.getDateFinReelle(), execution.getDateDebut(), from, to))
+                .filter(execution -> isWithinPeriod(execution.getDateFinPrevue(), execution.getDateDebut(), from, to))
                 .forEach(execution -> {
-                    Optional<LocalDateTime> date = parseDateTime(execution.getDateFinReelle());
+                    Optional<LocalDateTime> date = parseDateTime(execution.getDateFinPrevue());
                     if (date.isEmpty()) {
                         date = parseDateTime(execution.getDateDebut());
                     }
@@ -383,7 +383,7 @@ public class ProductionDashboardService {
         }
 
         for (ExecutionProduction execution : executions) {
-            if (!isWithinPeriod(execution.getDateFinReelle(), execution.getDateDebut(), from, to)) {
+            if (!isWithinPeriod(execution.getDateFinPrevue(), execution.getDateDebut(), from, to)) {
                 continue;
             }
 

@@ -47,11 +47,11 @@ public class StockMovementService {
                 .orElseThrow(() -> new RuntimeException("Lot non trouve"));
 
         String varieteNormalisee = lot.getVariete() != null
-            ? lot.getVariete().trim().toLowerCase() : "";
+                ? lot.getVariete().trim().toLowerCase() : "";
         Stock stock = stockRepository.findByLotOlives_Huilerie_IdHuilerieAndVariete(
-            effectiveHuilerieId,
-            varieteNormalisee)
-            .orElseThrow(() -> new RuntimeException("Stock non trouve pour cette variété et huilerie"));
+                        effectiveHuilerieId,
+                        varieteNormalisee)
+                .orElseThrow(() -> new RuntimeException("Stock non trouve pour cette variété et huilerie"));
 
         applyWholeLotMovement(stock, lot, dto.getTypeMouvement());
         // Sauvegarder le lot après mise à jour
@@ -76,17 +76,17 @@ public class StockMovementService {
         Long currentHuilerieId = isAdmin ? null : currentUserService.getCurrentHuilerieIdOrThrow();
 
         Long movementHuilerieId = movement.getStock() != null
-            && movement.getStock().getLotOlives() != null
-            && movement.getStock().getLotOlives().getHuilerie() != null
-            ? movement.getStock().getLotOlives().getHuilerie().getIdHuilerie()
-            : null;
+                && movement.getStock().getLotOlives() != null
+                && movement.getStock().getLotOlives().getHuilerie() != null
+                ? movement.getStock().getLotOlives().getHuilerie().getIdHuilerie()
+                : null;
 
         if (!isAdmin && (movementHuilerieId == null || !movementHuilerieId.equals(currentHuilerieId))) {
             throw new AccessDeniedException("Acces refuse a un mouvement d'une autre huilerie");
         }
 
         if (movement.getTypeMouvement() == TypeMouvement.ENTREE) {
-            throw new RuntimeException("Le mouvement ENTREE genere a l'arrivage n'est pas modifiable");
+            throw new IllegalArgumentException("Le mouvement ENTREE genere a l'arrivage n'est pas modifiable");
         }
 
         movement.setCommentaire(dto.getCommentaire());
@@ -102,16 +102,16 @@ public class StockMovementService {
             List<StockMovement> movements = hasText(huilerieNom)
                     ? stockMovementRepository.findByStock_LotOlives_Huilerie_NomIgnoreCaseOrderByDateMouvementDesc(huilerieNom)
                     : stockMovementRepository.findAll().stream()
-                            .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
-                            .toList();
+                    .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
+                    .toList();
             List<Long> accessibleHuilerieIds = currentUserService.getAccessibleHuilerieIds();
 
             return movements.stream()
                     .sorted((a, b) -> nullSafe(b.getDateMouvement()).compareTo(nullSafe(a.getDateMouvement())))
                     .filter(movement -> movement.getStock() != null
-                        && movement.getStock().getLotOlives() != null
-                        && movement.getStock().getLotOlives().getHuilerie() != null
-                        && accessibleHuilerieIds.contains(movement.getStock().getLotOlives().getHuilerie().getIdHuilerie()))
+                            && movement.getStock().getLotOlives() != null
+                            && movement.getStock().getLotOlives().getHuilerie() != null
+                            && accessibleHuilerieIds.contains(movement.getStock().getLotOlives().getHuilerie().getIdHuilerie()))
                     .map(stockMovementMapper::toDTO)
                     .toList();
         }
@@ -144,7 +144,7 @@ public class StockMovementService {
     }
 
     public StockMovement createArrivalForStock(Stock stock, LotOlives lot, Double quantiteEntree, String dateMouvement,
-            String commentaire) {
+                                               String commentaire) {
         stock.setLotOlives(lot);
         double current = safe(stock.getQuantiteDisponible());
         stock.setQuantiteDisponible(current + safe(quantiteEntree));

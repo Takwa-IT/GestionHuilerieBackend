@@ -33,16 +33,16 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 	List<Utilisateur> findAllByEntreprise_IdEntrepriseOrderByIdUtilisateurAsc(@Param("entrepriseId") Long entrepriseId);
 
 	@Query("""
-		select distinct u.profil
-		from Utilisateur u
-		where ((type(u) = Administrateur and treat(u as Administrateur).entrepriseAdmin is not null
-		        and treat(u as Administrateur).entrepriseAdmin.idEntreprise = :entrepriseId)
-		    or (type(u) = Employe and treat(u as Employe).huilerieEmp is not null
-		        and treat(u as Employe).huilerieEmp.entreprise is not null
-		        and treat(u as Employe).huilerieEmp.entreprise.idEntreprise = :entrepriseId))
-		  and u.profil is not null
-		order by u.profil.idProfil asc
-		""")
+    select distinct p
+    from Utilisateur u
+    join u.profil p
+    where ((type(u) = Administrateur and treat(u as Administrateur).entrepriseAdmin is not null
+            and treat(u as Administrateur).entrepriseAdmin.idEntreprise = :entrepriseId)
+        or (type(u) = Employe and treat(u as Employe).huilerieEmp is not null
+            and treat(u as Employe).huilerieEmp.entreprise is not null
+            and treat(u as Employe).huilerieEmp.entreprise.idEntreprise = :entrepriseId))
+    order by p.idProfil asc
+    """)
 	List<Profil> findDistinctProfilsByEntrepriseIdOrderByIdProfilAsc(@Param("entrepriseId") Long entrepriseId);
 
 	@Query("""

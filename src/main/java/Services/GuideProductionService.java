@@ -10,6 +10,7 @@ import Models.Utilisateur;
 import Repositories.GuideProductionRepository;
 import Repositories.HuilerieRepository;
 import Repositories.MachineRepository;
+import Repositories.ExecutionProductionRepository;
 import Repositories.ValeurReelleParametreRepository;
 import dto.EtapeProductionCreateDTO;
 import dto.EtapeProductionDTO;
@@ -20,6 +21,8 @@ import dto.ParametreEtapeDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,7 @@ public class GuideProductionService {
     private final GuideProductionRepository guideProductionRepository;
     private final HuilerieRepository huilerieRepository;
     private final MachineRepository machineRepository;
+    private final ExecutionProductionRepository executionProductionRepository;
     private final ValeurReelleParametreRepository valeurReelleParametreRepository;
     private final CurrentUserService currentUserService;
 
@@ -64,7 +68,16 @@ public class GuideProductionService {
     }
 
     public void delete(Long idGuideProduction) {
-        guideProductionRepository.delete(findGuide(idGuideProduction));
+        findGuide(idGuideProduction);
+
+        if (executionProductionRepository.existsByGuideProduction_IdGuideProduction(idGuideProduction)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Impossible de supprimer ce guide car il possède des exécutions associées."
+            );
+        }
+
+        guideProductionRepository.deleteById(idGuideProduction);
     }
 
     @Transactional(readOnly = true)

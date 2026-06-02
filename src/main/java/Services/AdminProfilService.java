@@ -9,8 +9,10 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -37,7 +39,9 @@ public class AdminProfilService {
 
     public ProfilDTO create(ProfilRequestDTO request) {
         profilRepository.findByNom(request.getNom())
-                .ifPresent(p -> { throw new DataIntegrityViolationException("Nom de profil deja utilise"); });
+                .ifPresent(p -> {
+                    throw new DataIntegrityViolationException("Nom de profil deja utilise");
+                });
 
         Profil profil = new Profil();
         profil.setNom(request.getNom());
@@ -46,14 +50,14 @@ public class AdminProfilService {
     }
 
     public ProfilDTO update(Long id, ProfilRequestDTO request) {
-        ensureProfilInAccessibleHuileries(id);
-
         Profil profil = profilRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
 
         profilRepository.findByNom(request.getNom())
                 .filter(existing -> !existing.getIdProfil().equals(id))
-                .ifPresent(p -> { throw new DataIntegrityViolationException("Nom de profil deja utilise"); });
+                .ifPresent(p -> {
+                    throw new DataIntegrityViolationException("Nom de profil deja utilise");
+                });
 
         profil.setNom(request.getNom());
         profil.setDescription(request.getDescription());
@@ -61,31 +65,17 @@ public class AdminProfilService {
     }
 
     public void delete(Long id) {
-        ensureProfilInAccessibleHuileries(id);
-
         Profil profil = profilRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Profil introuvable"));
 
         if (utilisateurRepository.existsByProfilIdProfil(id)) {
-            throw new IllegalArgumentException("Suppression impossible: profil utilise par des utilisateurs");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Impossible de supprimer ce profil car il est actuellement affecté à un ou plusieurs utilisateurs."
+            );
         }
 
         profilRepository.delete(profil);
-    }
-
-    private void ensureProfilInAccessibleHuileries(Long profilId) {
-        Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
-        if (entrepriseId == null) {
-            throw new AccessDeniedException("Acces refuse au profil demande");
-        }
-
-        boolean belongsToEntreprise = utilisateurRepository.findDistinctProfilsByEntrepriseIdOrderByIdProfilAsc(entrepriseId)
-                .stream()
-                .anyMatch(profil -> profilId.equals(profil.getIdProfil()));
-
-        if (!belongsToEntreprise) {
-            throw new AccessDeniedException("Acces refuse a un profil hors entreprise accessible");
-        }
     }
 
     private String normalizeHuilerieNom(String huilerieNom) {
@@ -102,5 +92,3 @@ public class AdminProfilService {
         return dto;
     }
 }
-
-

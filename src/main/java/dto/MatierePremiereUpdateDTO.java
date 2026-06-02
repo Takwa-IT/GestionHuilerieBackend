@@ -8,6 +8,5 @@ public class MatierePremiereUpdateDTO {
     private String type;
     private String uniteMesure;
     private String description;
+    private Long huilerieId;
 }
-
-

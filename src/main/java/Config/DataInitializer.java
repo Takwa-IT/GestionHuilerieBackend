@@ -117,7 +117,7 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void findOrCreatePermission(Profil profil, Module module, boolean canCreate, boolean canRead,
-            boolean canUpdate, boolean canDelete, boolean canExecuted) {
+                                        boolean canUpdate, boolean canDelete, boolean canExecuted) {
         permissionRepository.findByProfilIdProfilAndModuleIdModule(profil.getIdProfil(), module.getIdModule())
                 .orElseGet(() -> {
                     Permission permission = new Permission();
@@ -136,16 +136,46 @@ public class DataInitializer implements ApplicationRunner {
 
     private void seedDefaultAdminUser(Profil adminProfil) {
         // Verifier que l'admin par défaut n'existe pas déjà
-        if (utilisateurRepository.findByEmail("admin@default.com").isPresent()) {
-            log.info("[SEED] Admin par défaut existe déjà, aucune création");
+        var existingAdmin = utilisateurRepository.findByEmail("admin@default.com").orElse(null);
+        if (existingAdmin != null) {
+            boolean updated = false;
+
+            if (existingAdmin.getProfil() == null || !adminProfil.getIdProfil().equals(existingAdmin.getProfil().getIdProfil())) {
+                existingAdmin.setProfil(adminProfil);
+                updated = true;
+            }
+
+            if (!Boolean.TRUE.equals(existingAdmin.getEmailVerified())) {
+                existingAdmin.setEmailVerified(true);
+                updated = true;
+            }
+
+            if (existingAdmin.getActif() != StatutUtilisateur.ACTIF) {
+                existingAdmin.setActif(StatutUtilisateur.ACTIF);
+                updated = true;
+            }
+
+            if (existingAdmin.getVerificationToken() == null || existingAdmin.getVerificationToken().isBlank()) {
+                existingAdmin.setVerificationToken(UUID.randomUUID().toString());
+                existingAdmin.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+                updated = true;
+            }
+
+            if (updated) {
+                utilisateurRepository.save(existingAdmin);
+                log.info("[SEED] Admin par défaut mis à jour: profil={}, emailVerified={}, actif={}",
+                        adminProfil.getNom(), existingAdmin.getEmailVerified(), existingAdmin.getActif());
+            } else {
+                log.info("[SEED] Admin par défaut existe déjà, aucune modification");
+            }
             return;
         }
 
         // Récupérer une Entreprise pour l'Administrateur
         Entreprise entreprise = huilerieRepository.findAll().stream()
-            .map(Huilerie::getEntreprise)
-            .findFirst()
-            .orElse(null);
+                .map(Huilerie::getEntreprise)
+                .findFirst()
+                .orElse(null);
 
         if (entreprise == null) {
             log.warn("[SEED] Aucun utilisateur admin cree: aucune entreprise disponible");

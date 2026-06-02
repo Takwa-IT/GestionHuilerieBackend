@@ -42,9 +42,9 @@ public class ProfilController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<Void>> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         adminProfilService.delete(id);
-        return ResponseEntity.ok(ApiResponseDTO.ok(null, "Profil supprime"));
+        return ResponseEntity.noContent().build();
     }
 }
 

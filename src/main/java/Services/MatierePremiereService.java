@@ -40,6 +40,12 @@ public class MatierePremiereService {
     public MatierePremiereDTO update(String reference, MatierePremiereUpdateDTO dto) {
         MatierePremiere entity = findMatiere(reference);
         matierePremiereMapper.updateFromDTO(dto, entity);
+        Long huilerieId = dto.getHuilerieId();
+        if (huilerieId != null && huilerieId > 0) {
+            currentUserService.ensureCanAccessHuilerie(huilerieId);
+            entity.setHuilerie(huilerieRepository.findById(huilerieId)
+                    .orElseThrow(() -> new RuntimeException("Huilerie non trouvee")));
+        }
         return matierePremiereMapper.toDTO(matierePremiereRepository.save(entity));
     }
 
@@ -78,7 +84,7 @@ public class MatierePremiereService {
                 .toList();
     }
 
-    //recupere une matiere premiere par reference pour le module CRUD
+    // recupere une matiere premiere par reference pour le module CRUD
     public MatierePremiere findMatiere(String reference) {
         String rawValue = reference == null ? "" : reference.trim();
         String normalizedReference = normalizeReference(rawValue);
@@ -122,7 +128,8 @@ public class MatierePremiereService {
         throw new RuntimeException("Matiere premiere non trouvee");
     }
 
-    //recupere une matiere premiere par ID + utilisable dans les autres methodes existantes
+    // recupere une matiere premiere par ID + utilisable dans les autres methodes
+    // existantes
     public MatierePremiere findMatiere(Long id) {
         return matierePremiereRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Matiere premiere non trouvee"));
@@ -173,5 +180,3 @@ public class MatierePremiereService {
     }
 
 }
-
-

@@ -8,15 +8,12 @@ import Models.Prediction;
 import Models.TypeMouvement;
 import Models.ValeurReelleParametre;
 import Repositories.ParametreEtapeRepository;
-import dto.ValeurReelleParametreDTO;
+import dto.*;
 
 import Models.Utilisateur;
 import Repositories.ExecutionProductionRepository;
 import Repositories.GuideProductionRepository;
 import Repositories.LotOlivesRepository;
-import dto.ExecutionProductionCreateDTO;
-import dto.ExecutionProductionDTO;
-import dto.StockMovementCreateDTO;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -60,7 +57,24 @@ public class ExecutionProductionService {
     private final LotOlivesRepository lotOlivesRepository;
     private final StockMovementService stockMovementService;
     private final CurrentUserService currentUserService;
+    public ExecutionProductionDTO update(Long id, ExecutionProductionUpdateDTO dto) {
+        ExecutionProduction execution = executionProductionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Execution introuvable: " + id));
 
+        if (dto.getStatut() != null) {
+            execution.setStatut(dto.getStatut());
+        }
+        if (dto.getRendement() != null) {
+            execution.setRendement(dto.getRendement());
+        }
+        if (dto.getDateFinReelle() != null) {
+            execution.setDateFinReelle(
+                    String.valueOf(LocalDate.parse(dto.getDateFinReelle()))
+            );
+        }
+
+        return toDTO(executionProductionRepository.save(execution));
+    }
     public ExecutionProductionDTO create(ExecutionProductionCreateDTO dto) {
         GuideProduction guideProduction = guideProductionRepository.findById(dto.getGuideProductionId())
                 .orElseThrow(() -> new RuntimeException("Guide de production non trouve"));

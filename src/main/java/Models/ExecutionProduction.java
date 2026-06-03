@@ -32,6 +32,7 @@ public class ExecutionProduction {
     private String reference;
 
     private String dateDebut;
+    private Double rendement ;
 
     private String dateFinPrevue;
 
@@ -89,5 +90,9 @@ public class ExecutionProduction {
         if (produitFinal != null) {
             produitsFinaux.add(produitFinal);
         }
+    }
+
+    public void setRendement(Double rendement) {
+        this.rendement= rendement ;
     }
 }

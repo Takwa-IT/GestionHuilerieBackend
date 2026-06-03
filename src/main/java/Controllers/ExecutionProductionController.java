@@ -2,11 +2,7 @@ package Controllers;
 
 import Services.ExecutionProductionService;
 import Services.PredictionService;
-import dto.ExecutionProductionCreateDTO;
-import dto.ExecutionProductionDTO;
-import dto.ExecutionPredictionStartDTO;
-import dto.PredictionDTO;
-import dto.ValeurReelleParametreDTO;
+import dto.*;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +31,12 @@ public class ExecutionProductionController {
         return new ResponseEntity<>(executionProductionService.create(dto), HttpStatus.CREATED);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ExecutionProductionDTO> update(
+            @PathVariable Long id,
+            @RequestBody ExecutionProductionUpdateDTO dto) {
+        return ResponseEntity.ok(executionProductionService.update(id, dto));
+    }
     @GetMapping("/build-code-lot/{lotId}")
     public ResponseEntity<String> buildCodeLot(@PathVariable Long lotId) {
         return ResponseEntity.ok(executionProductionService.buildCodeLotForLot(lotId));

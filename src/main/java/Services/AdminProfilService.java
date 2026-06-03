@@ -1,6 +1,7 @@
 package Services;
 
 import Models.Profil;
+import Repositories.PermissionRepository;
 import Repositories.ProfilRepository;
 import Repositories.UtilisateurRepository;
 import dto.ProfilDTO;
@@ -8,7 +9,6 @@ import dto.ProfilRequestDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,15 +23,13 @@ public class AdminProfilService {
 
     private final ProfilRepository profilRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final PermissionRepository permissionRepository; // ← ajouté
     private final CurrentUserService currentUserService;
 
     @Transactional(readOnly = true)
     public List<ProfilDTO> findAll(String huilerieNom) {
         Long entrepriseId = currentUserService.getCurrentEntrepriseIdOrThrow();
-
-        // Retorna todos los profils disponibles (no solo los asociados a usuarios)
         List<Profil> profils = profilRepository.findAllByOrderByIdProfilAsc();
-
         return profils.stream()
                 .map(this::toDTO)
                 .toList();
@@ -75,12 +73,10 @@ public class AdminProfilService {
             );
         }
 
-        profilRepository.delete(profil);
-    }
+        // Supprimer les permissions liées avant de supprimer le profil
+        permissionRepository.deleteByProfilIdProfil(id);
 
-    private String normalizeHuilerieNom(String huilerieNom) {
-        String normalized = huilerieNom == null ? null : huilerieNom.trim();
-        return (normalized == null || normalized.isEmpty()) ? null : normalized;
+        profilRepository.delete(profil);
     }
 
     private ProfilDTO toDTO(Profil profil) {

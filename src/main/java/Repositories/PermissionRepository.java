@@ -15,6 +15,7 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
 	List<Permission> findByProfilIdWithModule(@Param("profilId") Long profilId);
 
 	Optional<Permission> findByProfilIdProfilAndModuleIdModule(Long profilId, Long moduleId);
+	void deleteByProfilIdProfil(Long idProfil);
 }
 
 

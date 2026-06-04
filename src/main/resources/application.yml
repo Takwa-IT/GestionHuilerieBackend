@@ -19,7 +19,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: Huileria
+    username: huileria1@gmail.com
     password: "crwa aody lsyd tacp"
     properties:
       mail:
@@ -49,7 +49,7 @@ app:
   mail:
     from: "huileria1@gmail.com"
   frontend:
-    ashboard-url: "http://localhost:64412/pages/dashboard/production"
+    base-url: "http://localhost:4200"
 
 ai:
   prediction:

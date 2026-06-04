@@ -68,9 +68,8 @@ public class ExecutionProductionService {
             execution.setRendement(dto.getRendement());
         }
         if (dto.getDateFinReelle() != null) {
-            execution.setDateFinReelle(
-                    String.valueOf(LocalDate.parse(dto.getDateFinReelle()))
-            );
+            // ✅ Fix: prendre seulement les 10 premiers caractères (YYYY-MM-DD)
+            execution.setDateFinReelle(dto.getDateFinReelle().trim().substring(0, 10));
         }
 
         return toDTO(executionProductionRepository.save(execution));
@@ -443,4 +442,6 @@ public class ExecutionProductionService {
 
         executionProductionRepository.save(execution);
     }
+
+
 }

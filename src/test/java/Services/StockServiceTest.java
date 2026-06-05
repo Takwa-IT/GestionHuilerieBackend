@@ -49,12 +49,17 @@ class StockServiceTest {
 
     private Huilerie huilerie;
     private MatierePremiere matierePremiere;
+    private Models.Fournisseur fournisseur;
 
     @BeforeEach
     void setUp() {
         huilerie = new Huilerie();
         huilerie.setIdHuilerie(1L);
         huilerie.setNom("Huilerie Test");
+
+        fournisseur = new Models.Fournisseur();
+        fournisseur.setIdFournisseur(1L);
+        fournisseur.setNom("Fournisseur Test");
 
         matierePremiere = new MatierePremiere();
         matierePremiere.setId(1L);
@@ -238,6 +243,7 @@ class StockServiceTest {
         lot.setVariete(variete);
         lot.setHuilerie(huilerie);
         lot.setMatierePremiere(matierePremiere);
+        lot.setFournisseur(fournisseur);
 
         stock.setLotOlives(lot);
         return stock;

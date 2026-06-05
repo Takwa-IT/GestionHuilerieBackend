@@ -57,8 +57,8 @@ public class ProduitFinalService {
         savedProduitFinal = produitFinalRepository.save(savedProduitFinal);
         executionProduction.setProduitFinal(savedProduitFinal);
         executionProduction.setStatut("TERMINEE");
-        if (executionProduction.getDateFinPrevue() == null || executionProduction.getDateFinPrevue().isBlank()) {
-            executionProduction.setDateFinPrevue(dto.getDateProduction());
+        if (executionProduction.getDateFinReelle() == null || executionProduction.getDateFinReelle().isBlank()) {
+            executionProduction.setDateFinReelle(dto.getDateProduction());
         }
 
         ExecutionProduction savedExecution = executionProductionRepository.save(executionProduction);

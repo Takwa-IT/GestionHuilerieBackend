@@ -202,7 +202,8 @@ public class StockService {
         Map<String, AggregatedStock> aggregated = stocks.stream()
                 .filter(stock -> stock.getLotOlives() != null
                         && stock.getLotOlives().getHuilerie() != null
-                        && stock.getVariete() != null)
+                        && stock.getVariete() != null
+                        && !stock.getVariete().isEmpty())
                 .collect(Collectors.toMap(
                         stock -> buildAggregationKey(stock),
                         stock -> new AggregatedStock(stock),

@@ -245,79 +245,47 @@ class ExecutionProductionServiceTest {
             verify(lotOlivesRepository).save(argThat(l -> l.getDureeStockageAvantBroyage() == 3));
         }
 
-        @Test
-        @DisplayName("calcule 0 jours quand meme jour")
-        void calcule0Jours_quandMemJour() {
-            GuideProduction guide = buildGuide(1L, 1L);
-            LotOlives lot = buildLot(1L, 1L);
-            lot.setDateReception("2024-01-01");
-
-            ExecutionProductionCreateDTO dto = new ExecutionProductionCreateDTO();
-            dto.setGuideProductionId(1L);
-            dto.setLotId(1L);
-            dto.setReference("LOT-1");
-            dto.setDateDebut("2024-01-01");
-            dto.setDateFinPrevue("2024-01-02");
-            dto.setStatut("EN_COURS");
-
-            when(guideProductionRepository.findById(1L)).thenReturn(Optional.of(guide));
-            when(lotOlivesRepository.findById(1L)).thenReturn(Optional.of(lot));
-            when(executionProductionRepository.existsByCodeLot("LOT-1")).thenReturn(false);
-            when(executionProductionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            executionProductionService.create(dto);
-
-            verify(lotOlivesRepository).save(argThat(l -> l.getDureeStockageAvantBroyage() == 0));
-        }
 
         @Test
         @DisplayName("retourne null quand date reception null")
         void retourneNull_quandDateReceptionNull() {
-            GuideProduction guide = buildGuide(1L, 1L);
-            LotOlives lot = buildLot(1L, 1L);
-            lot.setDateReception(null);
-
-            ExecutionProductionCreateDTO dto = new ExecutionProductionCreateDTO();
-            dto.setGuideProductionId(1L);
-            dto.setLotId(1L);
-            dto.setReference("LOT-1");
-            dto.setDateDebut("2024-01-01");
-            dto.setDateFinPrevue("2024-01-02");
-            dto.setStatut("EN_COURS");
-
-            when(guideProductionRepository.findById(1L)).thenReturn(Optional.of(guide));
-            when(lotOlivesRepository.findById(1L)).thenReturn(Optional.of(lot));
-            when(executionProductionRepository.existsByCodeLot("LOT-1")).thenReturn(false);
-            when(executionProductionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            executionProductionService.create(dto);
-
-            verify(lotOlivesRepository, never()).save(any());
+            Integer result = executionProductionService.computeStorageDurationDays(null, "2024-01-01");
+            assertThat(result).isNull();
         }
 
         @Test
         @DisplayName("retourne null quand date debut null")
         void retourneNull_quandDateDebutNull() {
-            GuideProduction guide = buildGuide(1L, 1L);
-            LotOlives lot = buildLot(1L, 1L);
-            lot.setDateReception("2024-01-01");
+            Integer result = executionProductionService.computeStorageDurationDays("2024-01-01", null);
+            assertThat(result).isNull();
+        }
 
-            ExecutionProductionCreateDTO dto = new ExecutionProductionCreateDTO();
-            dto.setGuideProductionId(1L);
-            dto.setLotId(1L);
-            dto.setReference("LOT-1");
-            dto.setDateDebut(null);
-            dto.setDateFinPrevue("2024-01-02");
-            dto.setStatut("EN_COURS");
+        @Test
+        @DisplayName("retourne null quand date reception vide")
+        void retourneNull_quandDateReceptionVide() {
+            Integer result = executionProductionService.computeStorageDurationDays("", "2024-01-01");
+            assertThat(result).isNull();
+        }
 
-            when(guideProductionRepository.findById(1L)).thenReturn(Optional.of(guide));
-            when(lotOlivesRepository.findById(1L)).thenReturn(Optional.of(lot));
-            when(executionProductionRepository.existsByCodeLot("LOT-1")).thenReturn(false);
-            when(executionProductionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        @Test
+        @DisplayName("retourne null quand date debut vide")
+        void retourneNull_quandDateDebutVide() {
+            Integer result = executionProductionService.computeStorageDurationDays("2024-01-01", "");
+            assertThat(result).isNull();
+        }
 
-            executionProductionService.create(dto);
+        @Test
+        @DisplayName("calcule 3 jours entre reception et debut")
+        void calcule3Jours_entreReceptionEtDebut() {
+            Integer result = executionProductionService.computeStorageDurationDays("2024-01-01", "2024-01-04");
+            assertThat(result).isEqualTo(3);
+        }
 
-            verify(lotOlivesRepository, never()).save(any());
+        @Test
+        @DisplayName("calcule 0 jours quand meme jour")
+        void calcule0Jours_quandMemJour() {
+            Integer result = executionProductionService.computeStorageDurationDays("2024-01-01", "2024-01-01");
+            assertThat(result).isEqualTo(0);
         }
     }
 

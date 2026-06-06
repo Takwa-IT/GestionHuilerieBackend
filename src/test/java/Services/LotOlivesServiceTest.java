@@ -206,9 +206,14 @@ class LotOlivesServiceTest {
             assertThat(captor.getValue().getVariete()).isEqualTo("koroneiki");
         }
 
+        /**
+         * Vérifie que lors de la création d'un arrivage avec une variété existant déjà en stock,
+         * le lot du stock existant est mis à jour pour pointer vers le nouveau lot créé.
+         * Le test vérifie que stock.getLotOlives().getIdLot() est égal à 2L (le nouveau lot).
+         */
         @Test
-        @DisplayName("createArrivage ne remplace pas lot original du stock")
-        void createArrivage_neRemplacePasLotOriginal_duStock() {
+        @DisplayName("createArrivage met à jour lot du stock avec nouveau lot")
+        void createArrivage_metAJourLotDuStock_avecNouveauLot() {
             LotArrivageCreateDTO dto = buildLotDTO("Manzanilla", "MAT-001", "CAMP-2025", 1L);
 
             LotOlives originalLot = buildLotOlives(1L, "manzanilla");

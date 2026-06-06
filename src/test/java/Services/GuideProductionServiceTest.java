@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -268,9 +269,11 @@ class GuideProductionServiceTest {
 
             guideProductionService.create(dto);
 
-            verify(guideProductionRepository, times(2)).save(argThat(guide -> 
-                !guide.getEtapes().get(0).getCodeEtape().contains("&") &&
-                !guide.getEtapes().get(0).getCodeEtape().contains("é")));
+            verify(guideProductionRepository, times(2)).save(any());
+            
+            ArgumentCaptor<GuideProduction> captor = ArgumentCaptor.forClass(GuideProduction.class);
+            verify(guideProductionRepository, atLeastOnce()).save(captor.capture());
+            assertThat(captor.getValue().getEtapes().get(0).getCodeEtape()).isEqualTo("r_ception_contr_le");
         }
     }
 }

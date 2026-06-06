@@ -63,14 +63,19 @@ class ExecutionProductionControllerTest {
             var result = executionProductionController.findAll(null);
 
             assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(result.getBody()).isEmpty();
         }
 
         @Test
-        @DisplayName("findAll appelle executionProductionService")
-        void findAll_appelleExecutionProductionService() {
-            executionProductionController.findAll(null);
+        @DisplayName("findAll retourne liste d'executions")
+        void findAll_retourneListeDExecutions() {
+            when(executionProductionService.findAll(null)).thenReturn(List.of(buildExecutionDTO()));
 
-            verify(executionProductionService, times(1)).findAll(null);
+            var result = executionProductionController.findAll(null);
+
+            assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(result.getBody()).hasSize(1);
+            assertThat(result.getBody().get(0).getReference()).isEqualTo("LOT-01");
         }
     }
 
@@ -86,38 +91,15 @@ class ExecutionProductionControllerTest {
             var result = executionProductionController.findById(1L);
 
             assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
-        }
-
-        @Test
-        @DisplayName("findById appelle executionProductionService")
-        void findById_appelleExecutionProductionService() {
-            executionProductionController.findById(1L);
-
-            verify(executionProductionService, times(1)).findById(1L);
+            assertThat(result.getBody()).isNotNull();
+            assertThat(result.getBody().getReference()).isEqualTo("LOT-01");
+            assertThat(result.getBody().getStatut()).isEqualTo("EN_COURS");
         }
     }
 
     @Nested
     @DisplayName("Tests sur create()")
     class CreateTests {
-
-        @Test
-        @DisplayName("create appelle executionProductionService")
-        void create_appelleExecutionProductionService() {
-            dto.ExecutionProductionCreateDTO dto = new dto.ExecutionProductionCreateDTO();
-            dto.setReference("LOT-01");
-            dto.setDateDebut("2024-01-01");
-            dto.setDateFinPrevue("2024-01-02");
-            dto.setStatut("EN_COURS");
-            dto.setGuideProductionId(1L);
-            dto.setLotId(1L);
-
-            when(executionProductionService.create(any())).thenReturn(buildExecutionDTO());
-
-            executionProductionController.create(dto);
-
-            verify(executionProductionService, times(1)).create(any());
-        }
 
         @Test
         @DisplayName("create retourne DTO cree")
@@ -135,6 +117,9 @@ class ExecutionProductionControllerTest {
             var result = executionProductionController.create(dto);
 
             assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(result.getBody()).isNotNull();
+            assertThat(result.getBody().getReference()).isEqualTo("LOT-01");
+            assertThat(result.getBody().getStatut()).isEqualTo("EN_COURS");
         }
     }
 
@@ -143,16 +128,18 @@ class ExecutionProductionControllerTest {
     class UpdateTests {
 
         @Test
-        @DisplayName("update appelle executionProductionService")
-        void update_appelleExecutionProductionService() {
+        @DisplayName("update retourne DTO modifie")
+        void update_retourneDTOModifie() {
             ExecutionProductionUpdateDTO dto = new ExecutionProductionUpdateDTO();
             dto.setStatut("TERMINE");
 
             when(executionProductionService.update(eq(1L), any())).thenReturn(buildExecutionDTO());
 
-            executionProductionController.update(1L, dto);
+            var result = executionProductionController.update(1L, dto);
 
-            verify(executionProductionService, times(1)).update(eq(1L), any());
+            assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(result.getBody()).isNotNull();
+            assertThat(result.getBody().getReference()).isEqualTo("LOT-01");
         }
     }
 
@@ -177,19 +164,6 @@ class ExecutionProductionControllerTest {
     class PredictOnStartTests {
 
         @Test
-        @DisplayName("predictOnStart appelle predictionService")
-        void predictOnStart_appellePredictionService() {
-            ExecutionPredictionStartDTO dto = new ExecutionPredictionStartDTO();
-            dto.setRegion("Nord");
-
-            when(predictionService.predictOnStart(eq(1L), any())).thenReturn(buildPredictionDTO());
-
-            executionProductionController.predictOnStart(1L, dto);
-
-            verify(predictionService, times(1)).predictOnStart(eq(1L), any());
-        }
-
-        @Test
         @DisplayName("predictOnStart retourne prediction DTO")
         void predictOnStart_retournePredictionDTO() {
             ExecutionPredictionStartDTO dto = new ExecutionPredictionStartDTO();
@@ -200,6 +174,9 @@ class ExecutionProductionControllerTest {
             var result = executionProductionController.predictOnStart(1L, dto);
 
             assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(result.getBody()).isNotNull();
+            assertThat(result.getBody().getModePrediction()).isEqualTo("no_lab");
+            assertThat(result.getBody().getRendementPreditPourcent()).isEqualTo(22.5);
         }
     }
 
@@ -208,11 +185,15 @@ class ExecutionProductionControllerTest {
     class BuildCodeLotTests {
 
         @Test
-        @DisplayName("buildCodeLot appelle executionProductionService")
-        void buildCodeLot_appelleExecutionProductionService() {
-            executionProductionController.buildCodeLot(1L);
+        @DisplayName("buildCodeLot retourne code lot")
+        void buildCodeLot_retourneCodeLot() {
+            when(executionProductionService.buildCodeLotForLot(1L)).thenReturn("LOT-01");
 
-            verify(executionProductionService, times(1)).buildCodeLotForLot(1L);
+            var result = executionProductionController.buildCodeLot(1L);
+
+            assertThat(result.getStatusCode().is2xxSuccessful()).isTrue();
+            assertThat(result.getBody()).isNotNull();
+            assertThat(result.getBody()).isEqualTo("LOT-01");
         }
     }
 }

@@ -115,7 +115,7 @@ public class ExecutionProductionService {
         return toDTO(savedExecution);
     }
 
-    private Integer computeStorageDurationDays(String dateReception, String dateDebut) {
+    Integer computeStorageDurationDays(String dateReception, String dateDebut) {
         if (dateReception == null || dateReception.isBlank() || dateDebut == null || dateDebut.isBlank()) {
             return null;
         }

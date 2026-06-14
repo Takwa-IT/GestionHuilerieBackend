@@ -66,6 +66,13 @@ public class PredictionController {
         return ResponseEntity.ok(predictionService.update(id, dto));
     }
 
+    @PostMapping("/predict-on-start/{executionId}")
+    public ResponseEntity<PredictionDTO> predictOnStart(
+            @PathVariable Long executionId,
+            @RequestBody(required = false) dto.ExecutionPredictionStartDTO overrides) {
+        return ResponseEntity.ok(predictionService.predictOnStart(executionId, overrides));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         predictionService.delete(id);

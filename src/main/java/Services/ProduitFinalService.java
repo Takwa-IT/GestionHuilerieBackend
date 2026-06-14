@@ -96,8 +96,11 @@ public class ProduitFinalService {
         dto.setReference(executionProduction.getReference());
         dto.setDateDebut(executionProduction.getDateDebut());
         dto.setDateFinPrevue(executionProduction.getDateFinPrevue());
+        dto.setDateFinReelle(executionProduction.getDateFinReelle());
         dto.setStatut(executionProduction.getStatut());
+        dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
+        dto.setControleTemperature(executionProduction.getControleTemperature());
 
         if (executionProduction.getGuideProduction() != null) {
             dto.setGuideProductionId(executionProduction.getGuideProduction().getIdGuideProduction());

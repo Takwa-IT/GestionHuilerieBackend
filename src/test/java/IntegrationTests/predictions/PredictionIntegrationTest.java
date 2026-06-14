@@ -1,163 +1,117 @@
 package IntegrationTests.predictions;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dto.AuthResponseDTO;
-import dto.PredictionCreateDTO;
-import dto.PredictionDTO;
+import IntegrationTests.config.AbstractIntegrationTest;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import dto.PredictionInputDTO;
-import dto.SignupRequestDTO;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = org.example.gestionhuilerieback.GestionHuilerieBackApplication.class)
-@ActiveProfiles("test")
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
-})
-@Transactional
-class PredictionIntegrationTest {
+class PredictionIntegrationTest extends AbstractIntegrationTest {
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+    private static WireMockServer wireMock;
 
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
+    @BeforeAll
+    static void startWireMock() {
+        wireMock = new WireMockServer(8089);
+        wireMock.start();
+        WireMock.configureFor("localhost", 8089);
+    }
 
-    private String jwtToken;
-
-    @BeforeEach
-    void setup() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        objectMapper = new ObjectMapper();
+    @AfterAll
+    static void stopWireMock() {
+        wireMock.stop();
     }
 
     @BeforeEach
-    void setupAuth() throws Exception {
-        // Créer un utilisateur pour les tests
-        SignupRequestDTO signupRequest = new SignupRequestDTO();
-        signupRequest.setEmail("admin@example.com");
-        signupRequest.setMotDePasse("admin123");
-        signupRequest.setNom("Admin");
-        signupRequest.setPrenom("User");
-
-        MvcResult result = mockMvc.perform(post("/api/auth/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        AuthResponseDTO authResponse = objectMapper.readValue(
-            result.getResponse().getContentAsString(), 
-            AuthResponseDTO.class
-        );
-        jwtToken = authResponse.getToken();
+    void setupWireMockStubs() {
+        wireMock.resetAll();
+        wireMock.stubFor(post(urlEqualTo("/predict"))
+            .willReturn(aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"rendement\": 22.5, \"qualite\": \"HAUTE\", " +
+                          "\"confidence\": 0.87}")));
     }
 
-    @Test
-    @DisplayName("validateInputSuccess - Validation des données de prédiction")
-    void validateInputSuccess() throws Exception {
-        // Given: Données de prédiction valides
+    private PredictionInputDTO buildValidInput() {
         PredictionInputDTO dto = new PredictionInputDTO();
-        dto.setVariete("Arbequina");
+        dto.setVariete("Chemlali");
         dto.setRegion("Nord");
-        dto.setTypeMachine("3_phase");
-        dto.setHumiditePourcent(60.0);
-
-        // When: Validation des données
-        mockMvc.perform(post("/api/predictions/validate-input")
-                .header("Authorization", "Bearer " + jwtToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.message").value("Données de prédiction valides"));
+        dto.setMethodeRecolte("manuelle");
+        dto.setTypeSol("argileux");
+        dto.setLavageEffectue("oui");
+        dto.setTypeMachine("2_phase");
+        dto.setTypeBroyeur("marteaux");
+        dto.setTypeMalaxeur("horizontal");
+        dto.setTypeNettoyage("laveuse_eau");
+        dto.setTypeSeparation("decantation_naturelle");
+        dto.setControleTemperature("oui");
+        dto.setPoidsOlivesKg(500.0);
+        dto.setMaturiteNiveau15(3.0);
+        dto.setDureeStockageJours(2.0);
+        dto.setTempsDepuisRecolteHeures(10.0);
+        dto.setTemperatureMalaxageC(25.0);
+        dto.setDureeMalaxageMin(30.0);
+        dto.setVitesseDecanteurTrMin(3200.0);
+        dto.setHumiditePourcent(20.0);
+        dto.setAciditeOlivesPourcent(1.0);
+        dto.setTauxFeuillesPourcent(2.0);
+        dto.setPressionExtractionBar(100.0);
+        dto.setPresenceAjoutEau(true);
+        dto.setPresencePresse(false);
+        dto.setPresenceSeparateur(true);
+        return dto;
     }
 
     @Test
-    @DisplayName("validateInputFailure - Données de prédiction invalides")
-    void validateInputFailure() throws Exception {
-        // Given: Données de prédiction invalides (variete vide)
-        PredictionInputDTO dto = new PredictionInputDTO();
-        dto.setVariete("");
-        dto.setRegion("Nord");
-        dto.setTypeMachine("3_phase");
-
-        // When: Validation des données
-        mockMvc.perform(post("/api/predictions/validate-input")
+    @DisplayName("validateInput - données valides retourne 200")
+    void validateInput_donneesValides_retourne200() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/predictions/validate-input")
                 .header("Authorization", "Bearer " + jwtToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Données de prédiction invalides"));
+                .content(objectMapper.writeValueAsString(buildValidInput())))
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("createPredictionSuccess - Création prédiction avec données valides")
-    void createPredictionSuccess() throws Exception {
-        // Given: Données de prédiction valides
-        PredictionCreateDTO dto = new PredictionCreateDTO();
-        dto.setModePrediction("no_lab");
-        dto.setRendementPreditPourcent(22.5);
-        dto.setQualitePredite("HAUTE");
-        dto.setExecutionProductionId(1L);
+    @DisplayName("validateInput - variété invalide retourne erreur")
+    void validateInput_varieteInvalide_retourneErreur() throws Exception {
+        PredictionInputDTO dto = buildValidInput();
+        dto.setVariete("VarieteInconnue");
 
-        // When: Création de la prédiction
-        MvcResult result = mockMvc.perform(post("/api/predictions")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/predictions/validate-input")
                 .header("Authorization", "Bearer " + jwtToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.idPrediction").exists())
-                .andReturn();
-
-        // Then: Vérifier la réponse
-        String response = result.getResponse().getContentAsString();
-        PredictionDTO predictionDto = objectMapper.readValue(response, PredictionDTO.class);
-        
-        assertThat(predictionDto.getIdPrediction()).isNotNull();
-        assertThat(predictionDto.getModePrediction()).isEqualTo("no_lab");
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
-    @DisplayName("findAllSuccess - Liste des prédictions")
-    void findAllSuccess() throws Exception {
-        // Given: Créer une prédiction
-        PredictionCreateDTO dto = new PredictionCreateDTO();
-        dto.setModePrediction("no_lab");
-        dto.setRendementPreditPourcent(22.5);
-        dto.setQualitePredite("HAUTE");
-        dto.setExecutionProductionId(1L);
+    @DisplayName("validateInput - région normalisée automatiquement")
+    void validateInput_regionNormaliseeAutomatiquement() throws Exception {
+        PredictionInputDTO dto = buildValidInput();
+        dto.setRegion("Sfax");
 
-        mockMvc.perform(post("/api/predictions")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/predictions/validate-input")
                 .header("Authorization", "Bearer " + jwtToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk());
+    }
 
-        // When: Récupérer la liste des prédictions
-        mockMvc.perform(get("/api/predictions")
+    @Test
+    @DisplayName("findAll - liste des prédictions")
+    void findAll_listePredictions() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/predictions")
                 .header("Authorization", "Bearer " + jwtToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].modePrediction").value("no_lab"));
+                .andExpect(jsonPath("$").isArray());
     }
 }

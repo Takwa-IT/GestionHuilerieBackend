@@ -105,12 +105,6 @@ class StockIntegrationTest {
 
     @BeforeEach
     void setupAuth() throws Exception {
-        // Skip JWT auth for now - tests will use permitAll endpoints
-        jwtToken = null;
-    }
-
-    @BeforeEach
-    void setupAuth() throws Exception {
         // Créer un utilisateur pour les tests
         SignupRequestDTO signupRequest = new SignupRequestDTO();
         signupRequest.setEmail("admin@example.com");

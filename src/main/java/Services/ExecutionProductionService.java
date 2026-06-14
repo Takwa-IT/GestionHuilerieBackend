@@ -210,6 +210,7 @@ public class ExecutionProductionService {
         dto.setDateFinPrevue(executionProduction.getDateFinPrevue());
         dto.setDateFinReelle(executionProduction.getDateFinReelle());
         dto.setStatut(executionProduction.getStatut());
+        dto.setRendement(executionProduction.getRendement());
         dto.setObservations(executionProduction.getObservations());
         dto.setControleTemperature(executionProduction.getControleTemperature());
         dto.setHuilerieId(resolveHuilerieId(executionProduction));
@@ -229,6 +230,9 @@ public class ExecutionProductionService {
             dto.setProduitFinalNomProduit(executionProduction.getProduitFinal().getNomProduit());
             dto.setProduitFinalQualite(normalizeQualityLabel(executionProduction.getProduitFinal().getQualite()));
             dto.setProduitFinalQuantiteProduite(executionProduction.getProduitFinal().getQuantiteProduite());
+            dto.setProduitFinalRendement(firstNonNull(
+                    executionProduction.getProduitFinal().getRendement(),
+                    executionProduction.getRendement()));
         }
 
         dto.setValeursReelles(loadValeursReelles(executionProduction));

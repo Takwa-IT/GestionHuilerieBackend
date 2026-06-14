@@ -65,6 +65,9 @@ public class AuthService {
     @Value("${app.frontend.base-url:http://localhost:4200}")
     private String frontendBaseUrl;
 
+    @Value("${app.email.verification.required:true}")
+    private boolean emailVerificationRequired;
+
     public AuthResponseDTO signup(SignupRequestDTO request) {
         utilisateurRepository.findByEmail(request.getEmail())
                 .ifPresent(u -> {
@@ -82,27 +85,36 @@ public class AuthService {
         employe.setActif(StatutUtilisateur.ACTIF);
         employe.setHuilerieEmp(null); // Huilerie assignee par admin ultérieurement
 
-        // Verification email obligatoire avant login
-        employe.setEmailVerified(false);
-        employe.setVerificationToken(UUID.randomUUID().toString());
-        employe.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+        // Verification email - skip if disabled in tests
+        if (emailVerificationRequired) {
+            employe.setEmailVerified(false);
+            employe.setVerificationToken(UUID.randomUUID().toString());
+            employe.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(verificationEmailExpirationHours));
+        } else {
+            employe.setEmailVerified(true);
+        }
 
         Utilisateur saved = utilisateurRepository.save(employe);
         if (saved instanceof Employe savedEmploye) {
             savedEmploye.setIdEmploye(savedEmploye.getIdUtilisateur());
             saved = utilisateurRepository.save(savedEmploye);
         }
-        sendVerificationEmail(saved);
+        
+        if (emailVerificationRequired) {
+            sendVerificationEmail(saved);
+        }
 
-        // Pas de JWT au signup tant que l'email n'est pas verifie
-        return buildAuthResponse(saved, null, null);
+        // Pas de JWT au signup tant que l'email n'est pas verifie (sauf si verification disabled)
+        String token = emailVerificationRequired ? null : jwtService.generateToken(saved);
+        RefreshToken refreshToken = emailVerificationRequired ? null : createRefreshToken(saved);
+        return buildAuthResponse(saved, token, refreshToken != null ? refreshToken.getToken() : null);
     }
 
     public AuthResponseDTO login(String email, String motDePasse) {
         Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Email ou mot de passe invalide"));
 
-        if (!Boolean.TRUE.equals(utilisateur.getEmailVerified())) {
+        if (emailVerificationRequired && !Boolean.TRUE.equals(utilisateur.getEmailVerified())) {
             throw new UnauthorizedException("Veuillez verifier votre email avant de vous connecter");
         }
 
